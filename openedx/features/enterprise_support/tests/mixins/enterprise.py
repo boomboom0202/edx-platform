@@ -10,9 +10,6 @@ import httpretty
 from django.conf import settings
 from django.core.cache import cache
 from django.test import SimpleTestCase
-from django.urls import reverse
-
-from openedx.features.enterprise_support.tests import FAKE_ENTERPRISE_CUSTOMER
 
 
 class EnterpriseServiceMockMixin:
@@ -286,54 +283,34 @@ class EnterpriseServiceMockMixin:
 
 class EnterpriseTestConsentRequired(SimpleTestCase):
     """
-    Mixin to help test the data_sharing_consent_required decorator.
+    Mixin to help test that course-scoped views redirect to the data-sharing consent page
+    when the CoursewareViewStarted filter pipeline emits a consent URL.
     """
 
-    @mock.patch('openedx.features.enterprise_support.utils.get_enterprise_learner_generic_name')
-    @mock.patch('openedx.features.enterprise_support.api.enterprise_customer_from_api')
-    @mock.patch('openedx.features.enterprise_support.api.enterprise_customer_uuid_for_request')
-    @mock.patch('openedx.features.enterprise_support.api.reverse')
-    @mock.patch('openedx.features.enterprise_support.api.enterprise_enabled')
-    @mock.patch('openedx.features.enterprise_support.api.consent_needed_for_course')
-    def verify_consent_required(
-            self,
-            client,
-            url,
-            mock_consent_necessary,
-            mock_enterprise_enabled,
-            mock_reverse,
-            mock_enterprise_customer_uuid_for_request,
-            mock_enterprise_customer_from_api,
-            mock_get_enterprise_learner_generic_name,
-            status_code=200,
-    ):
+    @mock.patch('openedx_filters.learning.filters.CoursewareViewStarted.run_filter')
+    def verify_consent_required(self, client, url, mock_run_filter, status_code=200):
         """
-        Verify that the given URL redirects to the consent page when consent is required,
-        and doesn't redirect to the consent page when consent is not required.
+        Verify that the given URL redirects to the consent page when the filter pipeline
+        emits a consent URL, and doesn't redirect when it does not.
         """
+        consent_url = '/enterprise/grant_data_sharing_permissions'
 
-        def mock_consent_reverse(*args, **kwargs):
-            if args[0] == 'grant_data_sharing_permissions':
-                return '/enterprise/grant_data_sharing_permissions'
-            return reverse(*args, **kwargs)
+        def _redirect_url(redirect_url, request, course_key):
+            return consent_url, request, course_key
 
-        # ENT-924: Temporary solution to replace sensitive SSO usernames.
-        mock_get_enterprise_learner_generic_name.return_value = ''
+        def _no_redirect(redirect_url, request, course_key):
+            return None, request, course_key
 
-        mock_reverse.side_effect = mock_consent_reverse
-        mock_enterprise_enabled.return_value = True
-        mock_enterprise_customer_uuid_for_request.return_value = 'fake-uuid'
-        mock_enterprise_customer_from_api.return_value = FAKE_ENTERPRISE_CUSTOMER
-        # Ensure that when consent is necessary, the user is redirected to the consent page.
-        mock_consent_necessary.return_value = True
+        # Ensure that when the pipeline emits a URL, the user is redirected to the consent page.
+        mock_run_filter.side_effect = _redirect_url
         response = client.get(url)
-        while(response.status_code == 302 and 'grant_data_sharing_permissions' not in response.url):
+        while response.status_code == 302 and 'grant_data_sharing_permissions' not in response.url:
             response = client.get(response.url)
         assert response.status_code == 302
         assert 'grant_data_sharing_permissions' in response.url
 
-        # Ensure that when consent is not necessary, the user continues through to the requested page.
-        mock_consent_necessary.return_value = False
+        # Ensure that when the pipeline emits None, the user continues through to the requested page.
+        mock_run_filter.side_effect = _no_redirect
         response = client.get(url)
         assert response.status_code == status_code
 

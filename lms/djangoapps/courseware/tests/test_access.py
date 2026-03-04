@@ -1000,14 +1000,15 @@ class CourseOverviewAccessTestCase(ModuleStoreTestCase):
                 # read: CourseAccessRole + django_comment_client.Role
                 num_queries = 4
             else:
-                # read: CourseAccessRole + EnterpriseCourseEnrollment
+                # read: CourseAccessRole + EnterpriseCustomerUser (EnterpriseStartDateAccessFailureStep)
                 num_queries = 4
         elif user_attr_name == 'user_normal':
             if course_attr_name == 'course_started':
                 # read: CourseAccessRole + django_comment_client.Role + FBEEnrollmentExclusion + CourseMode
                 num_queries = 6
             else:
-                # read: CourseAccessRole + CourseEnrollmentAllowed + EnterpriseCourseEnrollment
+                # read: CourseAccessRole + CourseEnrollmentAllowed + EnterpriseCustomerUser
+                # (EnterpriseStartDateAccessFailureStep)
                 num_queries = 5
         elif user_attr_name == 'user_anonymous':
             if course_attr_name == 'course_started':

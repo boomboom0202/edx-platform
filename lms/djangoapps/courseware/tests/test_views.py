@@ -28,6 +28,7 @@ from edx_toggles.toggles.testutils import override_waffle_flag, override_waffle_
 from enterprise.api.v1.serializers import EnterpriseCustomerSerializer
 from freezegun import freeze_time
 from opaque_keys.edx.keys import CourseKey, UsageKey
+from openedx_filters.learning.filters import CourseStartDateValidationFailed, CoursewareViewStarted
 from pytz import UTC
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -98,7 +99,8 @@ from openedx.features.enterprise_support.tests.factories import (
     EnterpriseCustomerFactory,
     EnterpriseCustomerUserFactory,
 )
-from openedx.features.enterprise_support.tests.mixins.enterprise import EnterpriseTestConsentRequired
+from openedx.features.enterprise_support.api import add_enterprise_customer_to_session
+from enterprise.api.v1.serializers import EnterpriseCustomerSerializer
 from xmodule.data import CertificatesDisplayBehaviors
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
@@ -2667,9 +2669,9 @@ class TestRenderXBlockSelfPaced(TestRenderXBlock):  # pylint: disable=test-inher
         return options
 
 
-class EnterpriseConsentTestCase(EnterpriseTestConsentRequired, ModuleStoreTestCase):
+class EnterpriseConsentTestCase(ModuleStoreTestCase):
     """
-    Ensure that the Enterprise Data Consent redirects are in place only when consent is required.
+    Ensure that courseware views redirect when the CoursewareViewStarted filter provides a URL.
     """
 
     def setUp(self):
@@ -2680,20 +2682,22 @@ class EnterpriseConsentTestCase(EnterpriseTestConsentRequired, ModuleStoreTestCa
         CourseOverview.load_from_module_store(self.course.id)
         CourseEnrollmentFactory(user=self.user, course_id=self.course.id)
 
-    @patch('openedx.features.enterprise_support.api.enterprise_customer_for_request')
-    def test_consent_required(self, mock_enterprise_customer_for_request):
+    @patch('openedx_filters.learning.filters.CoursewareViewStarted.run_filter')
+    def test_consent_required(self, mock_run_filter):
         """
-        Test that enterprise data sharing consent is required when enabled for the various courseware views.
+        Test that courseware views redirect to the URL raised by the CoursewareViewStarted filter.
         """
-        # ENT-924: Temporary solution to replace sensitive SSO usernames.
-        mock_enterprise_customer_for_request.return_value = None
+        redirect_url = 'http://example.com/grant_consent'
+        mock_run_filter.side_effect = CoursewareViewStarted.RedirectToUrl(url=redirect_url)
 
         course_id = str(self.course.id)
         for url in (
                 reverse("progress", kwargs=dict(course_id=course_id)),
                 reverse("student_progress", kwargs=dict(course_id=course_id, student_id=str(self.user.id))),
         ):
-            self.verify_consent_required(self.client, url)  # pylint: disable=no-value-for-parameter
+            response = self.client.get(url)
+            assert response.status_code == 302
+            assert response['Location'] == redirect_url
 
 
 @ddt.ddt
@@ -2763,7 +2767,19 @@ class AccessUtilsTestCase(ModuleStoreTestCase):
             EnterpriseCourseEnrollmentFactory(enterprise_customer_user=enterprise_customer_user, course_id=course.id)
         set_current_request(request)
 
-        access_response = check_course_open_for_learner(staff_user, course)
+        if setup_enterprise_enrollment:
+            # Mock the filter to simulate an enterprise plugin substituting the start-date error payload.
+            with patch(
+                'openedx_filters.learning.filters.CourseStartDateValidationFailed.run_filter'
+            ) as mock_filter:
+                mock_filter.side_effect = CourseStartDateValidationFailed.OverrideStartDateError(
+                    error_code='course_not_started_enterprise_learner',
+                    developer_message='developer message',
+                    user_message='user message',
+                )
+                access_response = check_course_open_for_learner(staff_user, course)
+        else:
+            access_response = check_course_open_for_learner(staff_user, course)
         assert bool(access_response) == expected_has_access
         assert access_response.error_code == expected_error_code
 
