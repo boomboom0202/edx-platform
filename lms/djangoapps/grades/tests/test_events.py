@@ -14,14 +14,14 @@ from openedx_events.learning.data import (
     CoursePassingStatusData,
     PersistentCourseGradeData,
     UserData,
-    UserPersonalData
+    UserPersonalData,
 )
 from openedx_events.learning.signals import (
     CCX_COURSE_PASSING_STATUS_UPDATED,
     COURSE_PASSING_STATUS_UPDATED,
-    PERSISTENT_GRADE_SUMMARY_CHANGED
+    PERSISTENT_GRADE_SUMMARY_CHANGED,
 )
-from openedx_events.tests.utils import OpenEdxEventsTestMixin
+from openedx_events.testing import OpenEdxEventsTestMixin
 
 from common.djangoapps.student.tests.factories import AdminFactory, UserFactory
 from common.test.utils import assert_dict_contains_subset
@@ -33,7 +33,7 @@ from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
 
-class PersistentGradeEventsTest(SharedModuleStoreTestCase, OpenEdxEventsTestMixin):
+class PersistentGradeEventsTest(OpenEdxEventsTestMixin, SharedModuleStoreTestCase):
     """
     Tests for the Open edX Events associated with the persistant grade process through the update_or_create method.
 
@@ -45,17 +45,6 @@ class PersistentGradeEventsTest(SharedModuleStoreTestCase, OpenEdxEventsTestMixi
     ENABLED_OPENEDX_EVENTS = [
         "org.openedx.learning.course.persistent_grade_summary.changed.v1",
     ]
-
-    @classmethod
-    def setUpClass(cls):
-        """
-        Set up class method for the Test class.
-
-        This method starts manually events isolation. Explanation here:
-        openedx/core/djangoapps/user_authn/views/tests/test_events.py#L44
-        """
-        super().setUpClass()
-        cls.start_events_isolation()
 
     def setUp(self):  # pylint: disable=arguments-differ
         super().setUp()
@@ -91,7 +80,7 @@ class PersistentGradeEventsTest(SharedModuleStoreTestCase, OpenEdxEventsTestMixi
 
         PERSISTENT_GRADE_SUMMARY_CHANGED.connect(event_receiver)
         grade = PersistentCourseGrade.update_or_create(**self.params)
-        self.assertTrue(self.receiver_called)
+        self.assertTrue(self.receiver_called)  # noqa: PT009
         assert_dict_contains_subset(
             self,
             {
@@ -114,21 +103,13 @@ class PersistentGradeEventsTest(SharedModuleStoreTestCase, OpenEdxEventsTestMixi
         )
 
 
-class CoursePassingStatusEventsTest(SharedModuleStoreTestCase, OpenEdxEventsTestMixin):
+class CoursePassingStatusEventsTest(OpenEdxEventsTestMixin, SharedModuleStoreTestCase):
     """
     Tests for Open edX passing status update event.
     """
     ENABLED_OPENEDX_EVENTS = [
         "org.openedx.learning.course.passing.status.updated.v1",
     ]
-
-    @classmethod
-    def setUpClass(cls):
-        """
-        Set up class method for the Test class.
-        """
-        super().setUpClass()
-        cls.start_events_isolation()
 
     def setUp(self):
         super().setUp()
@@ -153,7 +134,7 @@ class CoursePassingStatusEventsTest(SharedModuleStoreTestCase, OpenEdxEventsTest
         with mock_passing_grade():
             grade_factory.update(self.user, self.course)
 
-        self.assertTrue(self.receiver_called)
+        self.assertTrue(self.receiver_called)  # noqa: PT009
         assert_dict_contains_subset(
             self,
             {
@@ -180,7 +161,7 @@ class CoursePassingStatusEventsTest(SharedModuleStoreTestCase, OpenEdxEventsTest
 
 
 class CCXCoursePassingStatusEventsTest(
-    SharedModuleStoreTestCase, OpenEdxEventsTestMixin
+    OpenEdxEventsTestMixin, SharedModuleStoreTestCase
 ):
     """
     Tests for Open edX passing status update event in a CCX course.
@@ -188,14 +169,6 @@ class CCXCoursePassingStatusEventsTest(
     ENABLED_OPENEDX_EVENTS = [
         "org.openedx.learning.ccx.course.passing.status.updated.v1",
     ]
-
-    @classmethod
-    def setUpClass(cls):
-        """
-        Set up class method for the Test class.
-        """
-        super().setUpClass()
-        cls.start_events_isolation()
 
     def setUp(self):
         super().setUp()
@@ -227,7 +200,7 @@ class CCXCoursePassingStatusEventsTest(
         with mock_passing_grade():
             grade_factory.update(self.user, self.store.get_course(self.ccx_locator))
 
-        self.assertTrue(self.receiver_called)
+        self.assertTrue(self.receiver_called)  # noqa: PT009
         assert_dict_contains_subset(
             self,
             {

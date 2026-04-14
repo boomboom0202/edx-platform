@@ -2,19 +2,19 @@
 Viewset for auth/saml/v0/samlproviderconfig
 """
 
-from django.shortcuts import get_list_or_404
 from django.db.utils import IntegrityError
+from django.shortcuts import get_list_or_404
 from edx_rbac.mixins import PermissionRequiredMixin
-from rest_framework import permissions, viewsets, status
-from rest_framework.response import Response
+from enterprise.models import EnterpriseCustomer, EnterpriseCustomerIdentityProvider
+from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import ParseError, ValidationError
+from rest_framework.response import Response
 
-from enterprise.models import EnterpriseCustomerIdentityProvider, EnterpriseCustomer
 from common.djangoapps.third_party_auth.utils import validate_uuid4_string
 
 from ..models import SAMLProviderConfig
-from .serializers import SAMLProviderConfigSerializer
 from ..utils import convert_saml_slug_provider_id
+from .serializers import SAMLProviderConfigSerializer
 
 
 class SAMLProviderMixin:
@@ -70,7 +70,7 @@ class SAMLProviderConfigViewSet(PermissionRequiredMixin, SAMLProviderMixin, view
         try:
             enterprise_customer = EnterpriseCustomer.objects.get(pk=customer_uuid)
         except EnterpriseCustomer.DoesNotExist:
-            raise ValidationError(f'Enterprise customer not found at uuid: {customer_uuid}')  # lint-amnesty, pylint: disable=raise-missing-from
+            raise ValidationError(f'Enterprise customer not found at uuid: {customer_uuid}')  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
 
         enterprise_saml_provider = EnterpriseCustomerIdentityProvider.objects.filter(
             enterprise_customer=enterprise_customer,
@@ -114,7 +114,7 @@ class SAMLProviderConfigViewSet(PermissionRequiredMixin, SAMLProviderMixin, view
         try:
             enterprise_customer = EnterpriseCustomer.objects.get(pk=customer_uuid)
         except EnterpriseCustomer.DoesNotExist:
-            raise ValidationError(f'Enterprise customer not found at uuid: {customer_uuid}')  # lint-amnesty, pylint: disable=raise-missing-from
+            raise ValidationError(f'Enterprise customer not found at uuid: {customer_uuid}')  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
 
         # Create the samlproviderconfig model first
         try:

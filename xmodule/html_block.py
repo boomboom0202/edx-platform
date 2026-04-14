@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import textwrap
+import warnings
 from datetime import datetime
 
 from django.conf import settings
@@ -24,14 +25,9 @@ from xmodule.editing_block import EditingMixin
 from xmodule.edxnotes_utils import edxnotes
 from xmodule.html_checker import check_html
 from xmodule.stringify import stringify_children
-from xmodule.util.builtin_assets import add_webpack_js_to_fragment, add_css_to_fragment
+from xmodule.util.builtin_assets import add_css_to_fragment, add_webpack_js_to_fragment
 from xmodule.util.misc import escape_html_characters
-from xmodule.x_module import (
-    ResourceTemplates,
-    shim_xmodule_js,
-    XModuleMixin,
-    XModuleToXBlockMixin,
-)
+from xmodule.x_module import ResourceTemplates, XModuleMixin, XModuleToXBlockMixin, shim_xmodule_js
 from xmodule.xml_block import XmlMixin, name_to_pathname
 
 log = logging.getLogger("edx.courseware")
@@ -51,6 +47,10 @@ class _BuiltinHtmlBlockMixin(  # lint-amnesty, pylint: disable=abstract-method
     """
     The HTML XBlock mixin.
     This provides the base class for all Html-ish blocks (including the HTML XBlock).
+
+    .. deprecated:: 2026-03
+       This built-in HTML block mixin is deprecated. Please use the extracted ``HtmlBlockMixin``
+       from ``xblocks_contrib.html`` instead.
     """
 
     display_name = String(
@@ -289,10 +289,10 @@ class _BuiltinHtmlBlockMixin(  # lint-amnesty, pylint: disable=abstract-method
                     return definition, []
 
             except ResourceNotFound as err:
-                msg = 'Unable to load file contents at path {}: {} '.format(
+                msg = 'Unable to load file contents at path {}: {} '.format(  # noqa: UP032
                     filepath, err)
                 # add more info and re-raise
-                raise Exception(msg).with_traceback(sys.exc_info()[2])
+                raise Exception(msg).with_traceback(sys.exc_info()[2])  # noqa: B904
 
     @classmethod
     def parse_xml_new_runtime(cls, node, runtime, keys):
@@ -317,7 +317,7 @@ class _BuiltinHtmlBlockMixin(  # lint-amnesty, pylint: disable=abstract-method
 
         # Write html to file, return an empty tag
         pathname = name_to_pathname(self.url_name)
-        filepath = '{category}/{pathname}.html'.format(
+        filepath = '{category}/{pathname}.html'.format(  # noqa: UP032
             category=self.category,
             pathname=pathname
         )
@@ -375,6 +375,10 @@ class _BuiltInHtmlBlock(_BuiltinHtmlBlockMixin):  # lint-amnesty, pylint: disabl
     """
     This is the actual HTML XBlock.
     Nothing extra is required; this is just a wrapper to include edxnotes support.
+
+    .. deprecated:: 2026-03
+       This built-in HTML block is deprecated. Please use the extracted ``HtmlBlock``
+       from ``xblocks_contrib.html`` instead.
     """
     is_extracted = False
 
@@ -542,3 +546,14 @@ def reset_class():
 
 reset_class()
 HtmlBlock.__name__ = "HtmlBlock"
+
+if not settings.USE_EXTRACTED_HTML_BLOCK:
+    warnings.warn(
+        "The built-in `xmodule.html_block` HtmlBlock implementation is deprecated. "
+        "To fix this warning, enable `USE_EXTRACTED_HTML_BLOCK` (set it to True) to use "
+        "`xblocks_contrib.html.HtmlBlock` instead. "
+        "Support for the built-in implementation, and the `USE_EXTRACTED_HTML_BLOCK` setting, "
+        "will be removed in Willow.",
+        DeprecationWarning,
+        stacklevel=2,
+    )

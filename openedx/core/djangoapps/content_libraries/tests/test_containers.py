@@ -1,12 +1,11 @@
 """
 Tests for openedx_content-based Content Libraries
 """
-from datetime import datetime, timezone
 import textwrap
+from datetime import datetime, timezone
 
 import ddt
 from freezegun import freeze_time
-
 from opaque_keys.edx.locator import LibraryLocatorV2
 
 from common.djangoapps.student.tests.factories import UserFactory
@@ -39,8 +38,8 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
 
     def setUp(self) -> None:
         super().setUp()
-        self.create_date = datetime(2024, 9, 8, 7, 6, 5, tzinfo=timezone.utc)
-        self.modified_date = datetime(2024, 10, 9, 8, 7, 6, tzinfo=timezone.utc)
+        self.create_date = datetime(2024, 9, 8, 7, 6, 5, tzinfo=timezone.utc)  # noqa: UP017
+        self.modified_date = datetime(2024, 10, 9, 8, 7, 6, tzinfo=timezone.utc)  # noqa: UP017
         self.lib = self._create_library(
             slug="containers",
             title="Container Test Library",
@@ -160,7 +159,7 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
         Test Create, Read, Update, and Delete of a Containers
         """
         # Create container:
-        create_date = datetime(2024, 9, 8, 7, 6, 5, tzinfo=timezone.utc)
+        create_date = datetime(2024, 9, 8, 7, 6, 5, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(create_date):
             container_data = self._create_container(
                 self.lib["id"],
@@ -191,7 +190,7 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
         self.assertDictContainsEntries(container_as_read, expected_data)
 
         # Update the container:
-        modified_date = datetime(2024, 10, 9, 8, 7, 6, tzinfo=timezone.utc)
+        modified_date = datetime(2024, 10, 9, 8, 7, 6, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(modified_date):
             container_data = self._update_container(container_id, display_name=f"New Display Name for {container_type}")
         expected_data["last_draft_created"] = expected_data["modified"] = "2024-10-09T08:07:06Z"
@@ -604,7 +603,7 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
         assert unit_as_read['collections'] == [{"title": col1.title, "key": col1.key}]
 
     def test_section_hierarchy(self):
-        with self.assertNumQueries(133):
+        with self.assertNumQueries(126):
             hierarchy = self._get_container_hierarchy(self.section_with_subsections["id"])
         assert hierarchy["object_key"] == self.section_with_subsections["id"]
         assert hierarchy["components"] == [
@@ -630,7 +629,7 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
         ]
 
     def test_subsection_hierarchy(self):
-        with self.assertNumQueries(95):
+        with self.assertNumQueries(91):
             hierarchy = self._get_container_hierarchy(self.subsection_with_units["id"])
         assert hierarchy["object_key"] == self.subsection_with_units["id"]
         assert hierarchy["components"] == [
@@ -653,7 +652,7 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
         ]
 
     def test_units_hierarchy(self):
-        with self.assertNumQueries(60):
+        with self.assertNumQueries(56):
             hierarchy = self._get_container_hierarchy(self.unit_with_components["id"])
         assert hierarchy["object_key"] == self.unit_with_components["id"]
         assert hierarchy["components"] == [
@@ -679,7 +678,7 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
         )
 
     def test_block_hierarchy(self):
-        with self.assertNumQueries(27):
+        with self.assertNumQueries(24):
             hierarchy = self._get_block_hierarchy(self.problem_block["id"])
         assert hierarchy["object_key"] == self.problem_block["id"]
         assert hierarchy["components"] == [
@@ -840,6 +839,7 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
         # Test the actual OLX in the clipboard:
         olx_data = staging_api.get_staged_content_olx(clipboard_data.content.id)
         assert olx_data is not None
+        # pylint: disable=line-too-long
         assert olx_data == textwrap.dedent(f"""\
           <chapter copied_from_block="{self.section_with_subsections["id"]}" copied_from_version="2" display_name="Section with subsections">
             <sequential copied_from_block="{self.subsection["id"]}" copied_from_version="1" display_name="Subsection Alpha"/>
@@ -858,6 +858,7 @@ class ContainersTestCase(ContentLibrariesRestApiTest):
             <sequential copied_from_block="{self.subsection_3["id"]}" copied_from_version="1" display_name="Test Subsection 3"/>
           </chapter>
         """)
+        # pylint: enable=line-too-long
 
     def test_publish_subsection(self) -> None:
         """

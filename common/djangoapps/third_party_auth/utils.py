@@ -16,11 +16,8 @@ from lxml import etree
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 from requests import exceptions
 from social_core.pipeline.social_auth import associate_by_email
-from common.djangoapps.student.models import (
-    email_exists_or_retired,
-    username_exists_or_retired
-)
 
+from common.djangoapps.student.models import email_exists_or_retired, username_exists_or_retired
 from common.djangoapps.third_party_auth.models import OAuth2ProviderConfig, SAMLProviderData
 from openedx.core.djangolib.markup import Text
 
@@ -129,7 +126,7 @@ def parse_metadata_xml(xml, entity_id):
         # The only binding supported by python-saml and python-social-auth is HTTP-Redirect:
         sso_url = sso_bindings['urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect']
     except KeyError:
-        raise MetadataParseError("Unable to find SSO URL with HTTP-Redirect binding.")  # lint-amnesty, pylint: disable=raise-missing-from
+        raise MetadataParseError("Unable to find SSO URL with HTTP-Redirect binding.")  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
     return public_keys, sso_url, expires_at
 
 

@@ -2,9 +2,9 @@
 Django pipeline finder for handling static assets required by XBlocks.
 """
 
+import importlib.resources as resources
 import os
 from datetime import datetime, timezone
-import importlib.resources as resources
 
 from django.contrib.staticfiles import utils
 from django.contrib.staticfiles.finders import BaseFinder
@@ -81,19 +81,19 @@ class XBlockPackageStorage(Storage):
         """
         Returns a URL to the package resource.
         """
-        return datetime.fromtimestamp(os.path.getatime(self.path(name)), timezone.utc)
+        return datetime.fromtimestamp(os.path.getatime(self.path(name)), timezone.utc)  # noqa: UP017
 
     def get_created_time(self, name):
         """
         Returns the created time of the package resource.
         """
-        return datetime.fromtimestamp(os.path.getctime(self.path(name)), timezone.utc)
+        return datetime.fromtimestamp(os.path.getctime(self.path(name)), timezone.utc)  # noqa: UP017
 
     def get_modified_time(self, name):
         """
         Returns the modified time of the resource.
         """
-        return datetime.fromtimestamp(os.path.getmtime(self.path(name)), timezone.utc)
+        return datetime.fromtimestamp(os.path.getmtime(self.path(name)), timezone.utc)  # noqa: UP017
 
     def url(self, name):
         """
@@ -123,7 +123,7 @@ class XBlockPipelineFinder(BaseFinder):  # lint-amnesty, pylint: disable=abstrac
 
         # xblock_resource_info holds (package_name, resources_dir) tuples. While
         # it never happens in practice, the XBlock API does allow different
-        # XBlocks installed with the same setup.py to refer to their shared
+        # XBlocks installed from the same package to refer to their shared
         # static assets using different prefixes.
         xblock_resource_info = {
             (xblock_resource_pkg(xblock_class), xblock_class.get_resources_dir())

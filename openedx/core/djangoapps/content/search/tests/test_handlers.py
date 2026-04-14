@@ -13,10 +13,9 @@ from openedx.core.djangoapps.content_libraries import api as library_api
 from openedx.core.djangolib.testing.utils import skip_unless_cms
 from xmodule.modulestore.tests.django_utils import (
     TEST_DATA_SPLIT_MODULESTORE,
-    ModuleStoreTestCase,
     ImmediateOnCommitMixin,
+    ModuleStoreTestCase,
 )
-
 
 try:
     # This import errors in the lms because content.search is not an installed app there.
@@ -63,7 +62,7 @@ class TestUpdateIndexHandlers(ImmediateOnCommitMixin, ModuleStoreTestCase, LiveS
         course_access, _ = SearchAccess.objects.get_or_create(context_key=course.id)
 
         # Create XBlocks
-        created_date = datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc)
+        created_date = datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(created_date):
             sequential = self.store.create_child(self.user_id, course.location, "sequential", "test_sequential")
         doc_sequential = {
@@ -117,7 +116,7 @@ class TestUpdateIndexHandlers(ImmediateOnCommitMixin, ModuleStoreTestCase, LiveS
         # Update the XBlock
         sequential = self.store.get_item(sequential.location, self.user_id)  # Refresh the XBlock
         sequential.display_name = "Updated Sequential"
-        modified_date = datetime(2024, 5, 6, 7, 8, 9, tzinfo=timezone.utc)
+        modified_date = datetime(2024, 5, 6, 7, 8, 9, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(modified_date):
             self.store.update_item(sequential, self.user_id)
 
@@ -138,6 +137,23 @@ class TestUpdateIndexHandlers(ImmediateOnCommitMixin, ModuleStoreTestCase, LiveS
             "block-v1orgatest_coursetest_runtypeverticalblocktest_vertical-011f143b"
         )
 
+    def test_library_creation_creates_search_access(self, meilisearch_client):
+        """
+        Test that creating a library automatically creates a SearchAccess record.
+        This is required for course creators to search library content immediately after creation.
+        """
+        # Create a library
+        library = library_api.create_library(
+            org=self.orgA,
+            slug="test_lib",
+            title="Test Library",
+            description="Test library for SearchAccess creation",
+        )
+
+        assert SearchAccess.objects.filter(context_key=library.key).exists()
+        search_access = SearchAccess.objects.get(context_key=library.key)
+        assert search_access.context_key == library.key
+
     def test_create_delete_library_block(self, meilisearch_client):
         # Create library
         library = library_api.create_library(
@@ -146,10 +162,10 @@ class TestUpdateIndexHandlers(ImmediateOnCommitMixin, ModuleStoreTestCase, LiveS
             title="Library Org A",
             description="This is a library from Org A",
         )
-        lib_access, _ = SearchAccess.objects.get_or_create(context_key=library.key)
+        lib_access = SearchAccess.objects.get(context_key=library.key)
 
         # Populate it with a problem, freezing the date so we can verify created date serializes correctly.
-        created_date = datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc)
+        created_date = datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(created_date):
             problem = library_api.create_library_block(library.key, "problem", "Problem1")
         doc_problem = {
@@ -180,14 +196,14 @@ class TestUpdateIndexHandlers(ImmediateOnCommitMixin, ModuleStoreTestCase, LiveS
         meilisearch_client.return_value.index.return_value.update_documents.assert_called_with([doc_problem])
 
         # Edit the problem block, freezing the date so we can verify modified date serializes correctly
-        modified_date = datetime(2024, 5, 6, 7, 8, 9, tzinfo=timezone.utc)
+        modified_date = datetime(2024, 5, 6, 7, 8, 9, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(modified_date):
             library_api.set_library_block_olx(problem.usage_key, "<problem />")
         doc_problem["modified"] = modified_date.timestamp()
         meilisearch_client.return_value.index.return_value.update_documents.assert_called_with([doc_problem])
 
         # Publish the content library, freezing the date so we can verify last_published date serializes correctly
-        published_date = datetime(2024, 6, 7, 8, 9, 10, tzinfo=timezone.utc)
+        published_date = datetime(2024, 6, 7, 8, 9, 10, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(published_date):
             library_api.publish_changes(library.key)
         doc_problem["last_published"] = published_date.timestamp()

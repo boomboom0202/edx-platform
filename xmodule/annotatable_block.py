@@ -2,6 +2,7 @@
 
 import logging
 import textwrap
+import warnings
 
 from django.conf import settings
 from lxml import etree
@@ -13,13 +14,8 @@ from xblocks_contrib.annotatable import AnnotatableBlock as _ExtractedAnnotatabl
 from openedx.core.djangolib.markup import HTML, Text
 from xmodule.editing_block import EditingMixin
 from xmodule.raw_block import RawMixin
-from xmodule.util.builtin_assets import add_webpack_js_to_fragment, add_css_to_fragment
-from xmodule.x_module import (
-    ResourceTemplates,
-    shim_xmodule_js,
-    XModuleMixin,
-    XModuleToXBlockMixin,
-)
+from xmodule.util.builtin_assets import add_css_to_fragment, add_webpack_js_to_fragment
+from xmodule.x_module import ResourceTemplates, XModuleMixin, XModuleToXBlockMixin, shim_xmodule_js
 from xmodule.xml_block import XmlMixin
 
 log = logging.getLogger(__name__)
@@ -40,6 +36,10 @@ class _BuiltInAnnotatableBlock(
 ):
     """
     Annotatable XBlock.
+
+    .. deprecated:: 2026-03
+       This built-in annotatable block is deprecated. Please use the extracted ``AnnotatableBlock``
+       from ``xblocks_contrib.annotatable`` instead.
     """
 
     is_extracted = False
@@ -216,3 +216,14 @@ def reset_class():
 
 reset_class()
 AnnotatableBlock.__name__ = "AnnotatableBlock"
+
+if not settings.USE_EXTRACTED_ANNOTATABLE_BLOCK:
+    warnings.warn(
+        "The built-in `xmodule.annotatable_block` AnnotatableBlock implementation is deprecated. "
+        "To fix this warning, enable `USE_EXTRACTED_ANNOTATABLE_BLOCK` (set it to True) to use "
+        "`xblocks_contrib.annotatable.AnnotatableBlock` instead. "
+        "Support for the built-in implementation, and the `USE_EXTRACTED_ANNOTATABLE_BLOCK` setting, "
+        "will be removed in Willow.",
+        DeprecationWarning,
+        stacklevel=2,
+    )

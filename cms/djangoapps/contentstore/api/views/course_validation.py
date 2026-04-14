@@ -5,6 +5,7 @@ import dateutil
 import edx_api_doc_tools as apidocs
 from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
 from edx_rest_framework_extensions.auth.session.authentication import SessionAuthenticationAllowInactiveUser
+from openedx_authz.constants.permissions import COURSES_VIEW_COURSE
 from pytz import UTC
 from rest_framework import serializers, status
 from rest_framework.generics import GenericAPIView
@@ -16,6 +17,8 @@ from cms.djangoapps.contentstore.course_info_model import get_course_updates
 from cms.djangoapps.contentstore.tasks import migrate_course_legacy_library_blocks_to_item_bank
 from cms.djangoapps.contentstore.views.certificates import CertificateManager
 from common.djangoapps.util.proctoring import requires_escalation_email
+from openedx.core.djangoapps.authz.constants import LegacyAuthoringPermission
+from openedx.core.djangoapps.authz.decorators import authz_permission_required
 from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
 from openedx.core.lib.api.serializers import StatusSerializerWithUuid
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
@@ -80,7 +83,7 @@ class CourseValidationView(DeveloperErrorViewMixin, GenericAPIView):
     # does not specify a serializer class.
     swagger_schema = None
 
-    @course_author_access_required
+    @authz_permission_required(COURSES_VIEW_COURSE.identifier, LegacyAuthoringPermission.READ)
     def get(self, request, course_key):
         """
         Returns validation information for the given course.
@@ -361,7 +364,7 @@ class CourseLegacyLibraryContentSerializer(serializers.Serializer):
     usage_key = serializers.CharField()
 
 
-class CourseLegacyLibraryContentMigratorView(StatusViewSet):
+class CourseLegacyLibraryContentMigratorView(DeveloperErrorViewMixin, StatusViewSet):
     """
     This endpoint is used for migrating legacy library content to the new item bank block library v2.
     """
@@ -381,7 +384,7 @@ class CourseLegacyLibraryContentMigratorView(StatusViewSet):
             401: "The requester is not authenticated.",
         },
     )
-    @course_author_access_required
+    @authz_permission_required(COURSES_VIEW_COURSE.identifier, LegacyAuthoringPermission.WRITE)
     def list(self, _, course_key):  # pylint: disable=arguments-differ
         """
         Returns all legacy library content blocks ready to be migrated to new item bank block.

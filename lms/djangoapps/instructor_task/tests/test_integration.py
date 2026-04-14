@@ -13,23 +13,24 @@ import textwrap
 from collections import namedtuple
 from unittest.mock import patch
 
-import pytest
 import ddt
+import pytest
 from celery.states import FAILURE, SUCCESS
 from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
 from django.test.utils import override_settings
 from django.urls import reverse
+from xblocks_contrib.problem.capa.responsetypes import StudentInputError
+from xblocks_contrib.problem.capa.tests.response_xml_factory import CodeResponseXMLFactory, CustomResponseXMLFactory
+from xblocks_contrib.problem.capa.tests.test_util import UseUnsafeCodejail
 
-from xmodule.capa.responsetypes import StudentInputError
-from xmodule.capa.tests.response_xml_factory import CodeResponseXMLFactory, CustomResponseXMLFactory
-from xmodule.capa.tests.test_util import UseUnsafeCodejail
+from common.test.utils import assert_dict_contains_subset
 from lms.djangoapps.courseware.model_data import StudentModule
 from lms.djangoapps.grades.api import CourseGradeFactory
 from lms.djangoapps.instructor_task.api import (
     submit_delete_problem_state_for_all_students,
     submit_rescore_problem_for_all_students,
     submit_rescore_problem_for_student,
-    submit_reset_problem_attempts_for_all_students
+    submit_reset_problem_attempts_for_all_students,
 )
 from lms.djangoapps.instructor_task.data import InstructorTaskTypes
 from lms.djangoapps.instructor_task.models import InstructorTask
@@ -38,13 +39,12 @@ from lms.djangoapps.instructor_task.tests.test_base import (
     OPTION_1,
     OPTION_2,
     InstructorTaskModuleTestCase,
-    TestReportMixin
+    TestReportMixin,
 )
 from openedx.core.djangoapps.util.testing import TestConditionalContent
 from openedx.core.lib.url_utils import quote_slashes
 from xmodule.modulestore import ModuleStoreEnum  # lint-amnesty, pylint: disable=wrong-import-order
 from xmodule.modulestore.tests.factories import BlockFactory  # lint-amnesty, pylint: disable=wrong-import-order
-from common.test.utils import assert_dict_contains_subset
 
 log = logging.getLogger(__name__)
 
@@ -276,7 +276,9 @@ class TestRescoringTask(TestIntegrationTask):
         self.submit_student_answer('u1', problem_url_name, [OPTION_1, OPTION_1])
 
         expected_message = "bad things happened"
-        with patch('xmodule.capa.capa_problem.LoncapaProblem.get_grade_from_current_answers') as mock_rescore:
+        with patch(
+            "xblocks_contrib.problem.capa.capa_problem.LoncapaProblem.get_grade_from_current_answers"
+        ) as mock_rescore:
             mock_rescore.side_effect = ZeroDivisionError(expected_message)
             instructor_task = self.submit_rescore_all_student_answers('instructor', problem_url_name)
         self._assert_task_failure(
@@ -296,7 +298,9 @@ class TestRescoringTask(TestIntegrationTask):
 
         # return an input error as if it were a numerical response, with an embedded unicode character:
         expected_message = "Could not interpret '2/3\u03a9' as a number"
-        with patch('xmodule.capa.capa_problem.LoncapaProblem.get_grade_from_current_answers') as mock_rescore:
+        with patch(
+            "xblocks_contrib.problem.capa.capa_problem.LoncapaProblem.get_grade_from_current_answers"
+        ) as mock_rescore:
             mock_rescore.side_effect = StudentInputError(expected_message)
             instructor_task = self.submit_rescore_all_student_answers('instructor', problem_url_name)
 
@@ -335,7 +339,7 @@ class TestRescoringTask(TestIntegrationTask):
         problem_url_name = 'H1P2'
         self.define_code_response_problem(problem_url_name)
         # we fully create the CodeResponse problem, but just pretend that we're queuing it:
-        with patch('xmodule.capa.xqueue_interface.XQueueInterface.send_to_queue') as mock_send_to_queue:
+        with patch('xblocks_contrib.problem.capa.xqueue_interface.XQueueInterface.send_to_queue') as mock_send_to_queue:
             mock_send_to_queue.return_value = (0, "Successfully queued")
             self.submit_student_answer('u1', problem_url_name, ["answer1", "answer2"])
 

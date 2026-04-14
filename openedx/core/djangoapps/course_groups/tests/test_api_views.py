@@ -8,15 +8,16 @@ import tempfile
 import ddt
 from django.urls import reverse
 
-from openedx.core.djangoapps.oauth_dispatch.tests.factories import ApplicationFactory, AccessTokenFactory
-from openedx.core.djangolib.testing.utils import skip_unless_lms
 from common.djangoapps.student.tests.factories import UserFactory
-from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase  # lint-amnesty, pylint: disable=wrong-import-order
-from xmodule.modulestore.tests.factories import ToyCourseFactory  # lint-amnesty, pylint: disable=wrong-import-order
-
 from openedx.core.djangoapps.course_groups import cohorts
-from openedx.core.djangoapps.course_groups.views import link_cohort_to_partition_group
 from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
+from openedx.core.djangoapps.course_groups.views import link_cohort_to_partition_group
+from openedx.core.djangoapps.oauth_dispatch.tests.factories import AccessTokenFactory, ApplicationFactory
+from openedx.core.djangolib.testing.utils import skip_unless_lms
+from xmodule.modulestore.tests.django_utils import (
+    SharedModuleStoreTestCase,  # lint-amnesty, pylint: disable=wrong-import-order
+)
+from xmodule.modulestore.tests.factories import ToyCourseFactory  # lint-amnesty, pylint: disable=wrong-import-order
 
 USERNAME = 'honor'
 USER_MAIL = 'honor@example.com'
@@ -582,6 +583,49 @@ class TestCohortApi(SharedModuleStoreTestCase):
         data = response.json()
         assert data['developer_message'] == 'If group_id is specified, user_partition_id must also be specified.'
         assert data['error_code'] == 'missing-user-partition-id'
+
+    def test_get_cohorts_default_ordering(self):
+        """
+        Test that cohorts are returned in ascending alphabetical order by default.
+        """
+        cohorts.add_cohort(self.course_key, "Zebra", "manual")
+        cohorts.add_cohort(self.course_key, "Alpha", "manual")
+        cohorts.add_cohort(self.course_key, "Mango", "manual")
+
+        path = reverse('api_cohorts:cohort_handler', kwargs={'course_key_string': self.course_str})
+        self.client.login(username=self.staff_user.username, password=self.password)
+        response = self.client.get(path=path)
+
+        assert response.status_code == 200
+        names = [c['name'] for c in response.json()]
+        assert names == ['Alpha', 'Mango', 'Zebra']
+
+    def test_get_cohorts_desc_ordering(self):
+        """
+        Test that cohorts are returned in descending alphabetical order when ordering=desc.
+        """
+        cohorts.add_cohort(self.course_key, "Zebra", "manual")
+        cohorts.add_cohort(self.course_key, "Alpha", "manual")
+        cohorts.add_cohort(self.course_key, "Mango", "manual")
+
+        path = reverse('api_cohorts:cohort_handler', kwargs={'course_key_string': self.course_str})
+        self.client.login(username=self.staff_user.username, password=self.password)
+        response = self.client.get(path=path, data={'ordering': 'desc'})
+
+        assert response.status_code == 200
+        names = [c['name'] for c in response.json()]
+        assert names == ['Zebra', 'Mango', 'Alpha']
+
+    def test_get_cohorts_invalid_ordering(self):
+        """
+        Test that an invalid ordering value returns a 400 error.
+        """
+        path = reverse('api_cohorts:cohort_handler', kwargs={'course_key_string': self.course_str})
+        self.client.login(username=self.staff_user.username, password=self.password)
+        response = self.client.get(path=path, data={'ordering': 'invalid'})
+
+        assert response.status_code == 400
+        assert response.json().get('error_code') == 'invalid-ordering-value'
 
     def test_patch_cohort_with_name_only(self):
         """

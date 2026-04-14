@@ -1,14 +1,14 @@
 """
     Viewset for auth/saml/v0/samlproviderdata
 """
-from datetime import datetime
 import logging
-from requests.exceptions import SSLError, MissingSchema, HTTPError
+from datetime import datetime
 
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from edx_rbac.mixins import PermissionRequiredMixin
 from enterprise.models import EnterpriseCustomerIdentityProvider
+from requests.exceptions import HTTPError, MissingSchema, SSLError
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
@@ -19,7 +19,7 @@ from common.djangoapps.third_party_auth.utils import (
     create_or_update_bulk_saml_provider_data,
     fetch_metadata_xml,
     parse_metadata_xml,
-    validate_uuid4_string
+    validate_uuid4_string,
 )
 
 from ..models import SAMLProviderConfig, SAMLProviderData
@@ -68,7 +68,7 @@ class SAMLProviderDataViewSet(PermissionRequiredMixin, SAMLProviderDataMixin, vi
             saml_provider = SAMLProviderConfig.objects.current_set().get(
                 slug=convert_saml_slug_provider_id(enterprise_customer_idp.provider_id))
         except SAMLProviderConfig.DoesNotExist:
-            raise Http404('No matching SAML provider found.')  # lint-amnesty, pylint: disable=raise-missing-from
+            raise Http404('No matching SAML provider found.')  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
         provider_data_id = self.request.parser_context.get('kwargs').get('pk')
         if provider_data_id:
             return SAMLProviderData.objects.filter(id=provider_data_id)

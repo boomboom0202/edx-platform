@@ -1,13 +1,14 @@
 """
 Tests for the Studio content search documents (what gets stored in the index)
 """
-import ddt
 from dataclasses import replace
 from datetime import datetime, timezone
 
+import ddt
 from freezegun import freeze_time
 from opaque_keys.edx.locator import LibraryCollectionLocator, LibraryContainerLocator
 from openedx_content import api as content_api
+from openedx_content import models_api as content_models
 from organizations.models import Organization
 
 from openedx.core.djangoapps.content_libraries import api as library_api
@@ -53,7 +54,7 @@ class StudioDocumentsTest(SharedModuleStoreTestCase):
         super().setUpClass()
         cls.store = modulestore()
         # Create a library and collection with a block
-        cls.created_date = datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc)
+        cls.created_date = datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(cls.created_date):
             # Get references to some blocks in the toy course
             cls.org = Organization.objects.create(name="edX", short_name="edX")
@@ -92,7 +93,7 @@ class StudioDocumentsTest(SharedModuleStoreTestCase):
             )
             cls.container = library_api.create_container(
                 cls.library.key,
-                container_type=library_api.ContainerType.Unit,
+                container_cls=content_models.Unit,
                 slug="unit1",
                 title="A Unit in the Search Index",
                 user_id=None,
@@ -102,7 +103,7 @@ class StudioDocumentsTest(SharedModuleStoreTestCase):
             )
             cls.subsection = library_api.create_container(
                 cls.library.key,
-                container_type=library_api.ContainerType.Subsection,
+                container_cls=content_models.Subsection,
                 slug="subsection1",
                 title="A Subsection in the Search Index",
                 user_id=None,
@@ -112,7 +113,7 @@ class StudioDocumentsTest(SharedModuleStoreTestCase):
             )
             cls.section = library_api.create_container(
                 cls.library.key,
-                container_type=library_api.ContainerType.Section,
+                container_cls=content_models.Section,
                 slug="section1",
                 title="A Section in the Search Index",
                 user_id=None,
@@ -152,6 +153,11 @@ class StudioDocumentsTest(SharedModuleStoreTestCase):
         tagging_api.tag_object(str(cls.container_key), cls.difficulty_tags, tags=["Normal"])
         tagging_api.tag_object(str(cls.subsection_key), cls.difficulty_tags, tags=["Normal"])
         tagging_api.tag_object(str(cls.section_key), cls.difficulty_tags, tags=["Normal"])
+
+    def tearDown(self):
+        # If we're working with Containers in test cases, we need this line:
+        content_models.Container.reset_cache()
+        return super().tearDown()
 
     @property
     def toy_course_access_id(self):
@@ -472,8 +478,8 @@ class StudioDocumentsTest(SharedModuleStoreTestCase):
         # Verify publish status is set to modified
         library_block_modified = replace(
             self.library_block,
-            modified=datetime(2024, 4, 5, 6, 7, 8, tzinfo=timezone.utc),
-            last_published=datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc),
+            modified=datetime(2024, 4, 5, 6, 7, 8, tzinfo=timezone.utc),  # noqa: UP017
+            last_published=datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc),  # noqa: UP017
         )
         doc = searchable_doc_for_library_block(library_block_modified)
         doc.update(searchable_doc_tags(library_block_modified.usage_key))

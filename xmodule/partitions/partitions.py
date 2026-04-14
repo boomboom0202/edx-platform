@@ -17,7 +17,7 @@ from stevedore.extension import ExtensionManager
 # * 1 -> 49: Unused/Reserved
 # * 50: The enrollment track partition
 # * 51: The content type gating partition (defined elsewhere)
-# * 52-99: Available for other single user partitions, plugged in via setup.py.
+# * 52-99: Available for other single user partitions, plugged in via entry points.
 #          Operators, beware of conflicting IDs between plugins!
 # * 100 -> 2^31-1: General namespace for generating IDs at runtime.
 #                  This includes, at least: content partitions, the cohort partition, and teamset partitions.
@@ -95,11 +95,11 @@ class Group(namedtuple("Group", "id name")):
 
         for key in ("id", "name", "version"):
             if key not in value:
-                raise TypeError("Group dict {} missing value key '{}'".format(
+                raise TypeError("Group dict {} missing value key '{}'".format(  # noqa: UP032
                     value, key))
 
         if value["version"] != Group.VERSION:
-            raise TypeError("Group dict {} has unexpected version".format(
+            raise TypeError("Group dict {} has unexpected version".format(  # noqa: UP032
                 value))
 
         return Group(value["id"], value["name"])
@@ -154,7 +154,7 @@ class UserPartition(namedtuple("UserPartition", "id name description groups sche
         try:
             scheme = UserPartition.scheme_extensions[name].plugin  # lint-amnesty, pylint: disable=unsubscriptable-object
         except KeyError:
-            raise UserPartitionError(f"Unrecognized scheme '{name}'")  # lint-amnesty, pylint: disable=raise-missing-from
+            raise UserPartitionError(f"Unrecognized scheme '{name}'")  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
         scheme.name = name
         return scheme
 
@@ -254,7 +254,7 @@ class UserPartition(namedtuple("UserPartition", "id name description groups sche
                 return group
 
         raise NoSuchUserPartitionGroupError(
-            "Could not find a Group with ID [{group_id}] in UserPartition [{partition_id}].".format(
+            "Could not find a Group with ID [{group_id}] in UserPartition [{partition_id}].".format(  # noqa: UP032
                 group_id=group_id, partition_id=self.id
             )
         )

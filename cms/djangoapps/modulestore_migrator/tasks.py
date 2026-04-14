@@ -46,15 +46,15 @@ from xblock.plugin import PluginMissingError
 from common.djangoapps.split_modulestore_django.models import SplitModulestoreCourseIndex
 from common.djangoapps.util.date_utils import DEFAULT_DATE_TIME_FORMAT, strftime_localized
 from openedx.core.djangoapps.content_libraries import api as libraries_api
-from openedx.core.djangoapps.content_libraries.api import ContainerType, get_library
+from openedx.core.djangoapps.content_libraries.api import get_library
 from openedx.core.djangoapps.content_staging import api as staging_api
 from xmodule.modulestore import exceptions as modulestore_exceptions
 from xmodule.modulestore.django import modulestore
 
-from . import models, data
+from . import data, models
+from .api.read_api import get_migration_blocks, get_migrations
 from .constants import CONTENT_STAGING_PURPOSE_TEMPLATE
 from .data import CompositionLevel, RepeatHandlingStrategy, SourceContextKey
-from .api.read_api import get_migrations, get_migration_blocks
 
 log = get_task_logger(__name__)
 
@@ -120,7 +120,7 @@ class _MigrationContext:
 
     # Fields that remain constant
     previous_block_migrations: dict[UsageKey, data.ModulestoreBlockMigrationResult]
-    target_package_id: int
+    target_package_id: LearningPackage.ID
     target_library_key: LibraryLocatorV2
     source_context_key: SourceContextKey
     content_by_filename: dict[str, int]
@@ -283,7 +283,7 @@ def _import_assets(migration: models.ModulestoreMigration) -> dict[str, int]:
         return {}
 
     content_by_filename: dict[str, int] = {}
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=timezone.utc)  # noqa: UP017
     for staged_content_file_data in staging_api.get_staged_content_static_files(migration.staged_content.id):
         old_path = staged_content_file_data.filename
         file_data = staging_api.get_staged_content_static_file_data(migration.staged_content.id, old_path)
@@ -345,13 +345,13 @@ def _import_structure(
         used_component_keys=set(
             LibraryUsageLocatorV2(target_library.key, block_type, block_id)  # type: ignore[abstract]
             for block_type, block_id
-            in content_api.get_components(migration.target.pk).values_list(
+            in content_api.get_components(migration.target.id).values_list(
                 "component_type__name", "local_key"
             )
         ),
         used_container_slugs=set(
             content_api.get_containers(
-                migration.target.pk
+                migration.target.id
             ).values_list("publishable_entity__key", flat=True)
         ),
         previous_block_migrations=(
@@ -359,7 +359,7 @@ def _import_structure(
             if source_data.previous_migration
             else {}
         ),
-        target_package_id=migration.target.pk,
+        target_package_id=migration.target.id,
         target_library_key=target_library.key,
         source_context_key=source_data.source_root_usage_key.course_key,
         content_by_filename=content_by_filename,
@@ -367,7 +367,7 @@ def _import_structure(
         repeat_handling_strategy=RepeatHandlingStrategy(migration.repeat_handling_strategy),
         preserve_url_slugs=migration.preserve_url_slugs,
         created_by=status.user_id,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(timezone.utc),  # noqa: UP017
     )
     with content_api.bulk_draft_changes_for(migration.target.id) as change_log:
         root_migrated_node = _migrate_node(
@@ -431,7 +431,7 @@ def _create_collection(
     key = slugify(title)
     collection: Collection | None = None
     attempt = 0
-    created_at = strftime_localized(datetime.now(timezone.utc), DEFAULT_DATE_TIME_FORMAT)
+    created_at = strftime_localized(datetime.now(timezone.utc), DEFAULT_DATE_TIME_FORMAT)  # noqa: UP017
     if course_name:
         description = f"{_('This collection contains content imported from the course')} {course_name} on: {created_at}"
     else:
@@ -766,13 +766,13 @@ def _migrate_node(
     #                                     do not support in libraries as of Ulmo.
     should_migrate_node: bool
     should_migrate_children: bool
-    container_type: ContainerType | None  # if None, it's a Component
+    container_cls: content_api.ContainerSubclass | None  # if None, it's a Component
     if source_node.tag == "wiki":
         return _MigratedNode(None, [])
     try:
-        container_type = ContainerType.from_source_olx_tag(source_node.tag)
+        container_cls = libraries_api.container_subclass_for_olx_tag(source_node.tag)
     except ValueError:
-        container_type = None
+        container_cls = None
         if source_node.tag in {"course", "library"}:
             should_migrate_node = False
             should_migrate_children = True
@@ -780,7 +780,7 @@ def _migrate_node(
             should_migrate_node = True
             should_migrate_children = False
     else:
-        node_level = CompositionLevel(container_type.value)
+        node_level = CompositionLevel(container_cls.type_code)
         should_migrate_node = not node_level.is_higher_than(context.composition_level)
         should_migrate_children = True
     migrated_children: list[_MigratedNode] = []
@@ -802,7 +802,7 @@ def _migrate_node(
                 _migrate_container(
                     context=context,
                     source_key=source_key,
-                    container_type=container_type,
+                    container_cls=container_cls,
                     title=title,
                     children=[
                         migrated_child.source_to_target[1]
@@ -810,7 +810,7 @@ def _migrate_node(
                         migrated_child.source_to_target and migrated_child.source_to_target[1]
                     ],
                 )
-                if container_type else
+                if container_cls else
                 _migrate_component(
                     context=context,
                     source_key=source_key,
@@ -818,7 +818,7 @@ def _migrate_node(
                     title=title,
                 )
             )
-            if container_type is None and target_entity_version is None and reason is not None:
+            if container_cls is None and target_entity_version is None and reason is not None:
                 # Currently, components with children are not supported
                 children_length = len(source_node.getchildren())
                 if children_length:
@@ -842,7 +842,7 @@ def _migrate_container(
     *,
     context: _MigrationContext,
     source_key: UsageKey,
-    container_type: ContainerType,
+    container_cls: content_api.ContainerSubclass,
     title: str,
     children: list[PublishableEntityVersion],
 ) -> tuple[PublishableEntityVersion, str | None]:
@@ -857,7 +857,7 @@ def _migrate_container(
     target_key = _get_distinct_target_container_key(
         context,
         source_key,
-        container_type,
+        container_cls,
         title,
     )
     try:
@@ -874,7 +874,7 @@ def _migrate_container(
         else:
             container = libraries_api.create_container(
                 library_key=context.target_library_key,
-                container_type=container_type,
+                container_cls=container_cls,
                 slug=target_key.container_id,
                 title=title,
                 created=context.created_at,
@@ -882,20 +882,16 @@ def _migrate_container(
             )
     if container_exists and context.should_skip_strategy:
         return PublishableEntityVersion.objects.get(
-            entity_id=container.container_pk,
+            entity_id=container.container_id,
             version_num=container.draft_version_num,
         ), None
 
     container_publishable_entity_version = content_api.create_next_container_version(
-        container.container_pk,
+        container.container_id,
         title=title,
-        entity_rows=[
-            content_api.ContainerEntityRow(entity_pk=child.entity_id, version_pk=None)
-            for child in children
-        ],
+        entities=[child.entity for child in children],
         created=context.created_at,
         created_by=context.created_by,
-        container_version_cls=container_type.container_model_classes[1],
     ).publishable_entity_version
 
     # Publish the container
@@ -990,7 +986,7 @@ _MAX_UNIQUE_SLUG_ATTEMPTS = 1000
 def _get_distinct_target_container_key(
     context: _MigrationContext,
     source_key: UsageKey,
-    container_type: ContainerType,
+    container_cls: content_api.ContainerSubclass,
     title: str,
 ) -> LibraryContainerLocator:
     """
@@ -1012,14 +1008,14 @@ def _get_distinct_target_container_key(
     # Use base base slug if available
     if base_slug not in context.used_container_slugs:
         return LibraryContainerLocator(
-            context.target_library_key, container_type.value, base_slug
+            context.target_library_key, container_cls.type_code, base_slug
         )
     # Try numbered variations until we find one that doesn't exist
     for i in range(1, _MAX_UNIQUE_SLUG_ATTEMPTS + 1):
         candidate_slug = f"{base_slug}_{i}"
         if candidate_slug not in context.used_container_slugs:
             return LibraryContainerLocator(
-                context.target_library_key, container_type.value, candidate_slug
+                context.target_library_key, container_cls.type_code, candidate_slug
             )
     # It would be extremely unlikely for us to run out of attempts
     raise RuntimeError(

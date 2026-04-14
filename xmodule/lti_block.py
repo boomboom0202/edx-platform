@@ -59,6 +59,7 @@ import datetime
 import hashlib
 import logging
 import textwrap
+import warnings
 from unittest import mock
 from urllib import parse
 from xml.sax.saxutils import escape
@@ -76,22 +77,14 @@ from xblock.core import List, Scope, String, XBlock
 from xblock.fields import Boolean, Float
 from xblocks_contrib.lti import LTIBlock as _ExtractedLTIBlock
 
-from common.djangoapps.xblock_django.constants import (
-    ATTR_KEY_ANONYMOUS_USER_ID,
-    ATTR_KEY_USER_ROLE,
-)
+from common.djangoapps.xblock_django.constants import ATTR_KEY_ANONYMOUS_USER_ID, ATTR_KEY_USER_ROLE
 from openedx.core.djangolib.markup import HTML, Text
 from xmodule.editing_block import EditingMixin
 from xmodule.lti_2_util import LTI20BlockMixin, LTIError
 from xmodule.mako_block import MakoTemplateBlockBase
 from xmodule.raw_block import EmptyDataRawMixin
-from xmodule.util.builtin_assets import add_webpack_js_to_fragment, add_css_to_fragment
-from xmodule.x_module import (
-    ResourceTemplates,
-    shim_xmodule_js,
-    XModuleMixin,
-    XModuleToXBlockMixin,
-)
+from xmodule.util.builtin_assets import add_css_to_fragment, add_webpack_js_to_fragment
+from xmodule.x_module import ResourceTemplates, XModuleMixin, XModuleToXBlockMixin, shim_xmodule_js
 from xmodule.xml_block import XmlMixin
 
 log = logging.getLogger(__name__)
@@ -290,6 +283,10 @@ class _BuiltInLTIBlock(
 
     Module provides LTI integration to course.
 
+    .. deprecated:: 2026-03
+       This built-in LTI block is deprecated. Please use the extracted ``LTIBlock``
+       from ``xblocks_contrib.lti`` instead.
+
     Except usual Xmodule structure it proceeds with OAuth signing.
     How it works::
 
@@ -441,7 +438,7 @@ class _BuiltInLTIBlock(
                 msg = _('Could not parse custom parameter: {custom_parameter}. Should be "x=y" string.').format(
                     custom_parameter=f"{custom_parameter!r}"
                 )
-                raise LTIError(msg)  # lint-amnesty, pylint: disable=raise-missing-from
+                raise LTIError(msg)  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
 
             # LTI specs: 'custom_' should be prepended before each custom parameter, as pointed in link above.
             if param_name not in PARAMETERS:
@@ -601,7 +598,7 @@ class _BuiltInLTIBlock(
         The TP should only retain the most recent value for this field for a particular resource_link_id / user_id.
         This field is generally optional, but is required for grading.
         """
-        return "{context}:{resource_link}:{user_id}".format(
+        return "{context}:{resource_link}:{user_id}".format(  # noqa: UP032
             context=parse.quote(self.context_id),
             resource_link=self.get_resource_link_id(),
             user_id=self.get_user_id()
@@ -952,7 +949,7 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
 
         if (not signature.verify_hmac_sha1(mock_request_lti_1, client_secret) and not
                 signature.verify_hmac_sha1(mock_request_lti_2, client_secret)):
-            log.error("OAuth signature verification failed, for "
+            log.error("OAuth signature verification failed, for "  # noqa: UP032
                       "headers:{} url:{} method:{}".format(
                           oauth_headers,
                           self.get_outcome_service_url(),
@@ -974,7 +971,7 @@ oauth_consumer_key="", oauth_signature="frVp4JuvT1mVXlxktiAUjQ7%2F1cw%3D"'}
                 msg = _('Could not parse LTI passport: {lti_passport}. Should be "id:key:secret" string.').format(
                     lti_passport=f'{lti_passport!r}'
                 )
-                raise LTIError(msg)  # lint-amnesty, pylint: disable=raise-missing-from
+                raise LTIError(msg)  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
 
             if lti_id == self.lti_id.strip():
                 return key, secret
@@ -1006,3 +1003,14 @@ def reset_class():
 
 reset_class()
 LTIBlock.__name__ = "LTIBlock"
+
+if not settings.USE_EXTRACTED_LTI_BLOCK:
+    warnings.warn(
+        "The built-in `xmodule.lti_block` LTIBlock implementation is deprecated. "
+        "To fix this warning, enable `USE_EXTRACTED_LTI_BLOCK` (set it to True) to use "
+        "`xblocks_contrib.lti.LTIBlock` instead. "
+        "Support for the built-in implementation, and the `USE_EXTRACTED_LTI_BLOCK` setting, "
+        "will be removed in Willow.",
+        DeprecationWarning,
+        stacklevel=2,
+    )

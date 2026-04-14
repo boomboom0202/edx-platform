@@ -24,8 +24,10 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 
-from lms.djangoapps.courseware.courses import get_course, get_course_with_access
 from common.djangoapps.edxmako.shortcuts import render_to_response
+from common.djangoapps.student.auth import has_course_author_access
+from common.djangoapps.util.json_request import JsonResponse, expect_json
+from lms.djangoapps.courseware.courses import get_course, get_course_with_access
 from openedx.core.djangoapps.course_groups.models import (
     CohortAssignmentNotAllowed,
     CohortChangeNotAllowed,
@@ -34,8 +36,6 @@ from openedx.core.djangoapps.course_groups.models import (
 from openedx.core.djangoapps.course_groups.permissions import IsStaffOrAdmin
 from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
-from common.djangoapps.student.auth import has_course_author_access
-from common.djangoapps.util.json_request import JsonResponse, expect_json
 
 from . import api, cohorts
 from .models import CourseUserGroup, CourseUserGroupPartitionGroup
@@ -313,7 +313,7 @@ def add_users_to_cohort(request, course_key_string, cohort_id):
     try:
         cohort = cohorts.get_cohort_by_id(course_key, cohort_id)
     except CourseUserGroup.DoesNotExist:
-        raise Http404("Cohort (ID {cohort_id}) not found for {course_key_string}".format(  # lint-amnesty, pylint: disable=raise-missing-from
+        raise Http404("Cohort (ID {cohort_id}) not found for {course_key_string}".format(  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904, UP032
             cohort_id=cohort_id,
             course_key_string=course_key_string
         ))
@@ -518,7 +518,7 @@ class CohortSettings(DeveloperErrorViewMixin, APIPermissions):
         try:
             cohorts.set_course_cohorted(course_key, request.data.get('is_cohorted'))
         except ValueError as err:
-            raise self.api_error(status.HTTP_400_BAD_REQUEST, err)
+            raise self.api_error(status.HTTP_400_BAD_REQUEST, err)  # noqa: B904
         return _get_cohort_settings_response(course_key)
 
 
@@ -532,10 +532,17 @@ class CohortHandler(DeveloperErrorViewMixin, APIPermissions):
 
     **Example Requests**:
 
-        GET /api/cohorts/v1/courses/{course_id}/cohorts
-        POST /api/cohorts/v1/courses/{course_id}/cohorts
+        GET /api/cohorts/v1/courses/{course_id}/cohorts/
+        GET /api/cohorts/v1/courses/{course_id}/cohorts/?ordering=asc
+        GET /api/cohorts/v1/courses/{course_id}/cohorts/?ordering=desc
+        POST /api/cohorts/v1/courses/{course_id}/cohorts/
         GET /api/cohorts/v1/courses/{course_id}/cohorts/{cohort_id}
         PATCH /api/cohorts/v1/courses/{course_id}/cohorts/{cohort_id}
+
+    **GET Query Parameters**
+
+        * ordering (optional): Sort direction for the cohort list by name. Accepted values are
+          "asc" (ascending, default) and "desc" (descending). Returns HTTP 400 for invalid values.
 
     **POST Request Values**
 
@@ -575,7 +582,14 @@ class CohortHandler(DeveloperErrorViewMixin, APIPermissions):
         """
         course_key, course = _get_course_with_access(request, course_key_string, 'load')
         if not cohort_id:
-            all_cohorts = cohorts.get_course_cohorts(course)
+            ordering = request.query_params.get('ordering', 'asc').lower()
+            if ordering not in ('asc', 'desc'):
+                raise self.api_error(
+                    status.HTTP_400_BAD_REQUEST,
+                    'Invalid ordering value. Must be "asc" or "desc".',
+                    'invalid-ordering-value'
+                )
+            all_cohorts = cohorts.get_course_cohorts(course, ordering=ordering)
             paginator = NamespacedPageNumberPagination()
             paginator.max_page_size = MAX_PAGE_SIZE
             page = paginator.paginate_queryset(all_cohorts, request)
@@ -649,7 +663,7 @@ class CohortHandler(DeveloperErrorViewMixin, APIPermissions):
             try:
                 cohorts.set_assignment_type(cohort, assignment_type)
             except ValueError as e:
-                raise self.api_error(status.HTTP_400_BAD_REQUEST, str(e), 'last-random-cohort')
+                raise self.api_error(status.HTTP_400_BAD_REQUEST, str(e), 'last-random-cohort')  # noqa: B904
 
         # Handle group_id and user_partition_id for content group association
         if has_group_id:
@@ -756,11 +770,11 @@ class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
         try:
             cohort = cohorts.get_cohort_by_id(course_key, cohort_id)
         except CourseUserGroup.DoesNotExist:
-            msg = 'Cohort (ID {cohort_id}) not found for {course_key_string}'.format(
+            msg = 'Cohort (ID {cohort_id}) not found for {course_key_string}'.format(  # noqa: UP032
                 cohort_id=cohort_id,
                 course_key_string=course_key_string
             )
-            raise self.api_error(status.HTTP_404_NOT_FOUND, msg, 'cohort-not-found')  # lint-amnesty, pylint: disable=raise-missing-from
+            raise self.api_error(status.HTTP_404_NOT_FOUND, msg, 'cohort-not-found')  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
         return course_key, cohort
 
     def get(self, request, course_key_string, cohort_id, username=None):  # pylint: disable=unused-argument
@@ -793,9 +807,9 @@ class CohortUsers(DeveloperErrorViewMixin, APIPermissions):
         try:
             api.remove_user_from_cohort(course_key, username, cohort.id)
         except User.DoesNotExist:
-            raise self.api_error(status.HTTP_404_NOT_FOUND, 'User does not exist.', 'user-not-found')  # lint-amnesty, pylint: disable=raise-missing-from
+            raise self.api_error(status.HTTP_404_NOT_FOUND, 'User does not exist.', 'user-not-found')  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
         except CohortMembership.DoesNotExist:  # pylint: disable=duplicate-except
-            raise self.api_error(  # lint-amnesty, pylint: disable=raise-missing-from
+            raise self.api_error(  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
                 status.HTTP_400_BAD_REQUEST,
                 'User not assigned to the given cohort.',
                 'user-not-in-cohort'

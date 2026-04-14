@@ -7,6 +7,7 @@ import datetime
 import itertools
 import unicodedata
 from unittest.mock import Mock, patch
+from zoneinfo import ZoneInfo
 
 import ddt
 import pytest
@@ -17,14 +18,13 @@ from django.http import HttpResponse
 from django.test import TestCase
 from django.test.client import RequestFactory
 from django.urls import reverse
-from zoneinfo import ZoneInfo
 from social_django.models import UserSocialAuth
 
 from common.djangoapps.student.models import (
     AccountRecovery,
     PendingEmailChange,
     PendingSecondaryEmailChange,
-    UserProfile
+    UserProfile,
 )
 from common.djangoapps.student.tests.factories import UserFactory
 from common.djangoapps.student.tests.tests import UserSettingsEventTestMixin
@@ -36,18 +36,18 @@ from openedx.core.djangoapps.user_api.accounts import PRIVATE_VISIBILITY
 from openedx.core.djangoapps.user_api.accounts.api import (
     get_account_settings,
     get_name_validation_error,
-    update_account_settings
+    update_account_settings,
 )
 from openedx.core.djangoapps.user_api.accounts.tests.retirement_helpers import (  # pylint: disable=unused-import
     RetirementTestCase,
     fake_requested_retirement,
-    setup_retirement_states
+    setup_retirement_states,  # noqa: F401
 )
 from openedx.core.djangoapps.user_api.errors import (
     AccountUpdateError,
     AccountValidationError,
     UserNotAuthorized,
-    UserNotFound
+    UserNotFound,
 )
 from openedx.core.djangolib.testing.utils import skip_unless_lms
 from openedx.features.enterprise_support.tests.factories import EnterpriseCustomerUserFactory
@@ -305,7 +305,7 @@ class TestAccountApi(UserSettingsEventTestMixin, EmailTemplateTagMixin, CreateAc
         with patch('openedx.core.djangoapps.user_api.accounts.api.student_views.do_email_change_request'):
             # expect field un-editability only when all of the following conditions are met
             if is_enterprise_user and is_synch_learner_profile_data and not user_fullname_editable:
-                with pytest.raises(AccountValidationError) as validation_error:
+                with pytest.raises(AccountValidationError) as validation_error:  # noqa: PT012
                     update_account_settings(self.user, update_data)
                     field_errors = validation_error.value.field_errors
                     assert 'This field is not editable via this API' == \
@@ -393,7 +393,7 @@ class TestAccountApi(UserSettingsEventTestMixin, EmailTemplateTagMixin, CreateAc
             update_account_settings(self.user, {'name': account_settings['name']})
             # The name should not be added to profile metadata
             updated_meta = user_profile.get_meta()
-            self.assertEqual(meta, updated_meta)
+            self.assertEqual(meta, updated_meta)  # noqa: PT009
 
     @patch('openedx.core.djangoapps.user_api.accounts.api._does_name_change_require_verification',
            Mock(return_value=True))
@@ -587,7 +587,7 @@ class TestAccountApi(UserSettingsEventTestMixin, EmailTemplateTagMixin, CreateAc
         assert account_settings['country'] == UserProfile.COUNTRY_WITH_STATES
         assert account_settings['state'] == 'MA'
 
-        with self.assertRaises(AccountValidationError):
+        with self.assertRaises(AccountValidationError):  # noqa: PT027
             update_account_settings(self.user, {"country": "KP"})
 
     def test_get_name_validation_error_too_long(self):
@@ -634,7 +634,6 @@ class AccountSettingsOnCreationTest(CreateAccountMixin, TestCase):
             'id': user.id,
             'name': self.USERNAME,
             'verified_name': None,
-            'activation_key': user.registration.activation_key,
             'gender': None, 'goals': '',
             'is_active': False,
             'level_of_education': None,

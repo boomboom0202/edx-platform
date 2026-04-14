@@ -4,16 +4,19 @@ import time
 
 import numpy as np
 from edxval.api import get_course_videos_qset
+from openedx_authz.constants.permissions import COURSES_VIEW_COURSE
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from scipy import stats
 
+from openedx.core.djangoapps.authz.constants import LegacyAuthoringPermission
+from openedx.core.djangoapps.authz.decorators import authz_permission_required
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
 from openedx.core.lib.cache_utils import request_cached
 from openedx.core.lib.graph_traversals import traverse_pre_order
 from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
 
-from .utils import course_author_access_required, get_bool_param
+from .utils import get_bool_param
 
 log = logging.getLogger(__name__)
 
@@ -82,7 +85,7 @@ class CourseQualityView(DeveloperErrorViewMixin, GenericAPIView):
     # does not specify a serializer class.
     swagger_schema = None
 
-    @course_author_access_required
+    @authz_permission_required(COURSES_VIEW_COURSE.identifier, LegacyAuthoringPermission.READ)
     def get(self, request, course_key):
         """
         Returns validation information for the given course.

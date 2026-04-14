@@ -4,32 +4,31 @@ Tests for the Studio content search API.
 from __future__ import annotations
 
 import copy
-
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, Mock, call, patch
-from opaque_keys.edx.keys import UsageKey
-from opaque_keys.edx.locator import LibraryCollectionLocator, LibraryContainerLocator
 
 import ddt
 import pytest
 from django.test import override_settings
 from freezegun import freeze_time
 from meilisearch.errors import MeilisearchApiError
+from opaque_keys.edx.keys import UsageKey
+from opaque_keys.edx.locator import LibraryCollectionLocator, LibraryContainerLocator
 from openedx_content import api as content_api
+from openedx_content import models_api as content_models
 from organizations.tests.factories import OrganizationFactory
 
 from common.djangoapps.student.tests.factories import UserFactory
+from openedx.core.djangoapps.content.course_overviews.api import CourseOverview
 from openedx.core.djangoapps.content_libraries import api as library_api
 from openedx.core.djangoapps.content_tagging import api as tagging_api
-from openedx.core.djangoapps.content.course_overviews.api import CourseOverview
 from openedx.core.djangolib.testing.utils import skip_unless_cms
 from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase
-
 
 try:
     # This import errors in the lms because content.search is not an installed app there.
     from .. import api
-    from ..models import SearchAccess, IncrementalIndexCompleted
+    from ..models import IncrementalIndexCompleted, SearchAccess
 except RuntimeError:
     SearchAccess = {}
 
@@ -62,7 +61,7 @@ class TestSearchApi(ModuleStoreTestCase):
         # Clear the Meilisearch client to avoid side effects from other tests
         api.clear_meilisearch_client()
 
-        modified_date = datetime(2024, 5, 6, 7, 8, 9, tzinfo=timezone.utc)
+        modified_date = datetime(2024, 5, 6, 7, 8, 9, tzinfo=timezone.utc)  # noqa: UP017
         # Create course
         with freeze_time(modified_date):
             self.course = self.store.create_course(
@@ -135,7 +134,7 @@ class TestSearchApi(ModuleStoreTestCase):
         lib_access, _ = SearchAccess.objects.get_or_create(context_key=self.library.key)
 
         # Populate it with 2 problems, freezing the date so we can verify created date serializes correctly.
-        self.created_date = datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc)
+        self.created_date = datetime(2023, 4, 5, 6, 7, 8, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(self.created_date):
             self.problem1 = library_api.create_library_block(self.library.key, "problem", "p1")
             self.problem2 = library_api.create_library_block(self.library.key, "problem", "p2")
@@ -224,7 +223,7 @@ class TestSearchApi(ModuleStoreTestCase):
         with freeze_time(self.created_date):
             self.unit = library_api.create_container(
                 library_key=self.library.key,
-                container_type=library_api.ContainerType.Unit,
+                container_cls=content_models.Unit,
                 slug="unit-1",
                 title="Unit 1",
                 user_id=None,
@@ -232,7 +231,7 @@ class TestSearchApi(ModuleStoreTestCase):
             self.unit_key = "lct:org1:lib:unit:unit-1"
             self.subsection = library_api.create_container(
                 self.library.key,
-                container_type=library_api.ContainerType.Subsection,
+                container_cls=content_models.Subsection,
                 slug="subsection-1",
                 title="Subsection 1",
                 user_id=None,
@@ -245,7 +244,7 @@ class TestSearchApi(ModuleStoreTestCase):
             self.subsection_key = "lct:org1:lib:subsection:subsection-1"
             self.section = library_api.create_container(
                 self.library.key,
-                container_type=library_api.ContainerType.Section,
+                container_cls=content_models.Section,
                 slug="section-1",
                 title="Section 1",
                 user_id=None,
@@ -327,9 +326,13 @@ class TestSearchApi(ModuleStoreTestCase):
             # "published" is not set since we haven't published it yet
         }
 
+    def tearDown(self):
+        content_models.Container.reset_cache()
+        return super().tearDown()
+
     @override_settings(MEILISEARCH_ENABLED=False)
     def test_reindex_meilisearch_disabled(self, mock_meilisearch) -> None:
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(RuntimeError):  # noqa: PT027
             api.rebuild_index()
 
         mock_meilisearch.return_value.swap_indexes.assert_not_called()
@@ -680,7 +683,7 @@ class TestSearchApi(ModuleStoreTestCase):
         Test indexing an Library Block and the Collections it's in.
         """
         # Create collections (these internally call `upsert_library_collection_index_doc`)
-        created_date = datetime(2023, 5, 6, 7, 8, 9, tzinfo=timezone.utc)
+        created_date = datetime(2023, 5, 6, 7, 8, 9, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(created_date):
             collection1 = library_api.create_library_collection(
                 self.library.key,
@@ -701,7 +704,7 @@ class TestSearchApi(ModuleStoreTestCase):
         # Add Problem1 to both Collections (these internally call `upsert_item_collections_index_docs` and
         # `upsert_library_collection_index_doc`)
         # (adding in reverse order to test sorting of collection tag)
-        updated_date = datetime(2023, 6, 7, 8, 9, 10, tzinfo=timezone.utc)
+        updated_date = datetime(2023, 6, 7, 8, 9, 10, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(updated_date):
             for collection in (collection2, collection1):
                 library_api.update_library_collection_items(
@@ -884,7 +887,7 @@ class TestSearchApi(ModuleStoreTestCase):
         Test soft-deleting, restoring, and hard-deleting a collection.
         """
         # Add a component to the collection
-        updated_date = datetime(2023, 6, 7, 8, 9, 10, tzinfo=timezone.utc)
+        updated_date = datetime(2023, 6, 7, 8, 9, 10, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(updated_date):
             library_api.update_library_collection_items(
                 self.library.key,
@@ -959,7 +962,7 @@ class TestSearchApi(ModuleStoreTestCase):
         mock_meilisearch.return_value.get_index.return_value.get_document.return_value = None
 
         # Restore the collection
-        restored_date = datetime(2023, 8, 9, 10, 11, 12, tzinfo=timezone.utc)
+        restored_date = datetime(2023, 8, 9, 10, 11, 12, tzinfo=timezone.utc)  # noqa: UP017
         with freeze_time(restored_date):
             content_api.restore_collection(
                 self.collection.learning_package_id,
