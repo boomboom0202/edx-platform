@@ -23,7 +23,6 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import SuspiciousOperation
 from django.core.files.storage import FileSystemStorage
 from django.test.utils import override_settings
-from edx_toggles.toggles.testutils import override_waffle_flag
 from milestones.tests.utils import MilestonesTestCaseMixin
 from opaque_keys.edx.locator import LibraryLocator
 from openedx_authz.constants.roles import COURSE_DATA_RESEARCHER, COURSE_STAFF
@@ -34,7 +33,6 @@ from storages.backends.s3boto3 import S3Boto3Storage
 from user_tasks.models import UserTaskStatus
 
 from cms.djangoapps.contentstore import errors as import_error
-from cms.djangoapps.contentstore import toggles
 from cms.djangoapps.contentstore.api.tests.base import BaseCourseViewTest
 from cms.djangoapps.contentstore.storage import course_import_export_storage
 from cms.djangoapps.contentstore.tests.test_libraries import LibraryTestCase
@@ -115,7 +113,7 @@ class ImportEntranceExamTestCase(CourseTestCase, MilestonesTestCaseMixin):
         self.assertIsNotNone(course)  # noqa: PT009
         self.assertEqual(course.entrance_exam_enabled, False)  # noqa: PT009
 
-        with open(self.entrance_exam_tar, 'rb') as gtar:  # lint-amnesty, pylint: disable=bad-option-value, open-builtin
+        with open(self.entrance_exam_tar, 'rb') as gtar:  # pylint: disable=bad-option-value, open-builtin
             args = {"name": self.entrance_exam_tar, "course-data": [gtar]}
             resp = self.client.post(self.url, args)
         self.assertEqual(resp.status_code, 200)  # noqa: PT009
@@ -147,7 +145,7 @@ class ImportEntranceExamTestCase(CourseTestCase, MilestonesTestCaseMixin):
         self.assertTrue(len(content_milestones))  # noqa: PT009
 
         # Now import entrance exam course
-        with open(self.entrance_exam_tar, 'rb') as gtar:  # lint-amnesty, pylint: disable=bad-option-value, open-builtin
+        with open(self.entrance_exam_tar, 'rb') as gtar:  # pylint: disable=bad-option-value, open-builtin
             args = {"name": self.entrance_exam_tar, "course-data": [gtar]}
             resp = self.client.post(self.url, args)
         self.assertEqual(resp.status_code, 200)  # noqa: PT009
@@ -558,7 +556,7 @@ class ImportTestCase(CourseTestCase):
             # Construct the modulestore for storing the import (using the previously created contentstore)
             with SPLIT_MODULESTORE_SETUP.build(contentstore=source_content) as source_store:
                 # Use the test branch setting.
-                with source_store.branch_setting(branch_setting):  # lint-amnesty, pylint: disable=no-member
+                with source_store.branch_setting(branch_setting):  # pylint: disable=no-member
                     source_library_key = LibraryLocator(org='TestOrg', library='TestProbs')
 
                     extract_dir = path(tempfile.mkdtemp(dir=settings.DATA_DIR))
@@ -754,15 +752,6 @@ class ExportTestCase(CourseTestCase):
         self.url = reverse_course_url('export_handler', self.course.id)
         self.status_url = reverse_course_url('export_status_handler', self.course.id)
 
-    @override_waffle_flag(toggles.LEGACY_STUDIO_EXPORT, True)
-    def test_export_html(self):
-        """
-        Get the HTML for the page.
-        """
-        resp = self.client.get_html(self.url)
-        self.assertEqual(resp.status_code, 200)  # noqa: PT009
-        self.assertContains(resp, "Export My Course Content")
-
     def test_export_json_unsupported(self):
         """
         JSON is unsupported.
@@ -791,7 +780,7 @@ class ExportTestCase(CourseTestCase):
             resp_content += item
 
         buff = BytesIO(resp_content)
-        return tarfile.open(fileobj=buff)  # lint-amnesty, pylint: disable=consider-using-with
+        return tarfile.open(fileobj=buff)  # pylint: disable=consider-using-with
 
     def _verify_export_succeeded(self, resp):
         """ Export success helper method. """

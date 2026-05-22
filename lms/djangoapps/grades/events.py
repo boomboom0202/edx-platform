@@ -166,13 +166,25 @@ def course_grade_passed_first_time(user_id, course_id):
     """
     event_name = COURSE_GRADE_PASSED_FIRST_TIME_EVENT_TYPE
     context = contexts.course_context_from_course_id(course_id)
-    enriched_context = GradeEventContextRequested.run_filter(
-        context=context, user_id=user_id, course_id=course_id
+    try:
+        filtered_context, _, _ = GradeEventContextRequested.run_filter(
+            context=context, user_id=user_id, course_id=course_id
+        )
+    except Exception:  # pylint: disable=broad-except
+        log.exception(
+            'GradeEventContextRequested failed for user_id=%s course_id=%s',
+            user_id,
+            course_id,
+        )
+        raise
+    log.debug(
+        'GradeEventContextRequested succeeded for user_id=%s course_id=%s',
+        user_id,
+        course_id,
     )
-    if enriched_context is not None:
-        context = enriched_context
+
     # TODO (AN-6134): remove this context manager
-    with tracker.get_tracker().context(event_name, context):
+    with tracker.get_tracker().context(event_name, filtered_context):
         tracker.emit(
             event_name,
             {

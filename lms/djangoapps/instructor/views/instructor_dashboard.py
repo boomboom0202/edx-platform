@@ -10,6 +10,7 @@ import pytz
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponseServerError
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.translation import gettext as _
@@ -54,11 +55,11 @@ from openedx.core.djangoapps.plugins.constants import ProjectType
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangolib.markup import HTML, Text
 from openedx.core.lib.courses import get_course_by_id
-from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
-from xmodule.tabs import CourseTab  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore.django import modulestore  # pylint: disable=wrong-import-order
+from xmodule.tabs import CourseTab  # pylint: disable=wrong-import-order
 
 from .. import permissions
-from ..toggles import data_download_v2_is_enabled
+from ..toggles import data_download_v2_is_enabled, legacy_instructor_dashboard
 from .tools import get_units_with_due_date, title_or_url
 
 log = logging.getLogger(__name__)
@@ -74,6 +75,17 @@ class InstructorDashboardTab(CourseTab):
     view_name = "instructor_dashboard"
     is_dynamic = True    # The "Instructor" tab is instead dynamically added when it is enabled
     priority = 300
+
+    def __init__(self, tab_dict):
+        # Customize link function to support both legacy dashboard and new MFE tab response based on feature flag
+        def link_func(course, reverse_func):
+            if not legacy_instructor_dashboard():
+                return get_instructor_dashboard_url(course.id)
+            else:
+                return reverse_func(self.view_name, args=[str(course.id)])
+
+        tab_dict['link_func'] = link_func
+        super().__init__(tab_dict)
 
     @classmethod
     def is_enabled(cls, course, user=None):
@@ -118,7 +130,7 @@ def get_analytics_dashboard_message(course_key):
 
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-def instructor_dashboard_2(request, course_id):  # lint-amnesty, pylint: disable=too-many-statements
+def instructor_dashboard_2(request, course_id):  # pylint: disable=too-many-statements
     """ Display the instructor dashboard for a course. """
     try:
         course_key = CourseKey.from_string(course_id)
@@ -144,6 +156,13 @@ def instructor_dashboard_2(request, course_id):  # lint-amnesty, pylint: disable
     if not request.user.has_perm(permissions.VIEW_DASHBOARD, course_key):
         raise Http404()
 
+    # With new instructor dashboard we need to redirect them to it instead of rendering the old one,
+    # but we still want to check if they have access to view the dashboard before redirecting.
+    if not legacy_instructor_dashboard():
+        return redirect(get_instructor_dashboard_url(course_key))
+
+    # WHEN DEPR-38432 is picked up the legacy dashboard may be removed
+
     sections = []
     if access['staff']:
         sections_content = [
@@ -168,7 +187,7 @@ def instructor_dashboard_2(request, course_id):  # lint-amnesty, pylint: disable
         sections.append(_section_analytics(course, access))
 
     # Check if there is corresponding entry in the CourseMode Table related to the Instructor Dashboard course
-    course_mode_has_price = False  # lint-amnesty, pylint: disable=unused-variable
+    course_mode_has_price = False  # pylint: disable=unused-variable
     paid_modes = CourseMode.paid_modes_for_course(course_key)
     if len(paid_modes) == 1:
         course_mode_has_price = True  # noqa: F841
@@ -546,7 +565,7 @@ def _section_cohort_management(course, access):
     return section_data
 
 
-def _section_discussions_management(course, access):  # lint-amnesty, pylint: disable=unused-argument
+def _section_discussions_management(course, access):  # pylint: disable=unused-argument
     """ Provide data for the corresponding discussion management section """
     course_key = course.id
     enrollment_track_schemes = available_division_schemes(course_key)
@@ -665,7 +684,7 @@ def _section_data_download(course, access):
         'list_report_downloads_url': reverse('list_report_downloads', kwargs={'course_id': str(course_key)}),
         'calculate_grades_csv_url': reverse('calculate_grades_csv', kwargs={'course_id': str(course_key)}),
         'problem_grade_report_url': reverse('problem_grade_report', kwargs={'course_id': str(course_key)}),
-        'course_has_survey': True if course.course_survey_name else False,  # lint-amnesty, pylint: disable=simplifiable-if-expression
+        'course_has_survey': True if course.course_survey_name else False,  # pylint: disable=simplifiable-if-expression
         'course_survey_results_url': reverse(
             'get_course_survey_results', kwargs={'course_id': str(course_key)}
         ),
@@ -817,3 +836,11 @@ def is_ecommerce_course(course_key):
     """
     sku_count = len([mode.sku for mode in CourseMode.modes_for_course(course_key) if mode.sku])
     return sku_count > 0
+
+
+def get_instructor_dashboard_url(course_key: CourseKey) -> str:
+    """
+    Gets instructor microfrontend URL for the current course locator.
+    """
+    mfe_base_url = settings.INSTRUCTOR_MICROFRONTEND_URL
+    return f'{mfe_base_url}/{course_key}'

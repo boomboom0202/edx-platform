@@ -41,16 +41,14 @@ from rest_framework.views import APIView
 
 from cms.djangoapps.contentstore.views.permissions import HasStudioWriteAccess
 from cms.djangoapps.contentstore.views.serializers import CertificateActivationSerializer, CertificateSerializer
-from common.djangoapps.edxmako.shortcuts import render_to_response
 from common.djangoapps.student.auth import has_studio_write_access
 from common.djangoapps.student.roles import GlobalStaff
 from common.djangoapps.util.json_request import JsonResponse
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
-from xmodule.modulestore import EdxJSONEncoder  # lint-amnesty, pylint: disable=wrong-import-order
-from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore import EdxJSONEncoder  # pylint: disable=wrong-import-order
+from xmodule.modulestore.django import modulestore  # pylint: disable=wrong-import-order
 
-from ..toggles import use_new_certificates_page
-from ..utils import get_certificates_context, get_certificates_url, reverse_course_url
+from ..utils import get_certificates_url, reverse_course_url
 from .certificate_manager import CertificateManager, CertificateValidationError
 
 CERTIFICATE_MINIMUM_ID = 100
@@ -143,10 +141,7 @@ def certificates_list_handler(request, course_key_string):
             return JsonResponse({"error": msg}, status=403)
 
         if 'text/html' in request.META.get('HTTP_ACCEPT', 'text/html'):
-            if use_new_certificates_page(course_key):
-                return redirect(get_certificates_url(course_key))
-            certificates_context = get_certificates_context(course, request.user)
-            return render_to_response('certificates.html', certificates_context)
+            return redirect(get_certificates_url(course_key))
         elif "application/json" in request.META.get('HTTP_ACCEPT'):
             # Retrieve the list of certificates for the specified course
             if request.method == 'GET':

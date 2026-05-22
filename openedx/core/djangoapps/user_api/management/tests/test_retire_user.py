@@ -5,21 +5,44 @@ Test the retire_user management command
 
 import csv
 import os
+from contextlib import contextmanager
 
 import pytest
-from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
+from django.contrib.auth.models import User  # pylint: disable=imported-auth-user
 from django.core.management import CommandError, call_command
+from django.db import connection
+from django.db.models.signals import pre_delete
+from django.test.utils import CaptureQueriesContext
+from social_django.models import UserSocialAuth
 
 from common.djangoapps.student.tests.factories import UserFactory  # lint-amnesty, pylint: disable=wrong-import-order
-from openedx.core.djangoapps.user_api.accounts.tests.retirement_helpers import (  # lint-amnesty, pylint: disable=unused-import, wrong-import-order
+from openedx.core.djangoapps.user_api.accounts.signals import (
+    redact_social_auth_pii_before_deletion,
+)
+from openedx.core.djangoapps.user_api.accounts.tests.retirement_helpers import (
     setup_retirement_states,  # noqa: F401
 )
-from openedx.core.djangolib.testing.utils import skip_unless_lms  # lint-amnesty, pylint: disable=wrong-import-order
+from openedx.core.djangoapps.user_api.accounts.tests.test_utils import (
+    assert_update_before_delete,
+)
+from openedx.core.djangolib.testing.utils import skip_unless_lms  # pylint: disable=wrong-import-order
 
 from ...models import UserRetirementStatus
 
 pytestmark = pytest.mark.django_db
 user_file = 'userfile.csv'
+
+# Use a context manager to guarantee signal reconnection between tests.
+@contextmanager
+def disconnected_social_auth_redaction_signal():
+    """
+    Temporarily disconnect the fallback signal so these tests exercise the command path.
+    """
+    pre_delete.disconnect(redact_social_auth_pii_before_deletion, sender=UserSocialAuth)
+    try:
+        yield
+    finally:
+        pre_delete.connect(redact_social_auth_pii_before_deletion, sender=UserSocialAuth)
 
 
 def generate_dummy_users():
@@ -61,7 +84,7 @@ def remove_user_file():
 
 
 @skip_unless_lms
-def test_successful_retire_with_userfile(setup_retirement_states):  # lint-amnesty, pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
+def test_successful_retire_with_userfile(setup_retirement_states):  # pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
     user = UserFactory.create(username='user0', email="user0@example.com")
     username = user.username
     user_email = user.email
@@ -77,7 +100,7 @@ def test_successful_retire_with_userfile(setup_retirement_states):  # lint-amnes
 
 
 @skip_unless_lms
-def test_retire_user_with_usename_email_mismatch(setup_retirement_states):  # lint-amnesty, pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
+def test_retire_user_with_usename_email_mismatch(setup_retirement_states):  # pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
     create_user_file(True)
     with pytest.raises(CommandError, match=r'Could not find users with specified username and email '):
         call_command('retire_user', user_file=user_file)
@@ -85,7 +108,7 @@ def test_retire_user_with_usename_email_mismatch(setup_retirement_states):  # li
 
 
 @skip_unless_lms
-def test_successful_retire_with_username_email(setup_retirement_states):  # lint-amnesty, pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
+def test_successful_retire_with_username_email(setup_retirement_states):  # pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
     user = UserFactory.create(username='user0', email="user0@example.com")
     username = user.username
     user_email = user.email
@@ -99,7 +122,7 @@ def test_successful_retire_with_username_email(setup_retirement_states):  # lint
 
 
 @skip_unless_lms
-def test_retire_with_username_email_userfile(setup_retirement_states):  # lint-amnesty, pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
+def test_retire_with_username_email_userfile(setup_retirement_states):  # pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
     user = UserFactory.create(username='user0', email="user0@example.com")
     username = user.username
     user_email = user.email
@@ -107,3 +130,44 @@ def test_retire_with_username_email_userfile(setup_retirement_states):  # lint-a
     with pytest.raises(CommandError, match=r'You cannot use userfile option with username and user_email'):
         call_command('retire_user', user_file=user_file, username=username, user_email=user_email)
     remove_user_file()
+
+
+@skip_unless_lms
+@pytest.mark.parametrize('social_auth_configs', [
+    # Single SSO provider
+    [
+        {'provider': 'google-oauth2', 'uid': 'sso@example.com',
+         'extra_data': {'email': 'sso@example.com', 'name': 'SSO Test User', 'id': '123456789'}},
+    ],
+    # Multiple SSO providers
+    [
+        {'provider': 'google-oauth2', 'uid': 'google@example.com',
+         'extra_data': {'email': 'google@example.com', 'name': 'Google User'}},
+        {'provider': 'tpa-saml', 'uid': 'saml@example.com',
+         'extra_data': {'email': 'saml@example.com', 'name': 'SAML User', 'uid': 'saml-123'}},
+    ],
+])
+def test_retire_user_redacts_sso_pii_before_deletion(setup_retirement_states, social_auth_configs):  # lint-amnesty, pylint: disable=redefined-outer-name, unused-argument  # noqa: F811
+    """
+    Test that SSO PII is redacted before UserSocialAuth records are deleted during retirement.
+    Covers both single and multiple SSO provider scenarios.
+
+    The safety-net pre_delete signal handler is disconnected so we verify the redaction
+    comes from retire_user itself, not the fallback signal.
+    """
+    user = UserFactory.create(username='sso-user', email='sso-user@example.com')
+    auth_ids = [
+        UserSocialAuth.objects.create(user=user, **cfg).id
+        for cfg in social_auth_configs
+    ]
+
+    with disconnected_social_auth_redaction_signal(), CaptureQueriesContext(connection) as ctx:
+        call_command('retire_user', username=user.username, user_email=user.email)
+
+    assert_update_before_delete([query['sql'] for query in ctx])
+    for auth_id in auth_ids:
+        assert not UserSocialAuth.objects.filter(id=auth_id).exists()
+
+    retired_user_status = UserRetirementStatus.objects.filter(original_username=user.username).first()
+    assert retired_user_status is not None
+    assert retired_user_status.original_email == 'sso-user@example.com'

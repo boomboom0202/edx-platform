@@ -1905,6 +1905,16 @@ ENABLE_DYNAMIC_REGISTRATION_FIELDS = False
 # .. setting_description: Base URL of the micro-frontend-based learner home page.
 LEARNER_HOME_MICROFRONTEND_URL = None
 
+# .. setting_name: COURSE_AUTHORING_MICROFRONTEND_URL
+# .. setting_default: None
+# .. setting_description: Base URL of the micro-frontend-based course authoring (Studio) page.
+COURSE_AUTHORING_MICROFRONTEND_URL = None
+
+# .. setting_name: ADMIN_CONSOLE_MICROFRONTEND_URL
+# .. setting_default: None
+# .. setting_description: Base URL of the micro-frontend-based admin console page.
+ADMIN_CONSOLE_MICROFRONTEND_URL = None
+
 ################################## Swift ###################################
 
 SWIFT_USERNAME = None
@@ -1924,6 +1934,21 @@ SOCIAL_AUTH_SAML_SP_PRIVATE_KEY = ""
 SOCIAL_AUTH_SAML_SP_PUBLIC_CERT = ""
 SOCIAL_AUTH_SAML_SP_PRIVATE_KEY_DICT = {}
 SOCIAL_AUTH_SAML_SP_PUBLIC_CERT_DICT = {}
+
+# .. toggle_name: SAML_METADATA_URL_ALLOW_PRIVATE_IPS
+# .. toggle_default: False
+# .. toggle_description: When False (the default), fetching SAML metadata from
+#   private IP address ranges (RFC 1918: 10.x, 172.16.x, 192.168.x) is blocked
+#   as a defense against SSRF attacks. Set to True only in deployments where the
+#   SAML Identity Provider is hosted on the same private network as the Open edX
+#   server. Note: loopback (127.x) and link-local (169.254.x) addresses remain
+#   blocked regardless of this toggle. Operators are also encouraged to enforce
+#   network-level egress filtering as a complementary control, particularly to
+#   cover hostname-based URLs that are not subject to IP validation.
+# .. toggle_implementation: DjangoSetting
+# .. toggle_use_cases: open_edx
+# .. toggle_creation_date: 2026-04-24
+SAML_METADATA_URL_ALLOW_PRIVATE_IPS = False
 
 ########################### django-fernet-fields ###########################
 
@@ -2087,7 +2112,7 @@ USE_EXTRACTED_HTML_BLOCK = True
 # .. toggle_warning: Not production-ready until relevant subtask https://github.com/openedx/edx-platform/issues/34827 is done.
 # .. toggle_creation_date: 2024-11-10
 # .. toggle_target_removal_date: 2026-04-10
-USE_EXTRACTED_DISCUSSION_BLOCK = False
+USE_EXTRACTED_DISCUSSION_BLOCK = True
 
 # .. toggle_name: USE_EXTRACTED_PROBLEM_BLOCK
 # .. toggle_default: False
@@ -2097,7 +2122,7 @@ USE_EXTRACTED_DISCUSSION_BLOCK = False
 # .. toggle_warning: Not production-ready until relevant subtask https://github.com/openedx/edx-platform/issues/34827 is done.
 # .. toggle_creation_date: 2024-11-10
 # .. toggle_target_removal_date: 2026-04-10
-USE_EXTRACTED_PROBLEM_BLOCK = False
+USE_EXTRACTED_PROBLEM_BLOCK = True
 
 # .. toggle_name: USE_EXTRACTED_VIDEO_BLOCK
 # .. toggle_default: True
@@ -2673,7 +2698,8 @@ NOTIFICATION_WEEKLY_DIGEST_DELIVERY_HOUR = 17  # Hour of day (0-23) to send week
 NOTIFICATION_WEEKLY_DIGEST_DELIVERY_MINUTE = 0 # Minute of hour (0-59) to send weekly digest
 
 # These settings are used to override the default notification preferences values for apps and types.
-# Here is complete documentation about how to use them: openedx/core/djangoapps/notifications/docs/settings.md
+# Here is complete documentation about how to use them:
+# https://docs.openedx.org/en/latest/site_ops/how-tos/enable_notifications.html#how-to-override-default-notification-preferences
 NOTIFICATION_APPS_OVERRIDE = {}
 NOTIFICATION_TYPES_OVERRIDE = {}
 

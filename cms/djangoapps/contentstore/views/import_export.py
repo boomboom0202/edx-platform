@@ -39,11 +39,10 @@ from common.djangoapps.util.monitoring import monitor_import_failure
 from common.djangoapps.util.views import ensure_valid_course_key
 from openedx.core.djangoapps.authz.constants import LegacyAuthoringPermission
 from openedx.core.djangoapps.authz.decorators import user_has_course_permission
-from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore.django import modulestore  # pylint: disable=wrong-import-order
 
 from ..storage import course_import_export_storage
 from ..tasks import CourseExportTask, CourseImportTask, export_olx, import_olx
-from ..toggles import use_new_export_page, use_new_import_page
 from ..utils import IMPORTABLE_FILE_TYPES, get_export_url, get_import_url, reverse_course_url, reverse_library_url
 
 __all__ = [
@@ -93,13 +92,13 @@ def import_handler(request, course_key_string):
         raise PermissionDenied()
 
     if 'application/json' in request.META.get('HTTP_ACCEPT', 'application/json'):
-        if request.method == 'GET':  # lint-amnesty, pylint: disable=no-else-raise
+        if request.method == 'GET':  # pylint: disable=no-else-raise
             raise NotImplementedError('coming soon')
         else:
             return _write_chunk(request, courselike_key)
     elif request.method == 'GET':  # assume html
 
-        if use_new_import_page(courselike_key) and not library:
+        if not library:
             return redirect(get_import_url(courselike_key))
         status_url = reverse_course_url(
             "import_status_handler", courselike_key, kwargs={'filename': "fillerName"}
@@ -126,7 +125,7 @@ def _save_request_status(request, key, status):
     request.session.save()
 
 
-def _write_chunk(request, courselike_key):  # lint-amnesty, pylint: disable=too-many-statements
+def _write_chunk(request, courselike_key):  # pylint: disable=too-many-statements
     """
     Write the OLX file data chunk from the given request to the local filesystem.
     """
@@ -358,7 +357,7 @@ def export_handler(request, course_key_string):
         export_olx.delay(request.user.id, course_key_string, request.LANGUAGE_CODE)
         return JsonResponse({'ExportStatus': 1})
     elif 'text/html' in requested_format:
-        if use_new_export_page(course_key) and not library:
+        if not library:
             return redirect(get_export_url(course_key))
         return render_to_response('export.html', context)
     else:
@@ -468,7 +467,7 @@ def export_output_handler(request, course_key_string):
             tarball = course_import_export_storage.open(artifact.file.name)
             return send_tarball(tarball, artifact.file.storage.size(artifact.file.name))
         except UserTaskArtifact.DoesNotExist:
-            raise Http404  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
+            raise Http404  # pylint: disable=raise-missing-from  # noqa: B904
         finally:
             if artifact:
                 artifact.file.close()

@@ -67,24 +67,33 @@ class CourseWaffleFlagsSerializer(serializers.Serializer):
 
     def get_use_new_schedule_details_page(self, obj):
         """
-        Method to get the use_new_schedule_details_page switch
+        Method to indicate whether we should use the new schedule details page.
+
+        This used to be based on a waffle flag but the flag is being removed so we
+        default it to true for now until we can remove the need for it from the consumers
+        of this serializer and the related APIs.
+
+        See https://github.com/openedx/edx-platform/issues/36275
         """
-        course_key = self.get_course_key()
-        return toggles.use_new_schedule_details_page(course_key)
+        return True
 
     def get_use_new_advanced_settings_page(self, obj):
         """
         Method to get the use_new_advanced_settings_page switch
         """
-        course_key = self.get_course_key()
-        return toggles.use_new_advanced_settings_page(course_key)
+        return True
 
     def get_use_new_grading_page(self, obj):
         """
-        Method to get the use_new_grading_page switch
+        Method to indicate whether we should use the new grading page.
+
+        This used to be based on a waffle flag but the flag is being removed so we
+        default it to true for now until we can remove the need for it from the consumers
+        of this serializer and the related APIs.
+
+        See https://github.com/openedx/edx-platform/issues/36275
         """
-        course_key = self.get_course_key()
-        return toggles.use_new_grading_page(course_key)
+        return True
 
     def get_use_new_updates_page(self, obj):
         """
@@ -102,15 +111,13 @@ class CourseWaffleFlagsSerializer(serializers.Serializer):
         """
         Method to get the use_new_import_page switch
         """
-        course_key = self.get_course_key()
-        return toggles.use_new_import_page(course_key)
+        return True
 
     def get_use_new_export_page(self, obj):
         """
         Method to get the use_new_export_page switch
         """
-        course_key = self.get_course_key()
-        return toggles.use_new_export_page(course_key)
+        return True
 
     def get_use_new_files_uploads_page(self, obj):
         """
@@ -160,15 +167,13 @@ class CourseWaffleFlagsSerializer(serializers.Serializer):
         """
         Method to get the use_new_course_team_page switch
         """
-        course_key = self.get_course_key()
-        return toggles.use_new_course_team_page(course_key)
+        return True
 
     def get_use_new_certificates_page(self, obj):
         """
         Method to get the use_new_certificates_page switch
         """
-        course_key = self.get_course_key()
-        return toggles.use_new_certificates_page(course_key)
+        return True
 
     def get_use_new_textbooks_page(self, obj):
         """
@@ -186,8 +191,7 @@ class CourseWaffleFlagsSerializer(serializers.Serializer):
         """
         Method to get the use_new_group_configurations_page switch
         """
-        course_key = self.get_course_key()
-        return toggles.use_new_group_configurations_page(course_key)
+        return True
 
     def get_enable_course_optimizer(self, obj):
         """

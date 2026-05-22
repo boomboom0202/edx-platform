@@ -31,7 +31,7 @@ from openedx.core.lib.derived import derive_settings
 from openedx.core.lib.features_setting_proxy import FeaturesProxy
 from openedx.core.lib.logsettings import get_logger_config
 from xmodule.modulestore.modulestore_settings import \
-    convert_module_store_setting_if_needed  # lint-amnesty, pylint: disable=wrong-import-order
+    convert_module_store_setting_if_needed  # pylint: disable=wrong-import-order
 
 from .common import *  # noqa: F403
 
@@ -45,7 +45,7 @@ def get_env_setting(setting):
         return os.environ[setting]
     except KeyError:
         error_msg = "Set the %s env variable" % setting  # noqa: UP031
-        raise ImproperlyConfigured(error_msg)  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
+        raise ImproperlyConfigured(error_msg)  # pylint: disable=raise-missing-from  # noqa: B904
 
 #######################################################################################################################
 #### YAML LOADING
@@ -279,6 +279,19 @@ EVENT_TRACKING_BACKENDS['tracking_logs']['OPTIONS']['backends'].update(  # noqa:
 EVENT_TRACKING_BACKENDS['segmentio']['OPTIONS']['processors'][0]['OPTIONS']['whitelist'].extend(  # noqa: F405
     EVENT_TRACKING_SEGMENTIO_EMIT_WHITELIST  # noqa: F405
 )
+
+# Merge OPEN_EDX_FILTERS_CONFIG from YAML into the default defined in common.py.
+# Pipeline steps from YAML are appended after steps defined in common.py.
+# The fail_silently value from YAML takes precedence over the one in common.py.
+for _filter_type, _filter_config in _YAML_TOKENS.get('OPEN_EDX_FILTERS_CONFIG', {}).items():
+    if _filter_type in OPEN_EDX_FILTERS_CONFIG:  # noqa: F405
+        OPEN_EDX_FILTERS_CONFIG[_filter_type]['pipeline'].extend(  # noqa: F405
+            _filter_config.get('pipeline', [])
+        )
+        if 'fail_silently' in _filter_config:
+            OPEN_EDX_FILTERS_CONFIG[_filter_type]['fail_silently'] = _filter_config['fail_silently']  # noqa: F405
+    else:
+        OPEN_EDX_FILTERS_CONFIG[_filter_type] = _filter_config  # noqa: F405
 
 if ENABLE_THIRD_PARTY_AUTH:  # noqa: F405
     AUTHENTICATION_BACKENDS = _YAML_TOKENS.get('THIRD_PARTY_AUTH_BACKENDS', [

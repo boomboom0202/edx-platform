@@ -16,7 +16,7 @@ import pytest
 import pytz
 from botocore.exceptions import ClientError
 from django.conf import settings
-from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
+from django.contrib.auth.models import User  # pylint: disable=imported-auth-user
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpRequest, HttpResponse
@@ -361,7 +361,7 @@ class TestEndpointHttpMethods(SharedModuleStoreTestCase, LoginEnrollmentTestCase
             f"Endpoint {data} returned status code 405 where it shouldn't, since it should allow GET."
 
 
-@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))  # lint-amnesty, pylint: disable=line-too-long
+@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))  # pylint: disable=line-too-long
 class TestInstructorAPIDenyLevels(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
     """
     Ensure that users cannot access endpoints they shouldn't be able to.
@@ -820,7 +820,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         assert response.status_code == 200
         data = json.loads(response.content.decode('utf-8'))
         warning_message = 'An account with email {email} exists but the provided username {username} ' \
-                          'is different. Enrolling anyway with {email}.'.format(email='test_student@example.com', username='test_student_2')  # lint-amnesty, pylint: disable=line-too-long
+                          'is different. Enrolling anyway with {email}.'.format(email='test_student@example.com', username='test_student_2')  # pylint: disable=line-too-long
         assert len(data['warnings']) != 0
         assert data['warnings'][0]['response'] == warning_message
         user = User.objects.get(email='test_student@example.com')
@@ -871,7 +871,7 @@ class TestInstructorAPIBulkAccountCreationAndEnrollment(SharedModuleStoreTestCas
         data = json.loads(response.content.decode('utf-8'))
         assert len(data['row_errors']) != 0
         assert data['row_errors'][0]['response'] == 'Username {user} already exists.'.format(user='test_student_1')
-        # lint-amnesty, pylint: disable=line-too-long
+        # pylint: disable=line-too-long
 
     def test_csv_file_not_attached(self):
         """
@@ -1093,7 +1093,7 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
 
     def test_invalid_email(self):
         url = reverse('students_update_enrollment', kwargs={'course_id': str(self.course.id)})
-        response = self.client.post(url, {'identifiers': 'percivaloctavius@', 'action': 'enroll', 'email_students': False})  # lint-amnesty, pylint: disable=line-too-long
+        response = self.client.post(url, {'identifiers': 'percivaloctavius@', 'action': 'enroll', 'email_students': False})  # pylint: disable=line-too-long
         assert response.status_code == 200
 
         # test the response data
@@ -1104,6 +1104,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                 {
                     "identifier": 'percivaloctavius@',
                     "invalidIdentifier": True,
+                    "success": False,
+                    "error_type": "invalid_identifier",
+                    "error_message": "Invalid email address",
                 }
             ]
         }
@@ -1125,6 +1128,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                 {
                     "identifier": 'percivaloctavius',
                     "invalidIdentifier": True,
+                    "success": False,
+                    "error_type": "invalid_identifier",
+                    "error_message": "Invalid email address",
                 }
             ]
         }
@@ -1156,7 +1162,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                         "auto_enroll": False,
                         "user": True,
                         "allowed": False,
-                    }
+                    },
+                    "success": True,
+                    "state_transition": UNENROLLED_TO_ENROLLED,
                 }
             ]
         }
@@ -1195,7 +1203,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                         "auto_enroll": False,
                         "user": True,
                         "allowed": False,
-                    }
+                    },
+                    "success": True,
+                    "state_transition": UNENROLLED_TO_ENROLLED,
                 }
             ]
         }
@@ -1241,7 +1251,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                         "auto_enroll": False,
                         "user": True,
                         "allowed": False,
-                    }
+                    },
+                    "success": True,
+                    "state_transition": UNENROLLED_TO_ENROLLED,
                 }
             ]
         }
@@ -1428,7 +1440,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                         "auto_enroll": False,
                         "user": True,
                         "allowed": False,
-                    }
+                    },
+                    "success": True,
+                    "state_transition": ENROLLED_TO_UNENROLLED,
                 }
             ]
         }
@@ -1471,7 +1485,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                         "auto_enroll": False,
                         "user": True,
                         "allowed": False,
-                    }
+                    },
+                    "success": True,
+                    "state_transition": ENROLLED_TO_UNENROLLED,
                 }
             ]
         }
@@ -1525,7 +1541,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                         "auto_enroll": False,
                         "user": False,
                         "allowed": False,
-                    }
+                    },
+                    "success": True,
+                    "state_transition": ALLOWEDTOENROLL_TO_UNENROLLED,
                 }
             ]
         }
@@ -1725,7 +1743,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                         "auto_enroll": False,
                         "user": True,
                         "allowed": True,
-                    }
+                    },
+                    "success": True,
+                    "state_transition": ALLOWEDTOENROLL_TO_ENROLLED,
                 }
             ]
         }
@@ -1767,7 +1787,9 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
                         "auto_enroll": False,
                         "user": False,
                         "allowed": False,
-                    }
+                    },
+                    "success": True,
+                    "state_transition": UNENROLLED_TO_UNENROLLED,
                 }
             ]
         }
@@ -1882,6 +1904,209 @@ class TestInstructorAPIEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTest
         res_json = json.loads(response.content.decode('utf-8'))
         assert res_json['enrollment_status'] == 'Enrollment status for nonotever@example.com: never enrolled'
 
+    @patch("lms.djangoapps.instructor_task.api.submit_student_enrollment_batch")
+    def test_enroll_async_processing_success(self, mock_submit_task):
+        """Test async enrollment with async_processing=True"""
+        mock_task = Mock()
+        mock_task.task_id = "test-task-id-123"
+        mock_task.task_state = "QUEUED"
+        mock_submit_task.return_value = mock_task
+        url = reverse("students_update_enrollment", kwargs={"course_id": str(self.course.id)})
+
+        response = self.client.post(
+            url,
+            {
+                "identifiers": self.notenrolled_student.email,
+                "action": "enroll",
+                "email_students": False,
+                "async_processing": True,
+            },
+        )
+
+        assert response.status_code == 200
+        res_json = json.loads(response.content.decode("utf-8"))
+
+        # Verify async response structure
+        assert res_json == {
+            "action": "enroll",
+            "auto_enroll": False,
+            "async_processing": True,
+            "task_id": "test-task-id-123",
+            "task_state": "QUEUED",
+            "message": "Async enroll task submitted for 1 students",
+            "total_students": 1
+        }
+
+        # Verify the task was called with correct parameters
+        assert mock_submit_task.called
+        call_args = mock_submit_task.call_args
+        assert call_args[1]["course_key"] == self.course.id
+        assert call_args[1]["action"] == "enroll"
+        assert call_args[1]["identifiers"] == [self.notenrolled_student.email]
+
+    @patch("lms.djangoapps.instructor_task.api.submit_student_enrollment_batch")
+    def test_unenroll_async_processing_success(self, mock_submit_task):
+        """Test async unenrollment with async_processing=True"""
+        mock_task = Mock()
+        mock_task.task_id = "test-unenroll-task-456"
+        mock_task.task_state = "QUEUED"
+        mock_submit_task.return_value = mock_task
+        url = reverse("students_update_enrollment", kwargs={"course_id": str(self.course.id)})
+
+        response = self.client.post(
+            url,
+            {
+                "identifiers": self.enrolled_student.email,
+                "action": "unenroll",
+                "email_students": True,
+                "async_processing": True,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)  # noqa: PT009
+        res_json = json.loads(response.content.decode("utf-8"))
+
+        self.assertEqual(  # noqa: PT009
+            res_json,
+            {
+                "action": "unenroll",
+                "auto_enroll": False,
+                "async_processing": True,
+                "task_id": "test-unenroll-task-456",
+                "task_state": "QUEUED",
+                "message": "Async unenroll task submitted for 1 students",
+                "total_students": 1,
+            },
+        )
+
+    @patch("lms.djangoapps.instructor_task.api.submit_student_enrollment_batch")
+    def test_async_enrollment_already_running_error(self, mock_submit_task):
+        """Test handling of AlreadyRunningError in async mode"""
+        mock_submit_task.side_effect = AlreadyRunningError("Task already running")
+        url = reverse("students_update_enrollment", kwargs={"course_id": str(self.course.id)})
+
+        response = self.client.post(
+            url, {"identifiers": self.notenrolled_student.email, "action": "enroll", "async_processing": True}
+        )
+
+        self.assertEqual(response.status_code, 200)  # noqa: PT009
+        res_json = json.loads(response.content.decode("utf-8"))
+        self.assertTrue(res_json["async_processing"])  # noqa: PT009
+        self.assertIn("error", res_json)  # noqa: PT009
+        self.assertIn("already running", res_json["error"].lower())  # noqa: PT009
+        self.assertEqual(res_json["action"], "enroll")  # noqa: PT009
+
+    @patch("lms.djangoapps.instructor_task.api.submit_student_enrollment_batch")
+    def test_async_enrollment_multiple_identifiers(self, mock_submit_task):
+        """Test async enrollment with multiple student identifiers"""
+        student2 = UserFactory(username="Student2", email="student2@example.com")
+        student3 = UserFactory(username="Student3", email="student3@example.com")
+        mock_task = Mock()
+        mock_task.task_id = "test-bulk-task-789"
+        mock_task.task_state = "QUEUED"
+        mock_submit_task.return_value = mock_task
+        identifiers = f"{self.notenrolled_student.email},{student2.email},{student3.email}"
+        url = reverse("students_update_enrollment", kwargs={"course_id": str(self.course.id)})
+
+        response = self.client.post(
+            url,
+            {
+                "identifiers": identifiers,
+                "action": "enroll",
+                "email_students": False,
+                "async_processing": True,
+                "auto_enroll": True,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)  # noqa: PT009
+        res_json = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(res_json["total_students"], 3)  # noqa: PT009
+        self.assertTrue(res_json["auto_enroll"])  # noqa: PT009
+
+        # Verify task was called with all identifiers
+        call_args = mock_submit_task.call_args
+        identifiers_list = call_args[1]["identifiers"]
+        self.assertEqual(len(identifiers_list), 3)  # noqa: PT009
+        self.assertIn(self.notenrolled_student.email, identifiers_list)  # noqa: PT009
+        self.assertIn(student2.email, identifiers_list)  # noqa: PT009
+        self.assertIn(student3.email, identifiers_list)  # noqa: PT009
+
+    def test_async_processing_default_false(self):
+        """Test that async_processing defaults to False for backward compatibility"""
+        url = reverse("students_update_enrollment", kwargs={"course_id": str(self.course.id)})
+
+        response = self.client.post(
+            url,
+            {
+                "identifiers": self.notenrolled_student.email,
+                "action": "enroll",
+                "email_students": False,
+                # async_processing not provided
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)  # noqa: PT009
+        res_json = json.loads(response.content.decode("utf-8"))
+
+        # Should have sync response structure (with 'results')
+        self.assertIn("results", res_json)  # noqa: PT009
+        self.assertNotIn("async_processing", res_json)  # noqa: PT009
+        self.assertEqual(res_json["action"], "enroll")  # noqa: PT009
+
+    @patch("lms.djangoapps.instructor_task.api.submit_student_enrollment_batch")
+    def test_async_enrollment_with_reason(self, mock_submit_task):
+        """Test async enrollment with reason field"""
+        mock_task = Mock()
+        mock_task.task_id = "test-task-with-reason"
+        mock_task.task_state = "QUEUED"
+        mock_submit_task.return_value = mock_task
+        url = reverse("students_update_enrollment", kwargs={"course_id": str(self.course.id)})
+
+        response = self.client.post(
+            url,
+            {
+                "identifiers": self.notenrolled_student.email,
+                "action": "enroll",
+                "email_students": False,
+                "async_processing": True,
+                "reason": "Testing async enrollment",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)  # noqa: PT009
+        res_json = json.loads(response.content.decode("utf-8"))
+        self.assertTrue(res_json["async_processing"])  # noqa: PT009
+
+        # Verify reason was passed to task
+        call_args = mock_submit_task.call_args
+        self.assertEqual(call_args[1]["reason"], "Testing async enrollment")  # noqa: PT009
+
+    def test_sync_enrollment_still_works(self):
+        """Test that synchronous enrollment still works (async_processing=False)"""
+        url = reverse("students_update_enrollment", kwargs={"course_id": str(self.course.id)})
+
+        response = self.client.post(
+            url,
+            {
+                "identifiers": self.notenrolled_student.email,
+                "action": "enroll",
+                "email_students": False,
+                "async_processing": False,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)  # noqa: PT009
+        res_json = json.loads(response.content.decode("utf-8"))  # noqa: PT009
+
+        # Should have sync response structure
+        self.assertIn("results", res_json)  # noqa: PT009
+        self.assertEqual(len(res_json["results"]), 1)  # noqa: PT009
+        self.assertTrue(res_json["results"][0]["success"])  # noqa: PT009
+
+        # Verify actual enrollment happened
+        self.assertTrue(CourseEnrollment.is_enrolled(self.notenrolled_student, self.course.id))  # noqa: PT009
+
 
 @ddt.ddt
 class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
@@ -1972,25 +2197,25 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
 
     def test_add_notenrolled_email(self):
         url = reverse('bulk_beta_modify_access', kwargs={'course_id': str(self.course.id)})
-        response = self.client.post(url, {'identifiers': self.notenrolled_student.email, 'action': 'add', 'email_students': False})  # lint-amnesty, pylint: disable=line-too-long
+        response = self.client.post(url, {'identifiers': self.notenrolled_student.email, 'action': 'add', 'email_students': False})  # pylint: disable=line-too-long
         self.add_notenrolled(response, self.notenrolled_student.email)
         assert not CourseEnrollment.is_enrolled(self.notenrolled_student, self.course.id)
 
     def test_add_notenrolled_email_autoenroll(self):
         url = reverse('bulk_beta_modify_access', kwargs={'course_id': str(self.course.id)})
-        response = self.client.post(url, {'identifiers': self.notenrolled_student.email, 'action': 'add', 'email_students': False, 'auto_enroll': True})  # lint-amnesty, pylint: disable=line-too-long
+        response = self.client.post(url, {'identifiers': self.notenrolled_student.email, 'action': 'add', 'email_students': False, 'auto_enroll': True})  # pylint: disable=line-too-long
         self.add_notenrolled(response, self.notenrolled_student.email)
         assert CourseEnrollment.is_enrolled(self.notenrolled_student, self.course.id)
 
     def test_add_notenrolled_username(self):
         url = reverse('bulk_beta_modify_access', kwargs={'course_id': str(self.course.id)})
-        response = self.client.post(url, {'identifiers': self.notenrolled_student.username, 'action': 'add', 'email_students': False})  # lint-amnesty, pylint: disable=line-too-long
+        response = self.client.post(url, {'identifiers': self.notenrolled_student.username, 'action': 'add', 'email_students': False})  # pylint: disable=line-too-long
         self.add_notenrolled(response, self.notenrolled_student.username)
         assert not CourseEnrollment.is_enrolled(self.notenrolled_student, self.course.id)
 
     def test_add_notenrolled_username_autoenroll(self):
         url = reverse('bulk_beta_modify_access', kwargs={'course_id': str(self.course.id)})
-        response = self.client.post(url, {'identifiers': self.notenrolled_student.username, 'action': 'add', 'email_students': False, 'auto_enroll': True})  # lint-amnesty, pylint: disable=line-too-long
+        response = self.client.post(url, {'identifiers': self.notenrolled_student.username, 'action': 'add', 'email_students': False, 'auto_enroll': True})  # pylint: disable=line-too-long
         self.add_notenrolled(response, self.notenrolled_student.username)
         assert CourseEnrollment.is_enrolled(self.notenrolled_student, self.course.id)
 
@@ -2000,7 +2225,7 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
                        f"sit@amet.consectetur\nadipiscing@elit.Aenean\r convallis@at.lacus\r, ut@lacinia.Sed, "
                        f"{self.notenrolled_student.username}"
                        )
-        response = self.client.post(url, {'identifiers': identifiers, 'action': 'add', 'email_students': False, 'auto_enroll': True})  # lint-amnesty, pylint: disable=line-too-long
+        response = self.client.post(url, {'identifiers': identifiers, 'action': 'add', 'email_students': False, 'auto_enroll': True})  # pylint: disable=line-too-long
         assert 6, len(json.loads(response.content.decode())['results'])
 
     @ddt.data('http', 'https')
@@ -2111,7 +2336,7 @@ class TestInstructorAPIBulkBetaEnrollment(SharedModuleStoreTestCase, LoginEnroll
     def test_add_notenrolled_email_mktgsite(self):
         # Try with marketing site enabled
         url = reverse('bulk_beta_modify_access', kwargs={'course_id': str(self.course.id)})
-        response = self.client.post(url, {'identifiers': self.notenrolled_student.email, 'action': 'add', 'email_students': True})  # lint-amnesty, pylint: disable=line-too-long
+        response = self.client.post(url, {'identifiers': self.notenrolled_student.email, 'action': 'add', 'email_students': True})  # pylint: disable=line-too-long
 
         assert response.status_code == 200
 
@@ -3683,7 +3908,7 @@ class TestEntranceExamInstructorAPIRegradeTask(SharedModuleStoreTestCase, LoginE
         self.assertContains(response, message)
 
 
-@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))  # lint-amnesty, pylint: disable=line-too-long
+@patch('lms.djangoapps.bulk_email.models.html_to_text', Mock(return_value='Mocking CourseEmail.text_message', autospec=True))  # pylint: disable=line-too-long
 class TestInstructorSendEmail(SiteMixin, SharedModuleStoreTestCase, LoginEnrollmentTestCase):
     """
     Checks that only instructors have access to email endpoints, and that
@@ -4580,6 +4805,24 @@ class TestChangeDueDateV2(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
         assert 'Successfully changed due date for learner' in response_data['message']
 
         assert get_extended_due(self.course, self.homework, self.user1) == due_date
+
+    def test_change_due_date_v2_without_reason(self):
+        """Test that reason is optional — both omitted and blank are accepted."""
+        url = reverse('instructor_api_v2:change_due_date', kwargs={'course_id': str(self.course.id)})
+        base_payload = {
+            'email_or_username': self.user1.username,
+            'block_id': str(self.homework.location),
+            'due_datetime': '12/30/2013 00:00',
+        }
+        # Omitted reason
+        response = self.client.post(url, json.dumps(base_payload), content_type='application/json')
+        assert response.status_code == 200, response.content
+
+        # Blank reason
+        response = self.client.post(
+            url, json.dumps({**base_payload, 'reason': ''}), content_type='application/json'
+        )
+        assert response.status_code == 200, response.content
 
     def test_change_due_date_v2_with_email(self):
         """Test due date change using email instead of username"""

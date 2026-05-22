@@ -274,7 +274,7 @@ class HomePageLibrariesViewTest(LibraryTestCase):
         collection_key = "test-collection"
         content_api.create_collection(
             learning_package_id=learning_package.id,
-            key=collection_key,
+            collection_code=collection_key,
             title="Test Collection",
             created_by=self.user.id,
         )
@@ -329,7 +329,7 @@ class HomePageLibrariesViewTest(LibraryTestCase):
                     'can_edit': True,
                     'is_migrated': True,
                     'migrated_to_title': 'Test Library',
-                    'migrated_to_key': 'lib:name0:test-key',
+                    'migrated_to_key': str(self.lib_key_v2),
                     'migrated_to_collection_key': 'test-collection',
                     'migrated_to_collection_title': 'Test Collection',
                 },
@@ -364,7 +364,7 @@ class HomePageLibrariesViewTest(LibraryTestCase):
                     'can_edit': True,
                     'is_migrated': True,
                     'migrated_to_title': 'Test Library',
-                    'migrated_to_key': 'lib:name0:test-key',
+                    'migrated_to_key': str(self.lib_key_v2),
                     'migrated_to_collection_key': 'test-collection',
                     'migrated_to_collection_title': 'Test Collection',
                 }

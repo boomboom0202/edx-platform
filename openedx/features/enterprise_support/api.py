@@ -11,7 +11,7 @@ import requests
 from crum import get_current_request
 from django.apps import apps as django_apps
 from django.conf import settings
-from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
+from django.contrib.auth.models import User  # pylint: disable=imported-auth-user
 from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.shortcuts import redirect
@@ -39,9 +39,7 @@ try:
     from enterprise.models import (
         EnterpriseCourseEnrollment,
         EnterpriseCustomer,
-        EnterpriseCustomerIdentityProvider,
         EnterpriseCustomerUser,
-        PendingEnterpriseCustomerUser,
     )
 except ImportError:  # pragma: no cover
     pass
@@ -193,7 +191,7 @@ class EnterpriseApiClient:
                 course_id=course_id,
             )
             LOGGER.exception(message)
-            raise EnterpriseApiException(message)  # lint-amnesty, pylint: disable=raise-missing-from  # noqa: B904
+            raise EnterpriseApiException(message)  # pylint: disable=raise-missing-from  # noqa: B904
 
     def fetch_enterprise_learner_data(self, user):
         """
@@ -713,29 +711,6 @@ def consent_needed_for_course(request, user, course_id, enrollment_exists=False)
     return True
 
 
-@enterprise_is_enabled(otherwise=set())
-def get_consent_required_courses(user, course_ids):
-    """
-    Returns a set of course_ids that require consent
-    Note that this function makes use of the Enterprise models directly instead of using the API calls
-    """
-    result = set()
-    enterprise_learner = EnterpriseCustomerUser.objects.filter(user_id=user.id).first()
-    if not enterprise_learner or not enterprise_learner.enterprise_customer:
-        return result
-
-    enterprise_uuid = enterprise_learner.enterprise_customer.uuid
-    data_sharing_consent = DataSharingConsent.objects.filter(username=user.username,
-                                                             course_id__in=course_ids,
-                                                             enterprise_customer__uuid=enterprise_uuid)
-
-    for consent in data_sharing_consent:
-        if consent.consent_required():
-            result.add(consent.course_id)
-
-    return result
-
-
 @enterprise_is_enabled(otherwise='')
 def get_enterprise_consent_url(request, course_id, user=None, return_to=None, enrollment_exists=False, source='lms'):
     """
@@ -1026,50 +1001,3 @@ def get_dashboard_consent_notification(request, user, course_enrollments):
             }
         )
     return ''
-
-
-@enterprise_is_enabled()
-def insert_enterprise_pipeline_elements(pipeline):
-    """
-    If the enterprise app is enabled, insert additional elements into the
-    pipeline related to enterprise.
-    """
-    additional_elements = (
-        'enterprise.tpa_pipeline.handle_enterprise_logistration',
-    )
-
-    insert_point = pipeline.index('social_core.pipeline.social_auth.load_extra_data')
-    for index, element in enumerate(additional_elements):
-        pipeline.insert(insert_point + index, element)
-
-
-@enterprise_is_enabled()
-def unlink_enterprise_user_from_idp(request, user, idp_backend_name):
-    """
-    Un-links learner from their enterprise identity provider
-    Args:
-        request (wsgi request): request object
-        user (User): user who initiated disconnect request
-        idp_backend_name (str): Name of identity provider's backend
-
-    Returns: None
-
-    """
-    enterprise_customer = enterprise_customer_for_request(request)
-    if user and enterprise_customer:
-        enabled_providers = Registry.get_enabled_by_backend_name(idp_backend_name)
-        provider_ids = [enabled_provider.provider_id for enabled_provider in enabled_providers]
-        enterprise_customer_idps = EnterpriseCustomerIdentityProvider.objects.filter(
-            enterprise_customer__uuid=enterprise_customer['uuid'],
-            provider_id__in=provider_ids
-        )
-
-        if enterprise_customer_idps:
-            try:
-                # Unlink user email from each Enterprise Customer.
-                for enterprise_customer_idp in enterprise_customer_idps:
-                    EnterpriseCustomerUser.objects.unlink_user(
-                        enterprise_customer=enterprise_customer_idp.enterprise_customer, user_email=user.email
-                    )
-            except (EnterpriseCustomerUser.DoesNotExist, PendingEnterpriseCustomerUser.DoesNotExist):
-                pass

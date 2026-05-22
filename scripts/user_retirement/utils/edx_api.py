@@ -352,11 +352,19 @@ class LmsApi(BaseApiClient):
         return self._request("POST", api_url)
 
     @_retry_lms_api()
-    def bulk_cleanup_retirements(self, usernames):
+    def bulk_cleanup_retirements(self, usernames, redacted_username=None,
+                                 redacted_email=None, redacted_name=None):
         """
-        Deletes the retirements for all given usernames
+        Redacts and then deletes the retirements for all given usernames.
+        Optionally pass caller-defined redacted values for each PII field before deletion.
         """
-        data = {"usernames": usernames}
+        data = {'usernames': usernames}
+        if redacted_username is not None:
+            data['redacted_username'] = redacted_username
+        if redacted_email is not None:
+            data['redacted_email'] = redacted_email
+        if redacted_name is not None:
+            data['redacted_name'] = redacted_name
         api_url = self.get_api_url("api/user/v1/accounts/retirement_cleanup")
         return self._request("POST", api_url, json=data)
 
@@ -390,24 +398,6 @@ class EcommerceApi(BaseApiClient):
     Ecommerce API client with convenience methods for making API calls.
     """
 
-    @_retry_lms_api()
-    def retire_learner(self, learner):
-        """
-        Performs the learner retirement step for Ecommerce
-        """
-        data = {"username": learner["original_username"]}
-        api_url = self.get_api_url("api/v2/user/retire")
-        return self._request("POST", api_url, json=data)
-
-    @_retry_lms_api()
-    def get_tracking_key(self, learner):
-        """
-        Fetches the ecommerce tracking id used for Segment tracking when
-        ecommerce doesn't have access to the LMS user id.
-        """
-        api_url = self.get_api_url(f"api/v2/retirement/tracking_id/{learner['original_username']}")
-        return self._request("GET", api_url)["ecommerce_tracking_id"]
-
     def replace_usernames(self, username_mappings):
         """
         Calls the ecommerce API to replace usernames.
@@ -425,15 +415,6 @@ class CredentialsApi(BaseApiClient):
     """
     Credentials API client with convenience methods for making API calls.
     """
-
-    @_retry_lms_api()
-    def retire_learner(self, learner):
-        """
-        Performs the learner retirement step for Credentials
-        """
-        data = {"username": learner["original_username"]}
-        api_url = self.get_api_url("user/retire")
-        return self._request("POST", api_url, json=data)
 
     def replace_usernames(self, username_mappings):
         """

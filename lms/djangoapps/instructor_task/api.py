@@ -8,11 +8,14 @@ arguments.
 """
 import datetime
 import hashlib
+import json
 import logging
 from collections import Counter
 
 import pytz
 from celery.states import READY_STATES
+from django.http import HttpRequest
+from opaque_keys.edx.keys import CourseKey
 
 from common.djangoapps.util import milestones_helpers
 from lms.djangoapps.bulk_email.api import get_course_email
@@ -50,8 +53,9 @@ from lms.djangoapps.instructor_task.tasks import (
     rescore_problem,
     reset_problem_attempts,
     send_bulk_course_email,
+    student_enrollment_batch,
 )
-from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore.django import modulestore  # pylint: disable=wrong-import-order
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +64,7 @@ class SpecificStudentIdMissingError(Exception):
     """
     Exception indicating that a student id was not provided when generating a certificate for a specific student.
     """
-    pass  # lint-amnesty, pylint: disable=unnecessary-pass
+    pass  # pylint: disable=unnecessary-pass
 
 
 def get_running_instructor_tasks(course_id):
@@ -607,3 +611,56 @@ def process_scheduled_instructor_tasks():
             submit_scheduled_task(schedule)
         except QueueConnectionError as exc:
             log.error(f"Error processing scheduled task with task id '{schedule.task.id}': {exc}")
+
+
+def submit_student_enrollment_batch(
+    request: HttpRequest,
+    course_key: CourseKey,
+    action: str,
+    identifiers: list[str],
+    auto_enroll: bool,
+    email_students: bool,
+    reason: str | None,
+    secure: bool,
+    site_id: int | None = None,
+):
+    """
+    Request to have student enrollment operations processed as a background task.
+
+    The task will process a batch of enrollment/unenrollment operations for the specified
+    students in the given course.
+
+    Args:
+        request (HttpRequest): The HTTP request object
+        course_key (CourseKey): Course identifier
+        action (str): 'enroll' or 'unenroll'
+        identifiers (list[str]): List of student identifiers (emails or usernames)
+        auto_enroll (bool): Whether to auto-enroll in verified track if applicable
+        email_students (bool): Whether to send enrollment emails
+        reason (str | None): Optional reason for enrollment change
+        secure (bool): Whether the request is secure (HTTPS)
+        site_id (int | None): Optional site ID for notification emails
+
+    Returns:
+        InstructorTask object representing the submitted background task
+
+    Raises:
+        AlreadyRunningError: If the same task is already running
+    """
+    task_type = InstructorTaskTypes.STUDENT_ENROLLMENT_BATCH
+    task_class = student_enrollment_batch
+
+    task_input = {
+        "action": action,
+        "identifiers": identifiers,
+        "auto_enroll": auto_enroll,
+        "email_students": email_students,
+        "reason": reason,
+        "secure": secure,
+        "site_id": site_id,
+    }
+
+    task_key_stub = f"{course_key}_{action}_{json.dumps(sorted(identifiers))}"
+    task_key = hashlib.md5(task_key_stub.encode("utf-8")).hexdigest()
+
+    return submit_task(request, task_type, task_class, course_key, task_input, task_key)

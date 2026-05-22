@@ -7,8 +7,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.admin import autodiscover as django_autodiscover
+from django.shortcuts import redirect
 from django.urls import include, path, re_path
 from django.utils.translation import gettext_lazy as _
+from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from edx_api_doc_tools import make_docs_urls
 
@@ -85,15 +87,15 @@ urlpatterns = oauth2_urlpatterns + [
          ),
 
     # Darklang View to change the preview language (or dark language)
-    path('update_lang/', include('openedx.core.djangoapps.dark_lang.urls', namespace='dark_lang')),
+    path('update_lang/', lambda request: redirect(f'{settings.LMS_ROOT_URL}/update_lang/')),
 
     # For redirecting to help pages.
     path('help_token/', include('help_tokens.urls')),
     path('api/', include('cms.djangoapps.api.urls', namespace='api')),
 
     # restful api
-    path('', contentstore_views.howitworks, name='homepage'),
-    path('howitworks', contentstore_views.howitworks, name='howitworks'),
+    path('', RedirectView.as_view(url='/home/', permanent=True), name='homepage'),
+    path('howitworks', RedirectView.as_view(url='/home/', permanent=True), name='howitworks'),
     path('signin_redirect_to_lms', contentstore_views.login_redirect_to_lms, name='login_redirect_to_lms'),
     path('request_course_creator', contentstore_views.request_course_creator, name='request_course_creator'),
     re_path(fr'^course_team/{COURSELIKE_KEY_PATTERN}(?:/(?P<email>.+))?$',
@@ -165,6 +167,9 @@ urlpatterns = oauth2_urlpatterns + [
             contentstore_views.grading_handler, name='grading_handler'),
     re_path(fr'^settings/advanced/{settings.COURSE_KEY_PATTERN}$', contentstore_views.advanced_settings_handler,
             name='advanced_settings_handler'),
+    # Backward-compat redirect: old /settings/<course_key> URL now unconditionally goes to MFE.
+    # Must come after all other ^settings/... patterns so it doesn't shadow them.
+    re_path(fr'^settings/{settings.COURSE_KEY_PATTERN}$', contentstore_views.settings_handler),
     re_path(fr'^textbooks/{settings.COURSE_KEY_PATTERN}$', contentstore_views.textbooks_list_handler,
             name='textbooks_list_handler'),
     re_path(fr'^textbooks/{settings.COURSE_KEY_PATTERN}/(?P<textbook_id>\d[^/]*)$',

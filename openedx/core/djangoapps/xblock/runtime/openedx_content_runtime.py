@@ -191,7 +191,7 @@ class OpenedXContentRuntime(XBlockRuntime):
             raise NoSuchUsage(usage_key)
 
         content = component_version.media.get(
-            componentversionmedia__key="block.xml"
+            componentversionmedia__path="block.xml"
         )
         xml_node = etree.fromstring(content.text)
         block_type = usage_key.block_type
@@ -251,13 +251,13 @@ class OpenedXContentRuntime(XBlockRuntime):
             .componentversionmedia_set
             .filter(media__has_file=True)
             .select_related('media')
-            .order_by('key')
+            .order_by('path')
         )
 
         return [
             StaticFile(
-                name=cvm.key,
-                url=self._absolute_url_for_asset(component_version, cvm.key),
+                name=cvm.path,
+                url=self._absolute_url_for_asset(component_version, cvm.path),
                 data=cvm.media.read_file().read() if fetch_asset_data else None,
             )
             for cvm in cvm_list
@@ -312,11 +312,6 @@ class OpenedXContentRuntime(XBlockRuntime):
             )
         self.authored_data_store.mark_unchanged(block)
 
-        # Signal that we've modified this block
-        learning_context = get_learning_context_impl(usage_key)
-        learning_context.send_block_updated_event(usage_key)
-        learning_context.send_container_updated_events(usage_key)
-
     def _get_component_from_usage_key(self, usage_key):
         """
         Note that Components aren't ever really truly deleted, so this will
@@ -326,13 +321,13 @@ class OpenedXContentRuntime(XBlockRuntime):
         TODO: This is the third place where we're implementing this. Figure out
         where the definitive place should be and have everything else call that.
         """
-        learning_package = content_api.get_learning_package_by_key(str(usage_key.lib_key))
+        learning_package = content_api.get_learning_package_by_ref(str(usage_key.lib_key))
         try:
-            component = content_api.get_component_by_key(
+            component = content_api.get_component_by_code(
                 learning_package.id,
                 namespace='xblock.v1',
                 type_name=usage_key.block_type,
-                local_key=usage_key.block_id,
+                component_code=usage_key.block_id,
             )
         except ObjectDoesNotExist as exc:
             raise NoSuchUsage(usage_key) from exc
@@ -447,7 +442,7 @@ class OpenedXContentRuntime(XBlockRuntime):
                 component_version
                 .componentversionmedia_set
                 .filter(media__has_file=True)
-                .get(key=f"static/{asset_path}")
+                .get(path=f"static/{asset_path}")
             )
         except ObjectDoesNotExist:
             try:
@@ -458,7 +453,7 @@ class OpenedXContentRuntime(XBlockRuntime):
                     component_version
                     .componentversionmedia_set
                     .filter(media__has_file=True)
-                    .get(key=f"static/{asset_path}")
+                    .get(path=f"static/{asset_path}")
                 )
             except ObjectDoesNotExist:
                 # This means we see a path that _looks_ like it should be a static

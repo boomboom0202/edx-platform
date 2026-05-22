@@ -6,8 +6,10 @@ Following REST best practices, serializers encapsulate most of the data processi
 """
 
 import logging
+from urllib.parse import urlparse
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils.html import escape
 from django.utils.translation import gettext as _
 from edx_when.api import is_enabled_for_course
@@ -15,6 +17,7 @@ from rest_framework import serializers
 
 from common.djangoapps.course_modes.models import CourseMode
 from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.models.user import get_user_by_username_or_email
 from common.djangoapps.student.roles import (
     CourseFinanceAdminRole,
     CourseInstructorRole,
@@ -28,12 +31,15 @@ from lms.djangoapps.courseware.courses import get_studio_url
 from lms.djangoapps.discussion.django_comment_client.utils import has_forum_access
 from lms.djangoapps.grades.api import is_writable_gradebook_enabled
 from lms.djangoapps.instructor import permissions
+from lms.djangoapps.instructor.access import FORUM_ROLES, ROLES
 from lms.djangoapps.instructor.views.instructor_dashboard import get_analytics_dashboard_message
 from openedx.core.djangoapps.django_comment_common.models import FORUM_ROLE_ADMINISTRATOR
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from xmodule.modulestore.django import modulestore
 
 from .tools import DashboardError, get_student_from_identifier, parse_datetime
 
+User = get_user_model()
 log = logging.getLogger(__name__)
 
 
@@ -45,6 +51,7 @@ class CourseInformationSerializerV2(serializers.Serializer):
     enrollment statistics, permissions, and dashboard configuration.
     """
     course_id = serializers.SerializerMethodField(help_text="Course run key")
+    username = serializers.SerializerMethodField(help_text="Username of the current authenticated user")
     display_name = serializers.SerializerMethodField(help_text="Course display name")
     org = serializers.SerializerMethodField(help_text="Organization identifier")
     course_number = serializers.SerializerMethodField(help_text="Course number")
@@ -72,6 +79,9 @@ class CourseInformationSerializerV2(serializers.Serializer):
     studio_grading_url = serializers.SerializerMethodField(
         help_text="URL to the Studio grading settings page for the course (null if not configured)"
     )
+    admin_console_url = serializers.SerializerMethodField(
+        help_text="URL to the admin console (requires instructor access and MFE configuration, null if not accessible)"
+    )
     permissions = serializers.SerializerMethodField(help_text="User permissions for instructor dashboard features")
     tabs = serializers.SerializerMethodField(help_text="List of course tabs with configuration and display information")
     disable_buttons = serializers.SerializerMethodField(
@@ -80,32 +90,48 @@ class CourseInformationSerializerV2(serializers.Serializer):
     analytics_dashboard_message = serializers.SerializerMethodField(
         help_text="Message about analytics dashboard availability"
     )
+    certificates_enabled = serializers.SerializerMethodField(
+        help_text="Whether certificate management features are enabled for this course"
+    )
 
     @staticmethod
-    def _build_tab_url(setting_name, *path_parts):
+    def _build_tab_url(setting_name, *path_parts, strip_url=True):
         """
         Build a tab URL from a Django setting and path parts.
 
-        Retrieves the base URL from `setting_name`, strips any trailing slash,
+        Retrieves the base URL from `setting_name`, optionally strips the protocol and host,
         then joins the provided path parts (stripping their leading/trailing
         slashes) with `/` separators — behaving like ``os.path.join`` for URLs.
 
         Logs a warning and falls back to a relative URL if the setting is unset.
 
+        Args:
+            setting_name: Django setting name containing the base URL
+            *path_parts: Path components to append to the base URL
+            strip_url: If True, strips protocol/host and uses only the path component.
+                      If False, uses the full URL. Defaults to True.
+
         Example:
 
-            _build_tab_url('INSTRUCTOR_MICROFRONTEND_URL', 'instructor', course_key, 'grading')
-            # => 'http://localhost:2003/instructor/course-v1:.../grading'
+            _build_tab_url('INSTRUCTOR_MICROFRONTEND_URL', course_key, 'grading')
+            # => '/instructor-dashboard/course-v1:.../grading' (with strip_url=True)
 
-            _build_tab_url('COMMUNICATIONS_MICROFRONTEND_URL', 'courses', course_key, 'bulk_email')
+            _build_tab_url('COMMUNICATIONS_MICROFRONTEND_URL', 'courses', course_key, 'bulk_email', strip_url=False)
             # => 'http://localhost:1984/communications/courses/course-v1:.../bulk_email'
         """
         base_url = getattr(settings, setting_name, None)
         if base_url is None:
-            log.warning('%s is not configured.', setting_name)
-            base_url = ''
-        parts = [base_url.rstrip('/')] + [str(part).strip('/') for part in path_parts]
-        return '/'.join(parts)
+            log.warning("%s is not configured.", setting_name)
+            base_part = ""
+        elif strip_url and base_url:
+            # Extract only the path component from the URL
+            base_part = urlparse(base_url).path
+        else:
+            # Use the full URL as-is
+            base_part = base_url
+
+        parts = [base_part.rstrip("/")] + [str(part).strip("/") for part in path_parts]
+        return "/".join(parts)
 
     def get_tabs(self, data):
         """Get serialized course tabs."""
@@ -138,7 +164,6 @@ class CourseInformationSerializerV2(serializers.Serializer):
                     'title': _('Course Info'),
                     'url': self._build_tab_url(
                         'INSTRUCTOR_MICROFRONTEND_URL',
-                        'instructor',
                         course_key,
                         'course_info'
                     ),
@@ -149,29 +174,16 @@ class CourseInformationSerializerV2(serializers.Serializer):
                     'title': _('Enrollments'),
                     'url': self._build_tab_url(
                         'INSTRUCTOR_MICROFRONTEND_URL',
-                        'instructor',
                         course_key,
                         'enrollments'
                     ),
                     'sort_order': 20,
                 },
                 {
-                    'tab_id': 'course_team',
-                    'title': _('Course Team'),
-                    'url': self._build_tab_url(
-                        'INSTRUCTOR_MICROFRONTEND_URL',
-                        'instructor',
-                        course_key,
-                        'course_team'
-                    ),
-                    'sort_order': 30,
-                },
-                {
                     'tab_id': 'grading',
                     'title': _('Grading'),
                     'url': self._build_tab_url(
                         'INSTRUCTOR_MICROFRONTEND_URL',
-                        'instructor',
                         course_key,
                         'grading'
                     ),
@@ -182,7 +194,6 @@ class CourseInformationSerializerV2(serializers.Serializer):
                     'title': _('Cohorts'),
                     'url': self._build_tab_url(
                         'INSTRUCTOR_MICROFRONTEND_URL',
-                        'instructor',
                         course_key,
                         'cohorts'
                     ),
@@ -190,18 +201,29 @@ class CourseInformationSerializerV2(serializers.Serializer):
                 },
             ])
 
-        if access['staff'] and is_bulk_email_feature_enabled(course_key):
+        if access['instructor'] or (access['staff'] and access['forum_admin']):
             tabs.append({
-                'tab_id': 'bulk_email',
-                'title': _('Bulk Email'),
+                'tab_id': 'course_team',
+                'title': _('Course Team'),
                 'url': self._build_tab_url(
-                    'COMMUNICATIONS_MICROFRONTEND_URL',
-                    'courses',
+                    'INSTRUCTOR_MICROFRONTEND_URL',
                     course_key,
-                    'bulk_email'
+                    'course_team'
                 ),
-                'sort_order': 100,
+                'sort_order': 30,
             })
+
+        if access['staff'] and is_bulk_email_feature_enabled(course_key):
+            tabs.append(
+                {
+                    "tab_id": "bulk_email",
+                    "title": _("Bulk Email"),
+                    "url": self._build_tab_url(
+                        "COMMUNICATIONS_MICROFRONTEND_URL", "courses", course_key, "bulk_email", strip_url=False
+                    ),
+                    "sort_order": 100,
+                }
+            )
 
         if access['instructor'] and is_enabled_for_course(course_key):
             tabs.append({
@@ -209,7 +231,6 @@ class CourseInformationSerializerV2(serializers.Serializer):
                 'title': _('Date Extensions'),
                 'url': self._build_tab_url(
                     'INSTRUCTOR_MICROFRONTEND_URL',
-                    'instructor',
                     course_key,
                     'date_extensions'
                 ),
@@ -222,7 +243,6 @@ class CourseInformationSerializerV2(serializers.Serializer):
                 'title': _('Data Downloads'),
                 'url': self._build_tab_url(
                     'INSTRUCTOR_MICROFRONTEND_URL',
-                    'instructor',
                     course_key,
                     'data_downloads'
                 ),
@@ -242,7 +262,6 @@ class CourseInformationSerializerV2(serializers.Serializer):
                 'title': _('Open Responses'),
                 'url': self._build_tab_url(
                     'INSTRUCTOR_MICROFRONTEND_URL',
-                    'instructor',
                     course_key,
                     'open_responses'
                 ),
@@ -259,7 +278,6 @@ class CourseInformationSerializerV2(serializers.Serializer):
                 'title': _('Certificates'),
                 'url': self._build_tab_url(
                     'INSTRUCTOR_MICROFRONTEND_URL',
-                    'instructor',
                     course_key,
                     'certificates'
                 ),
@@ -281,7 +299,6 @@ class CourseInformationSerializerV2(serializers.Serializer):
                 'title': _('Special Exams'),
                 'url': self._build_tab_url(
                     'INSTRUCTOR_MICROFRONTEND_URL',
-                    'instructor',
                     course_key,
                     'special_exams'
                 ),
@@ -311,6 +328,10 @@ class CourseInformationSerializerV2(serializers.Serializer):
     def get_course_id(self, data):
         """Get course ID as string."""
         return str(data['course'].id)
+
+    def get_username(self, data):
+        """Get the username of the current authenticated user."""
+        return data['user'].username
 
     def get_display_name(self, data):
         """Get course display name."""
@@ -443,17 +464,38 @@ class CourseInformationSerializerV2(serializers.Serializer):
     def get_gradebook_url(self, data):
         """Get MFE gradebook URL for the course."""
         course_key = data['course'].id
-        if is_writable_gradebook_enabled(course_key) and settings.WRITABLE_GRADEBOOK_URL:
-            return f'{settings.WRITABLE_GRADEBOOK_URL}/gradebook/{course_key}'
-        return None
+        mfe_base_url = configuration_helpers.get_value(
+            'WRITABLE_GRADEBOOK_URL',
+            getattr(settings, 'WRITABLE_GRADEBOOK_URL', None)
+        )
+        if not is_writable_gradebook_enabled(course_key) or not mfe_base_url:
+            return None
+        return f'{mfe_base_url.rstrip("/")}/{course_key}'
 
     def get_studio_grading_url(self, data):
         """Get Studio MFE grading settings URL for the course."""
         course_key = data['course'].id
-        mfe_base_url = getattr(settings, 'COURSE_AUTHORING_MICROFRONTEND_URL', None)
-        if mfe_base_url:
-            return f'{mfe_base_url}/course/{course_key}/settings/grading'
-        return None
+        mfe_base_url = configuration_helpers.get_value(
+            'COURSE_AUTHORING_MICROFRONTEND_URL',
+            getattr(settings, 'COURSE_AUTHORING_MICROFRONTEND_URL', None)
+        )
+        if not mfe_base_url:
+            return None
+        return f'{mfe_base_url.rstrip("/")}/course/{course_key}/settings/grading'
+
+    def get_admin_console_url(self, data):
+        """Get admin console URL (requires instructor access and MFE configuration, null if not accessible)."""
+        request = data['request']
+        has_instructor_access = has_access(request.user, 'instructor', data['course'])
+        mfe_base_url = configuration_helpers.get_value(
+            'ADMIN_CONSOLE_MICROFRONTEND_URL',
+            getattr(settings, 'ADMIN_CONSOLE_MICROFRONTEND_URL', None)
+        )
+
+        has_permissions = request.user.is_staff or has_instructor_access
+        if not mfe_base_url or not has_permissions:
+            return None
+        return f'{mfe_base_url.rstrip("/")}/authz'
 
     def get_disable_buttons(self, data):
         """Check if buttons should be disabled for large courses."""
@@ -462,6 +504,14 @@ class CourseInformationSerializerV2(serializers.Serializer):
     def get_analytics_dashboard_message(self, data):
         """Get analytics dashboard availability message."""
         return get_analytics_dashboard_message(data['course'].id)
+
+    def get_certificates_enabled(self, data):
+        """Check if certificate management features are enabled."""
+        from lms.djangoapps.certificates import api as certs_api
+
+        course_key = data['course'].id
+        # Check if certificate generation is enabled (not available for CCX courses)
+        return certs_api.is_certificate_generation_enabled() and not hasattr(course_key, 'ccx')
 
 
 class InstructorTaskSerializer(serializers.Serializer):
@@ -489,7 +539,7 @@ class BlockDueDateSerializerV2(serializers.Serializer):
         block_id (str): The ID related to the block that needs the due date update.
         due_datetime (str): The new due date and time for the block.
         email_or_username (str): The email or username of the student whose access is being modified.
-        reason (str): Reason why updating this.
+        reason (str, optional): Reason why updating this.
     """
     block_id = serializers.CharField()
     due_datetime = serializers.CharField()
@@ -497,7 +547,7 @@ class BlockDueDateSerializerV2(serializers.Serializer):
         max_length=255,
         help_text="Email or username of user to change access"
     )
-    reason = serializers.CharField(required=False)
+    reason = serializers.CharField(required=False, allow_blank=True, default='')
 
     def validate_email_or_username(self, value):
         """
@@ -620,6 +670,9 @@ class IssuedCertificateSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Date when certificate was invalidated in ISO 8601 format"
     )
+    invalidation_note = serializers.SerializerMethodField(
+        help_text="Notes about the invalidation"
+    )
 
     def get_enrollment_track(self, obj):
         """Get enrollment track from context."""
@@ -661,6 +714,12 @@ class IssuedCertificateSerializer(serializers.Serializer):
         invalidation_info = invalidation_dict.get(obj.user_id)
         return invalidation_info['created'] if invalidation_info else None
 
+    def get_invalidation_note(self, obj):
+        """Get invalidation notes from invalidation data in context."""
+        invalidation_dict = self.context.get('invalidation_dict', {})
+        invalidation_info = invalidation_dict.get(obj.user_id)
+        return invalidation_info.get('notes', '') if invalidation_info else ''
+
 
 class CertificateGenerationHistorySerializer(serializers.Serializer):
     """
@@ -687,6 +746,94 @@ class CertificateGenerationHistorySerializer(serializers.Serializer):
         return str(obj.get_certificate_generation_candidates())
 
 
+class ToggleCertificateGenerationSerializer(serializers.Serializer):
+    """
+    Serializer for toggling certificate generation request.
+    """
+    enabled = serializers.BooleanField(
+        required=True,
+        help_text="Whether to enable or disable certificate generation"
+    )
+
+
+class CertificateExceptionSerializer(serializers.Serializer):
+    """
+    Serializer for granting certificate exceptions (bulk).
+    """
+    learners = serializers.ListField(
+        child=serializers.CharField(max_length=255, allow_blank=False),
+        allow_empty=False,
+        max_length=1000,
+        help_text="List of usernames or email addresses of learners to grant exceptions"
+    )
+    notes = serializers.CharField(
+        max_length=1000,
+        required=False,
+        allow_blank=True,
+        default='',
+        help_text="Notes about why the exception is being granted"
+    )
+
+
+class CertificateInvalidationSerializer(serializers.Serializer):
+    """
+    Serializer for invalidating certificates (bulk).
+    """
+    learners = serializers.ListField(
+        child=serializers.CharField(max_length=255, allow_blank=False),
+        allow_empty=False,
+        max_length=1000,
+        help_text="List of usernames or email addresses of learners to invalidate certificates"
+    )
+    notes = serializers.CharField(
+        max_length=1000,
+        required=False,
+        allow_blank=True,
+        default='',
+        help_text="Notes about why the certificate is being invalidated"
+    )
+
+
+class RemoveCertificateExceptionSerializer(serializers.Serializer):
+    """
+    Serializer for removing a certificate exception.
+    """
+    username = serializers.CharField(
+        required=True,
+        max_length=255,
+        allow_blank=False,
+        help_text="Username or email address of the learner"
+    )
+
+    def validate_username(self, value):
+        """Validate and resolve username/email to user object."""
+        try:
+            user = get_user_by_username_or_email(value)
+            return user
+        except User.DoesNotExist as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+
+
+class RemoveCertificateInvalidationSerializer(serializers.Serializer):
+    """
+    Serializer for re-validating a certificate (removing invalidation).
+    """
+    username = serializers.CharField(
+        required=True,
+        max_length=255,
+        allow_blank=False,
+        help_text="Username or email address of the learner"
+    )
+
+    def validate_username(self, value):
+        """Validate and resolve username/email to user object."""
+        try:
+            user = get_user_by_username_or_email(value)
+            return user
+        except User.DoesNotExist as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+
+
 class RegenerateCertificatesSerializer(serializers.Serializer):
     """
     Serializer for regenerating certificates request.
@@ -704,11 +851,36 @@ class RegenerateCertificatesSerializer(serializers.Serializer):
         help_text="Certificate statuses to regenerate"
     )
     student_set = serializers.ChoiceField(
-        choices=['all', 'allowlisted'],
+        choices=['all', 'allowlisted', 'allowlisted_not_generated'],
         required=False,
         default='all',
-        help_text="Student set filter"
+        help_text=(
+            "Student set filter: 'all' for all students, 'allowlisted' for all allowlisted students, "
+            "'allowlisted_not_generated' for allowlisted students without certificates"
+        )
     )
+
+
+class LearnerInputSerializer(serializers.Serializer):
+    """
+    Serializer for validating learner identifier (username or email).
+    """
+    email_or_username = serializers.CharField(
+        required=True,
+        max_length=255,
+        allow_blank=False,
+        help_text="Username or email address of the learner",
+    )
+
+    def validate_email_or_username(self, value):
+        """Validate and resolve username/email to user object."""
+        try:
+            user = get_user_by_username_or_email(value)
+            return user
+        except User.DoesNotExist as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        except User.MultipleObjectsReturned as exc:
+            raise serializers.ValidationError('Multiple learners found for the given identifier') from exc
 
 
 class CourseEnrollmentSerializerV2(serializers.Serializer):
@@ -757,43 +929,8 @@ class LearnerSerializer(serializers.Serializer):
         required=False,
         help_text="URL to learner's progress page"
     )
-
-
-class GraderSerializer(serializers.Serializer):
-    """Serializer for a single grader configuration entry."""
-    type = serializers.CharField(
-        help_text="Assignment type (e.g. Homework, Lab, Midterm Exam)"
-    )
-    short_label = serializers.CharField(
-        required=False,
-        allow_null=True,
-        help_text="Short label used when displaying assignment names"
-    )
-    min_count = serializers.IntegerField(
-        help_text="Minimum number of assignments counted in this category"
-    )
-    drop_count = serializers.IntegerField(
-        help_text="Number of lowest scores dropped from this category"
-    )
-    weight = serializers.FloatField(
-        help_text="Weight of this assignment type in the final grade (0.0 to 1.0)"
-    )
-
-
-class GradingConfigSerializer(serializers.Serializer):
-    """
-    Serializer for course grading configuration.
-
-    Returns structured grading policy data including assignment type weights
-    and grade cutoff thresholds.
-    """
-    graders = GraderSerializer(
-        many=True,
-        help_text="List of grader configurations by assignment type"
-    )
-    grade_cutoffs = serializers.DictField(
-        child=serializers.FloatField(),
-        help_text="Grade cutoffs mapping letter grades to minimum score thresholds (0.0 to 1.0)"
+    is_enrolled = serializers.BooleanField(
+        help_text="Whether the learner has an active enrollment in the course"
     )
 
 
@@ -861,3 +998,300 @@ class TaskStatusSerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField(
         help_text="Last update timestamp"
     )
+
+
+class EnrollmentModifyRequestSerializerV2(serializers.Serializer):
+    """Validates request body for enrolling/unenrolling one or more learners."""
+    identifier = serializers.ListField(
+        child=serializers.CharField(max_length=255, allow_blank=False),
+        allow_empty=False,
+        help_text="List of email addresses or usernames of learners to enroll/unenroll.",
+    )
+    action = serializers.ChoiceField(
+        choices=('enroll', 'unenroll'),
+        help_text="The enrollment action to perform: 'enroll' or 'unenroll'.",
+    )
+    auto_enroll = serializers.BooleanField(
+        default=False,
+        help_text="Whether to auto-enroll in the verified track (enroll action only).",
+    )
+    email_students = serializers.BooleanField(
+        default=False,
+        help_text="Whether to send an email notification.",
+    )
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default='',
+        help_text="Reason for the change (for audit trail).",
+    )
+
+
+class EnrollmentStateSerializerV2(serializers.Serializer):
+    """Documents the before/after enrollment state shape (mirrors EmailEnrollmentState.to_dict)."""
+    user = serializers.BooleanField()
+    enrollment = serializers.BooleanField()
+    allowed = serializers.BooleanField()
+    auto_enroll = serializers.BooleanField()
+
+
+class EnrollmentModifyResultSerializerV2(serializers.Serializer):
+    """Documents the per-identifier result shape for enrollment modifications (mirrors v1)."""
+    identifier = serializers.CharField()
+    before = EnrollmentStateSerializerV2(required=False)
+    after = EnrollmentStateSerializerV2(required=False)
+    invalid_identifier = serializers.BooleanField(required=False)
+    error = serializers.BooleanField(required=False)
+
+
+class EnrollmentModifyResponseSerializerV2(serializers.Serializer):
+    """Documents the response shape for the bulk enroll/unenroll endpoint (mirrors v1)."""
+    action = serializers.CharField()
+    auto_enroll = serializers.BooleanField()
+    results = EnrollmentModifyResultSerializerV2(many=True)
+
+
+class BetaTesterModifyRequestSerializerV2(serializers.Serializer):
+    """Validates request body for adding/removing one or more beta testers."""
+    identifier = serializers.ListField(
+        child=serializers.CharField(max_length=255, allow_blank=False),
+        allow_empty=False,
+        help_text="List of email addresses or usernames of learners to add/remove as beta testers.",
+    )
+    action = serializers.ChoiceField(
+        choices=('add', 'remove'),
+        help_text="The beta tester action to perform: 'add' or 'remove'.",
+    )
+    email_students = serializers.BooleanField(
+        default=False,
+        help_text="Whether to send an email notification.",
+    )
+    auto_enroll = serializers.BooleanField(
+        default=False,
+        help_text="Whether to auto-enroll the user in the course (add action only).",
+    )
+
+
+class BetaTesterModifyResultSerializerV2(serializers.Serializer):
+    """Documents the per-identifier result shape for beta tester modifications (mirrors v1)."""
+    identifier = serializers.CharField()
+    error = serializers.BooleanField()
+    user_does_not_exist = serializers.BooleanField()
+    is_active = serializers.BooleanField(allow_null=True)
+
+
+class BetaTesterModifyResponseSerializerV2(serializers.Serializer):
+    """Documents the response shape for the bulk beta tester add/remove endpoint (mirrors v1)."""
+    action = serializers.CharField()
+    results = BetaTesterModifyResultSerializerV2(many=True)
+
+
+class CourseTeamModifySerializer(serializers.Serializer):
+    """Input serializer for granting or revoking a course team role."""
+    identifiers = serializers.ListField(
+        child=serializers.CharField(max_length=255, allow_blank=False),
+        allow_empty=False,
+        help_text="List of usernames or emails of users to modify"
+    )
+    role = serializers.ChoiceField(
+        choices=list(ROLES.keys()) + list(FORUM_ROLES),
+        help_text="The role to grant or revoke (course access role or forum role)"
+    )
+    action = serializers.ChoiceField(
+        choices=['allow', 'revoke'],
+        help_text="Whether to grant ('allow') or revoke ('revoke') the role"
+    )
+
+
+class CourseTeamRevokeSerializer(serializers.Serializer):
+    """Input serializer for revoking course team roles."""
+    roles = serializers.ListField(
+        child=serializers.ChoiceField(choices=list(ROLES.keys()) + list(FORUM_ROLES)),
+        allow_empty=False,
+        help_text="One or more roles to revoke (course access role or forum role)"
+    )
+
+
+class SyncOperationResultSerializer(serializers.Serializer):
+    """
+    Serializer for synchronous grading operation results.
+    """
+    success = serializers.BooleanField(
+        help_text="Whether the operation succeeded"
+    )
+    learner = serializers.CharField(
+        allow_null=True,
+        required=False,
+        help_text="Learner identifier (if applicable)"
+    )
+    problem_location = serializers.CharField(
+        allow_null=True,
+        required=False,
+        help_text="Problem location (if applicable)"
+    )
+    score = serializers.FloatField(
+        allow_null=True,
+        required=False,
+        help_text="Updated score (for override operations)"
+    )
+    previous_score = serializers.FloatField(
+        allow_null=True,
+        required=False,
+        help_text="Previous score (for override operations)"
+    )
+    message = serializers.CharField(
+        help_text="Human-readable result message"
+    )
+
+
+class AsyncOperationResultSerializer(serializers.Serializer):
+    """
+    Serializer for asynchronous grading operation results.
+    """
+    task_id = serializers.CharField(
+        help_text="Unique task identifier"
+    )
+    status_url = serializers.CharField(
+        help_text="URL to poll for task status"
+    )
+    scope = serializers.DictField(
+        required=False,
+        help_text="Scope of the operation"
+    )
+
+
+class ScoreOverrideRequestSerializer(serializers.Serializer):
+    """
+    Serializer for score override request body.
+    """
+    score = serializers.FloatField(
+        min_value=0,
+        help_text="New score value (out of problem's total possible points)"
+    )
+
+    def to_internal_value(self, data):
+        # The frontend sends `new_score` but the field is `score`.
+        # Convert here, before field level validation, so that DRF's required
+        # check and min_value constraint apply to whichever name was provided.
+        if "score" not in data and "new_score" in data:
+            data = {**data, "score": data["new_score"]}
+        return super().to_internal_value(data)
+
+
+def derive_exam_type(exam_dict):
+    """
+    Derive exam type string from proctoring flags.
+
+    Args:
+        exam_dict: dict with 'is_proctored' and 'is_practice_exam' keys.
+
+    Returns:
+        'practice', 'proctored', or 'timed'.
+    """
+    if exam_dict.get('is_practice_exam'):
+        return 'practice'
+    if exam_dict.get('is_proctored'):
+        return 'proctored'
+    return 'timed'
+
+
+class SpecialExamSerializer(serializers.Serializer):
+    """Serializer for proctored/timed exam data from edx_proctoring."""
+    id = serializers.IntegerField()
+    course_id = serializers.CharField()
+    content_id = serializers.CharField()
+    exam_name = serializers.CharField()
+    time_limit_mins = serializers.IntegerField()
+    due_date = serializers.DateTimeField(allow_null=True, required=False)
+    exam_type = serializers.SerializerMethodField()
+    is_proctored = serializers.BooleanField()
+    is_practice_exam = serializers.BooleanField()
+    is_active = serializers.BooleanField()
+    hide_after_due = serializers.BooleanField()
+    backend = serializers.CharField(allow_null=True, required=False)
+
+    def get_exam_type(self, obj):
+        """Derive exam type from proctoring flags."""
+        return derive_exam_type(obj)
+
+
+class ExamAttemptUserSerializer(serializers.Serializer):
+    """Serializer for user info within an exam attempt."""
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    email = serializers.CharField()
+
+
+class ExamAttemptSerializer(serializers.Serializer):
+    """Serializer for proctored exam attempt data."""
+    id = serializers.IntegerField()
+    user = ExamAttemptUserSerializer()
+    exam_id = serializers.IntegerField(source='proctored_exam.id')
+    exam_name = serializers.CharField(source='proctored_exam.exam_name')
+    exam_type = serializers.SerializerMethodField()
+    status = serializers.CharField()
+    start_time = serializers.DateTimeField(source='started_at', allow_null=True, required=False)
+    end_time = serializers.DateTimeField(source='completed_at', allow_null=True, required=False)
+    allowed_time_limit_mins = serializers.IntegerField(allow_null=True, required=False)
+    ready_to_resume = serializers.BooleanField()
+
+    def get_exam_type(self, obj):
+        """Derive exam type from proctored_exam flags."""
+        return derive_exam_type(obj.get('proctored_exam', {}))
+
+
+class ProctoringSettingsSerializer(serializers.Serializer):
+    """Serializer for course proctoring configuration."""
+    proctoring_provider = serializers.CharField(allow_null=True, required=False)
+    proctoring_escalation_email = serializers.CharField(allow_null=True, required=False)
+    create_zendesk_tickets = serializers.BooleanField()
+    enable_proctored_exams = serializers.BooleanField()
+
+
+class ProctoringSettingsUpdateSerializer(serializers.Serializer):
+    """Serializer for validating proctoring settings update requests."""
+    proctoring_escalation_email = serializers.CharField(required=False, allow_blank=True)
+    create_zendesk_tickets = serializers.BooleanField(required=False)
+    enable_proctored_exams = serializers.BooleanField(required=False)
+
+
+class ExamAllowanceRequestSerializer(serializers.Serializer):
+    """Serializer for validating exam allowance grant requests."""
+    user_ids = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="List of usernames or emails of the students",
+    )
+    allowance_type = serializers.CharField(help_text="Type of allowance (e.g. 'additional_time_granted')")
+    value = serializers.CharField(help_text="Allowance value")
+
+
+class BulkAllowanceRequestSerializer(serializers.Serializer):
+    """Serializer for validating bulk allowance requests across multiple exams."""
+    exam_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="List of exam IDs",
+    )
+    user_ids = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="List of usernames or emails of the students",
+    )
+    allowance_type = serializers.CharField(help_text="Type of allowance (e.g. 'additional_time_granted')")
+    value = serializers.CharField(help_text="Allowance value")
+
+
+class AllowanceUserSerializer(serializers.Serializer):
+    """Serializer for user info within an allowance (uses 'id' directly)."""
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    email = serializers.CharField()
+
+
+class ExamAllowanceSerializer(serializers.Serializer):
+    """Serializer for exam allowance data from edx_proctoring."""
+    id = serializers.IntegerField()
+    created = serializers.DateTimeField()
+    modified = serializers.DateTimeField()
+    user = AllowanceUserSerializer()
+    key = serializers.CharField()
+    value = serializers.CharField()
+    proctored_exam = SpecialExamSerializer()

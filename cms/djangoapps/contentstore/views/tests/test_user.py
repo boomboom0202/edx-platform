@@ -3,10 +3,8 @@ Tests for contentstore/views/user.py.
 """
 import json
 
-from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
-from edx_toggles.toggles.testutils import override_waffle_flag
+from django.contrib.auth.models import User  # pylint: disable=imported-auth-user
 
-from cms.djangoapps.contentstore import toggles
 from cms.djangoapps.contentstore.tests.utils import CourseTestCase
 from cms.djangoapps.contentstore.utils import reverse_course_url
 from common.djangoapps.student import auth
@@ -15,7 +13,7 @@ from common.djangoapps.student.roles import CourseInstructorRole, CourseStaffRol
 from common.djangoapps.student.tests.factories import UserFactory
 
 
-class UsersTestCase(CourseTestCase):  # lint-amnesty, pylint: disable=missing-class-docstring
+class UsersTestCase(CourseTestCase):  # pylint: disable=missing-class-docstring
     def setUp(self):
         super().setUp()
         self.ext_user = UserFactory.create(
@@ -41,20 +39,6 @@ class UsersTestCase(CourseTestCase):  # lint-amnesty, pylint: disable=missing-cl
             'course_team_handler', self.course.id,
             kwargs={'email': email} if email else {}
         )
-
-    @override_waffle_flag(toggles.LEGACY_STUDIO_COURSE_TEAM, True)
-    def test_index(self):
-        resp = self.client.get(self.index_url, HTTP_ACCEPT='text/html')
-        # ext_user is not currently a member of the course team, and so should
-        # not show up on the page.
-        self.assertNotContains(resp, self.ext_user.email)
-
-    @override_waffle_flag(toggles.LEGACY_STUDIO_COURSE_TEAM, True)
-    def test_index_member(self):
-        auth.add_users(self.user, CourseStaffRole(self.course.id), self.ext_user)
-
-        resp = self.client.get(self.index_url, HTTP_ACCEPT='text/html')
-        self.assertContains(resp, self.ext_user.email)
 
     def test_detail(self):
         resp = self.client.get(self.detail_url)

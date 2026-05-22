@@ -5,15 +5,12 @@ Certificates Tests.
 
 import itertools
 import json
-from unittest import mock
 
 import ddt
 from django.conf import settings
 from django.test.utils import override_settings
-from edx_toggles.toggles.testutils import override_waffle_flag
 from opaque_keys.edx.keys import AssetKey
 
-from cms.djangoapps.contentstore import toggles
 from cms.djangoapps.contentstore.tests.utils import CourseTestCase
 from cms.djangoapps.contentstore.utils import get_lms_link_for_certificate_web_view, reverse_course_url
 from common.djangoapps.course_modes.tests.factories import CourseModeFactory
@@ -21,9 +18,9 @@ from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.student.roles import CourseInstructorRole, CourseStaffRole
 from common.djangoapps.student.tests.factories import UserFactory
 from common.djangoapps.util.testing import EventTestMixin, UrlResetMixin
-from xmodule.contentstore.content import StaticContent  # lint-amnesty, pylint: disable=wrong-import-order
-from xmodule.contentstore.django import contentstore  # lint-amnesty, pylint: disable=wrong-import-order
-from xmodule.exceptions import NotFoundError  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.contentstore.content import StaticContent  # pylint: disable=wrong-import-order
+from xmodule.contentstore.django import contentstore  # pylint: disable=wrong-import-order
+from xmodule.exceptions import NotFoundError  # pylint: disable=wrong-import-order
 
 from ..certificate_manager import CERTIFICATE_SCHEMA_VERSION, CertificateManager
 
@@ -206,7 +203,7 @@ class CertificatesListHandlerTestCase(
     Test cases for certificates_list_handler.
     """
 
-    def setUp(self):  # lint-amnesty, pylint: disable=arguments-differ
+    def setUp(self):  # pylint: disable=arguments-differ
         """
         Set up CertificatesListHandlerTestCase.
         """
@@ -277,11 +274,9 @@ class CertificatesListHandlerTestCase(
         )
         self.assertEqual(link, test_url)  # noqa: PT009
 
-    @override_waffle_flag(toggles.LEGACY_STUDIO_CERTIFICATES, True)
-    @mock.patch.dict('django.conf.settings.FEATURES', {'CERTIFICATES_HTML_VIEW': True})
     def test_certificate_info_in_response(self):
         """
-        Test that certificate has been created and rendered properly with non-audit course mode.
+        Test that a created certificate is returned in the JSON GET response.
         """
         CourseModeFactory.create(course_id=self.course.id, mode_slug='verified')
         response = self.client.ajax_post(
@@ -291,35 +286,12 @@ class CertificatesListHandlerTestCase(
 
         self.assertEqual(response.status_code, 201)  # noqa: PT009
 
-        # in html response
-        result = self.client.get_html(self._url())
-        self.assertContains(result, 'Test certificate')
-        self.assertContains(result, 'Test description')
-
-        # in JSON response
         response = self.client.get_json(self._url())
         data = json.loads(response.content.decode('utf-8'))
         self.assertEqual(len(data), 1)  # noqa: PT009
         self.assertEqual(data[0]['name'], 'Test certificate')  # noqa: PT009
         self.assertEqual(data[0]['description'], 'Test description')  # noqa: PT009
         self.assertEqual(data[0]['version'], CERTIFICATE_SCHEMA_VERSION)  # noqa: PT009
-
-    @mock.patch.dict('django.conf.settings.FEATURES', {'CERTIFICATES_HTML_VIEW': True})
-    @override_waffle_flag(toggles.LEGACY_STUDIO_CERTIFICATES, True)
-    def test_certificate_info_not_in_response(self):
-        """
-        Test that certificate has not been rendered audit only course mode.
-        """
-        response = self.client.ajax_post(
-            self._url(),
-            data=CERTIFICATE_JSON_WITH_SIGNATORIES
-        )
-
-        self.assertEqual(response.status_code, 201)  # noqa: PT009
-
-        # in html response
-        result = self.client.get_html(self._url())
-        self.assertNotContains(result, 'Test certificate')
 
     def test_unsupported_http_accept_header(self):
         """
@@ -350,55 +322,6 @@ class CertificatesListHandlerTestCase(
         )
         self.assertContains(response, "error", status_code=403)
 
-    @override_waffle_flag(toggles.LEGACY_STUDIO_CERTIFICATES, True)
-    def test_audit_course_mode_is_skipped(self):
-        """
-        Tests audit course mode is skipped when rendering certificates page.
-        """
-        CourseModeFactory.create(course_id=self.course.id)
-        CourseModeFactory.create(course_id=self.course.id, mode_slug='verified')
-        response = self.client.get_html(
-            self._url(),
-        )
-        self.assertEqual(response.status_code, 200)  # noqa: PT009
-        self.assertContains(response, 'verified')
-        self.assertNotContains(response, 'audit')
-
-    @override_waffle_flag(toggles.LEGACY_STUDIO_CERTIFICATES, True)
-    def test_audit_only_disables_cert(self):
-        """
-        Tests audit course mode is skipped when rendering certificates page.
-        """
-        CourseModeFactory.create(course_id=self.course.id, mode_slug='audit')
-        response = self.client.get_html(
-            self._url(),
-        )
-        self.assertEqual(response.status_code, 200)  # noqa: PT009
-        self.assertContains(response, 'This course does not use a mode that offers certificates.')
-        self.assertNotContains(response, 'This module is not enabled.')
-        self.assertNotContains(response, 'Loading')
-
-    @ddt.data(
-        ['audit', 'verified'],
-        ['verified'],
-        ['audit', 'verified', 'credit'],
-        ['verified', 'credit'],
-        ['professional']
-    )
-    @override_waffle_flag(toggles.LEGACY_STUDIO_CERTIFICATES, True)
-    def test_non_audit_enables_cert(self, slugs):
-        """
-        Tests audit course mode is skipped when rendering certificates page.
-        """
-        for slug in slugs:
-            CourseModeFactory.create(course_id=self.course.id, mode_slug=slug)
-        response = self.client.get_html(
-            self._url(),
-        )
-        self.assertEqual(response.status_code, 200)  # noqa: PT009
-        self.assertNotContains(response, 'This course does not use a mode that offers certificates.')
-        self.assertNotContains(response, 'This module is not enabled.')
-        self.assertContains(response, 'Loading')
 
     def test_assign_unique_identifier_to_certificates(self):
         """

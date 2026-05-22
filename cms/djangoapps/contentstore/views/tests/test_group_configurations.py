@@ -9,14 +9,11 @@ from unittest.mock import patch
 
 import ddt
 from django.test import Client
-from edx_toggles.toggles.testutils import override_waffle_flag
 from openedx_authz.constants.roles import COURSE_DATA_RESEARCHER, COURSE_STAFF
 from rest_framework import status
 
-from cms.djangoapps.contentstore import toggles
 from cms.djangoapps.contentstore.api.tests.base import BaseCourseViewTest
 from cms.djangoapps.contentstore.course_group_config import (
-    CONTENT_GROUP_CONFIGURATION_NAME,
     ENROLLMENT_SCHEME,
     GroupConfiguration,
 )
@@ -26,18 +23,18 @@ from common.djangoapps.student.tests.factories import UserFactory
 from openedx.core.djangoapps.authz.tests.mixins import CourseAuthzTestMixin
 from openedx.features.content_type_gating.helpers import CONTENT_GATING_PARTITION_ID
 from openedx.features.content_type_gating.partitions import CONTENT_TYPE_GATING_SCHEME
-from xmodule.modulestore import ModuleStoreEnum  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore import ModuleStoreEnum  # pylint: disable=wrong-import-order
 from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE
-from xmodule.modulestore.tests.factories import (  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore.tests.factories import (  # pylint: disable=wrong-import-order
     BlockFactory,
     CourseFactory,
 )
-from xmodule.partitions.partitions import (  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.partitions.partitions import (  # pylint: disable=wrong-import-order
     ENROLLMENT_TRACK_PARTITION_ID,
     Group,
     UserPartition,
 )
-from xmodule.validation import (  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.validation import (  # pylint: disable=wrong-import-order
     StudioValidation,
     StudioValidationMessage,
 )
@@ -274,27 +271,12 @@ class GroupConfigurationsListHandlerTestCase(CourseTestCase, GroupConfigurations
         """
         return reverse_course_url('group_configurations_list_handler', self.course.id)
 
-    @override_waffle_flag(toggles.LEGACY_STUDIO_CONFIGURATIONS, True)
     def test_view_index_ok(self):
         """
-        Basic check that the groups configuration page responds correctly.
+        Basic check that the groups configuration page redirects to the MFE.
         """
-
-        # This creates a random UserPartition.
-        self.course.user_partitions = [
-            UserPartition(0, 'First name', 'First description', [Group(0, 'Group A'), Group(1, 'Group B'), Group(2, 'Group C')]),  # lint-amnesty, pylint: disable=line-too-long
-        ]
-        self.save_course()
-
-        if 'split_test' not in self.course.advanced_modules:
-            self.course.advanced_modules.append('split_test')
-            self.store.update_item(self.course, self.user.id)
-
         response = self.client.get(self._url())
-        self.assertEqual(response.status_code, 200)  # noqa: PT009
-        self.assertContains(response, 'First name', count=1)
-        self.assertContains(response, 'Group C')
-        self.assertContains(response, CONTENT_GROUP_CONFIGURATION_NAME)
+        self.assertEqual(response.status_code, 302)  # noqa: PT009
 
     def test_unsupported_http_accept_header(self):
         """
@@ -881,7 +863,7 @@ class GroupConfigurationsUsageInfoTestCase(CourseTestCase, HelperMethods):
         self.store.update_item(self.course, ModuleStoreEnum.UserID.test)
         self.reload_course()
 
-        __, split_test, problem = self._create_content_experiment(cid=0, name_suffix='0', group_id=3, cid_for_problem=1)  # lint-amnesty, pylint: disable=unused-variable
+        __, split_test, problem = self._create_content_experiment(cid=0, name_suffix='0', group_id=3, cid_for_problem=1)  # pylint: disable=unused-variable
 
         expected = {
             'id': 1,
