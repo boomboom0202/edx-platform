@@ -4,8 +4,8 @@ Test that various events are fired for models in the grades app.
 
 from unittest import mock
 from unittest.mock import patch
-import pytest
 
+import pytest
 from ccx_keys.locator import CCXLocator
 from django.utils.timezone import now
 from openedx_events.learning.data import (
