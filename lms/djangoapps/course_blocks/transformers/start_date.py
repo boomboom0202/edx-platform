@@ -9,9 +9,9 @@ from pytz import UTC
 from lms.djangoapps.courseware.access_utils import check_start_date
 from openedx.core.djangoapps.content.block_structure.transformer import (
     BlockStructureTransformer,
-    FilteringTransformerMixin
+    FilteringTransformerMixin,
 )
-from xmodule.course_metadata_utils import DEFAULT_START_DATE  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.course_metadata_utils import DEFAULT_START_DATE  # pylint: disable=wrong-import-order
 
 from .utils import collect_merged_date_field
 

@@ -13,16 +13,16 @@ from django.test.utils import override_settings
 from opaque_keys.edx.locator import BlockUsageLocator, CourseLocator
 from xblock.fields import ScopeIds
 from xblock.runtime import Mixologist
+from xblocks_contrib.problem.capa.xqueue_interface import XQueueInterface
 
 from openedx.core.djangolib.testing.utils import skip_unless_lms
 from openedx.core.lib.teams_config import TeamsConfig
-from xmodule.capa.xqueue_interface import XQueueInterface
 from xmodule.services import ConfigurationService, SettingsService, TeamsConfigurationService, XQueueService
 
 
 class _DummyBlock:
     """ Dummy Xblock class """
-    pass  # lint-amnesty, pylint: disable=unnecessary-pass
+    pass  # pylint: disable=unnecessary-pass
 
 
 class DummyConfig(ConfigurationModel):
@@ -37,7 +37,7 @@ class DummyUnexpected:
     """
     Dummy Unexpected Class
     """
-    pass  # lint-amnesty, pylint: disable=unnecessary-pass
+    pass  # pylint: disable=unnecessary-pass
 
 
 @ddt.ddt
@@ -58,7 +58,7 @@ class TestSettingsService(unittest.TestCase):
 
     def test_get_given_none_throws_value_error(self):
         """  Test that given None throws value error """
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError):  # noqa: PT011
             self.settings_service.get_settings_bucket(None)
 
     @override_settings()
@@ -116,7 +116,7 @@ class TestConfigurationService(unittest.TestCase):
         Test that instantiating ConfigurationService raises exception on passing
         a class which is not subclass of ConfigurationModel.
         """
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError):  # noqa: PT011
             ConfigurationService(DummyUnexpected)
 
     def test_configuration_service(self):
@@ -131,7 +131,7 @@ class MockConfigurationService(TeamsConfigurationService):
     """
     Mock ConfigurationService for testing.
     """
-    def __init__(self, course, **kwargs):  # lint-amnesty, pylint: disable=unused-argument
+    def __init__(self, course, **kwargs):  # pylint: disable=unused-argument
         super().__init__()
         self._course = course
 

@@ -6,7 +6,7 @@ Third Party Auth REST API views
 from collections import namedtuple
 
 from django.conf import settings
-from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
+from django.contrib.auth.models import User  # pylint: disable=imported-auth-user
 from django.db.models import Q
 from django.http import Http404
 from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
@@ -17,17 +17,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from social_django.models import UserSocialAuth
 
-from openedx.core.lib.api.authentication import (
-    BearerAuthentication,
-    BearerAuthenticationAllowInactiveUser
-)
-from openedx.core.lib.api.permissions import ApiKeyHeaderPermission
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from common.djangoapps.third_party_auth import pipeline
 from common.djangoapps.third_party_auth.api import serializers
 from common.djangoapps.third_party_auth.api.permissions import TPA_PERMISSIONS
-from common.djangoapps.third_party_auth.provider import Registry
 from common.djangoapps.third_party_auth.api.utils import filter_user_social_auth_queryset_by_provider
+from common.djangoapps.third_party_auth.provider import Registry
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.core.lib.api.authentication import BearerAuthentication, BearerAuthenticationAllowInactiveUser
+from openedx.core.lib.api.permissions import ApiKeyHeaderPermission
 
 
 class ProviderBaseThrottle(throttling.UserRateThrottle):
@@ -176,7 +173,7 @@ class UserView(BaseUserView):
               login.
     """
 
-    def get(self, request, username):  # lint-amnesty, pylint: disable=unused-argument
+    def get(self, request, username):  # pylint: disable=unused-argument
         """Read provider information for a user.
 
         Allows reading the list of providers for a specified user.

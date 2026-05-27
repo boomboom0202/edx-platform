@@ -5,23 +5,17 @@ Test cases to cover account retirement views
 import datetime
 import json
 from unittest import mock
+from zoneinfo import ZoneInfo
 
 import ddt
-from zoneinfo import ZoneInfo
-from consent.models import DataSharingConsent
-from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
+from django.contrib.auth.models import User  # pylint: disable=imported-auth-user
 from django.contrib.sites.models import Site
 from django.core import mail
 from django.core.cache import cache
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
-from enterprise.models import (
-    EnterpriseCourseEnrollment,
-    EnterpriseCustomer,
-    EnterpriseCustomerUser,
-    PendingEnterpriseCustomerUser
-)
-from integrated_channels.sap_success_factors.models import SapSuccessFactorsLearnerDataTransmissionAudit
 from opaque_keys.edx.keys import CourseKey
 from rest_framework import status
 from social_django.models import UserSocialAuth
@@ -41,7 +35,7 @@ from common.djangoapps.student.models import (
     SocialLink,
     UserProfile,
     get_retired_email_by_email,
-    get_retired_username_by_username
+    get_retired_username_by_username,
 )
 from common.djangoapps.student.tests.factories import (
     AccountRecoveryFactory,
@@ -50,7 +44,7 @@ from common.djangoapps.student.tests.factories import (
     PendingEmailChangeFactory,
     PermissionFactory,
     SuperuserFactory,
-    UserFactory
+    UserFactory,
 )
 from lms.djangoapps.certificates.api import get_certificate_for_user_id
 from lms.djangoapps.certificates.tests.factories import GeneratedCertificateFactory
@@ -61,20 +55,19 @@ from openedx.core.djangoapps.credit.models import (
     CreditProvider,
     CreditRequest,
     CreditRequirement,
-    CreditRequirementStatus
+    CreditRequirementStatus,
 )
 from openedx.core.djangoapps.external_user_ids.models import ExternalIdType
 from openedx.core.djangoapps.oauth_dispatch.jwt import create_jwt_for_user
-from openedx.core.djangoapps.site_configuration.tests.factories import SiteFactory
+from openedx.core.djangoapps.oauth_dispatch.tests.factories import AccessTokenFactory, ApplicationFactory
 from openedx.core.djangoapps.user_api.accounts.views import AccountRetirementPartnerReportView
 from openedx.core.djangoapps.user_api.models import (
     RetirementState,
     UserOrgTag,
     UserRetirementPartnerReportingStatus,
-    UserRetirementStatus
+    UserRetirementStatus,
 )
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from openedx.core.djangoapps.oauth_dispatch.tests.factories import ApplicationFactory, AccessTokenFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
@@ -84,7 +77,7 @@ from .retirement_helpers import (  # pylint: disable=unused-import
     RetirementTestCase,
     create_retirement_status,
     fake_completed_retirement,
-    setup_retirement_states
+    setup_retirement_states,  # noqa: F401
 )
 
 
@@ -602,14 +595,14 @@ class TestPartnerReportingList(ModuleStoreTestCase):
                 for config in orgs_config:
                     config[AccountRetirementPartnerReportView.ORGS_CONFIG_FIELD_HEADINGS_KEY].sort()
 
-        self.assertCountEqual(returned_users, expected_users)
+        self.assertCountEqual(returned_users, expected_users)  # noqa: PT009
 
     def test_success(self):
         """
         Basic test to make sure that users in two different orgs are returned.
         """
-        user_dicts, users = self.create_partner_reporting_statuses()  # lint-amnesty, pylint: disable=unused-variable
-        additional_dicts, additional_users = self.create_partner_reporting_statuses(courses=(self.course_awesome_org,))  # lint-amnesty, pylint: disable=unused-variable
+        user_dicts, users = self.create_partner_reporting_statuses()  # pylint: disable=unused-variable
+        additional_dicts, additional_users = self.create_partner_reporting_statuses(courses=(self.course_awesome_org,))  # pylint: disable=unused-variable
         user_dicts += additional_dicts
 
         self.assert_status_and_user_list(user_dicts)
@@ -618,7 +611,7 @@ class TestPartnerReportingList(ModuleStoreTestCase):
         """
         Checks that only users in the correct is_being_processed state (False) are returned.
         """
-        user_dicts, users = self.create_partner_reporting_statuses()  # lint-amnesty, pylint: disable=unused-variable
+        user_dicts, users = self.create_partner_reporting_statuses()  # pylint: disable=unused-variable
 
         # These should not come back
         self.create_partner_reporting_statuses(courses=(self.course_awesome_org,), is_being_processed=True)
@@ -644,7 +637,7 @@ class TestPartnerReportingList(ModuleStoreTestCase):
         Checks that users are progressed to "is_being_processed" True upon being returned
         from this call.
         """
-        user_dicts, users = self.create_partner_reporting_statuses()  # lint-amnesty, pylint: disable=unused-variable
+        user_dicts, users = self.create_partner_reporting_statuses()  # pylint: disable=unused-variable
 
         # First time through we should get the users
         self.assert_status_and_user_list(user_dicts)
@@ -685,7 +678,7 @@ class TestAccountRetirementList(RetirementTestCase):
             try:
                 states_to_request = [s.state_name for s in states_to_request]
             except AttributeError:
-                states_to_request = states_to_request  # lint-amnesty, pylint: disable=self-assigning-variable
+                states_to_request = states_to_request  # pylint: disable=self-assigning-variable
 
         data = {'cool_off_days': cool_off_days, 'states': states_to_request}
         response = self.client.get(self.url, data, **self.headers)
@@ -699,7 +692,7 @@ class TestAccountRetirementList(RetirementTestCase):
                     del retirement['created']
                     del retirement['modified']
 
-            self.assertCountEqual(response_data, expected_data)
+            self.assertCountEqual(response_data, expected_data)  # noqa: PT009
 
     def test_empty(self):
         """
@@ -884,7 +877,7 @@ class TestAccountRetirementsByStatusAndDate(RetirementTestCase):
                     except KeyError:
                         pass
 
-            self.assertCountEqual(response_data, expected_data)
+            self.assertCountEqual(response_data, expected_data)  # noqa: PT009
 
     def test_empty(self):
         """
@@ -926,7 +919,7 @@ class TestAccountRetirementsByStatusAndDate(RetirementTestCase):
         complete_state = RetirementState.objects.get(state_name='COMPLETE')
 
         # Create retirements for the last 10 days
-        for days_back in range(0, 10):  # lint-amnesty, pylint: disable=simplifiable-range
+        for days_back in range(0, 10):  # pylint: disable=simplifiable-range
             create_datetime = datetime.datetime.now(ZoneInfo("UTC")) - datetime.timedelta(days=days_back)
             ret = create_retirement_status(UserFactory(), state=complete_state, create_datetime=create_datetime)
             retirements.append(self._retirement_to_dict(ret))
@@ -1005,7 +998,7 @@ class TestAccountRetirementRetrieve(RetirementTestCase):
                 del data['created']
                 del data['modified']
 
-            self.assertDictEqual(response_data, expected_data)
+            self.assertDictEqual(response_data, expected_data)  # noqa: PT009
             return response_data
 
     def test_no_retirement(self):
@@ -1078,9 +1071,109 @@ class TestAccountRetirementCleanup(RetirementTestCase):
         assert response.status_code == expected_status
         return response
 
-    def test_simple_success(self):
+    def _assert_redacted_update_delete_queries(self, queries, redacted_username, redacted_email, redacted_name):
+        """
+        Helper method to verify UPDATE and DELETE queries use ID-based filtering and correct field-value assignments.
+        Args:
+            queries: List of captured query dicts from CaptureQueriesContext
+            redacted_username: Expected redacted username value
+            redacted_email: Expected redacted email value
+            redacted_name: Expected redacted name value
+        """
+        update_queries = [q for q in queries if 'UPDATE' in q['sql'] and 'user_api_userretirementstatus' in q['sql']]
+        delete_queries = [q for q in queries if 'DELETE' in q['sql'] and 'user_api_userretirementstatus' in q['sql']]
+        # Should have exactly 1 bulk UPDATE and 1 bulk DELETE query (not individual per-record queries)
+        assert len(update_queries) == 1, f"Expected 1 UPDATE query, found {len(update_queries)}"
+        assert len(delete_queries) == 1, f"Expected 1 DELETE query, found {len(delete_queries)}"
+        # Verify UPDATE query redacts records with the correct field-value assignments and uses ID-based filtering
+        update_query = update_queries[0]
+        sql_lower = update_query['sql']
+        # Ensure original_username, original_email, and original_name are set to redacted values
+        assert f'"original_username" = \'{redacted_username}\'' in sql_lower, (
+            f"UPDATE query missing '\"original_username\" = {redacted_username}': {sql_lower}"
+        )
+        assert f'"original_email" = \'{redacted_email}\'' in sql_lower, (
+            f"UPDATE query missing '\"original_email\" = {redacted_email}': {sql_lower}"
+        )
+        assert f'"original_name" = \'{redacted_name}\'' in sql_lower, (
+            f"UPDATE query missing '\"original_name\" = {redacted_name}': {sql_lower}"
+        )
+        # Ensure UPDATE uses ID-based filtering
+        assert '"id" IN' in sql_lower or 'WHERE "id"' in sql_lower, (
+            f"UPDATE query should use ID filtering to prevent over-update, but got: {sql_lower}"
+        )
+        # Verify DELETE is from the correct table and uses ID-based filtering
+        delete_query = delete_queries[0]
+        sql_lower = delete_query['sql']
+        assert 'user_api_userretirementstatus' in sql_lower, (
+            f"DELETE query against unexpected table: {sql_lower}"
+        )
+        assert '"id" IN' in sql_lower or 'WHERE "id"' in sql_lower, (
+            f"DELETE query should use ID filtering to prevent over-deletion, but got: {sql_lower}"
+        )
+
+    def test_default_redacted_values(self):
+        """
+        Test basic cleanup with default redacted values.
+        Verify that redaction (UPDATE) happens before deletion (DELETE).
+        Captures actual SQL queries to ensure UPDATE queries contain correct field-value assignments.
+        """
+        with CaptureQueriesContext(connection) as context:
+            self.cleanup_and_assert_status()
+
+        # Verify records are deleted after redaction
+        retirements = UserRetirementStatus.objects.all()
+        assert retirements.count() == 0
+
+        # Verify UPDATE and DELETE queries with default 'redacted' value
+        self._assert_redacted_update_delete_queries(context.captured_queries, 'redacted', 'redacted', 'redacted')
+
+    def test_custom_redacted_values(self):
+        """Test that custom redacted values are applied before deletion."""
+        custom_username = 'username-redacted-12345'
+        custom_email = 'email-redacted-67890'
+        custom_name = 'name-redacted-abcde'
+
+        data = {
+            'usernames': self.usernames,
+            'redacted_username': custom_username,
+            'redacted_email': custom_email,
+            'redacted_name': custom_name
+        }
+
+        with CaptureQueriesContext(connection) as context:
+            self.cleanup_and_assert_status(data=data)
+
+        # Verify records are deleted after redaction
+        retirements = UserRetirementStatus.objects.all()
+        assert retirements.count() == 0
+
+        # Verify UPDATE and DELETE queries with custom redacted values
+        self._assert_redacted_update_delete_queries(
+            context.captured_queries, custom_username, custom_email, custom_name
+        )
+
+    def test_does_not_delete_unrelated_redacted_records(self):
+        """
+        Verify cleanup doesn't delete unrelated records with coincidental redacted values.
+        Regression test for over-deletion bug where deletion was filtered by field values
+        (original_username='redacted') instead of by primary key.
+        """
+        # Create an unrelated record that already has redacted field values
+        other_user = UserFactory()
+        other_retirement = create_retirement_status(other_user, state=self.complete_state)
+        other_retirement.original_username = 'redacted'
+        other_retirement.original_email = 'redacted'
+        other_retirement.original_name = 'redacted'
+        other_retirement.save()
+        other_id = other_retirement.id
+        # Clean up only self.usernames records
         self.cleanup_and_assert_status()
-        assert not UserRetirementStatus.objects.all()
+        # Verify target records were deleted
+        target_count = UserRetirementStatus.objects.filter(user__username__in=self.usernames).count()
+        assert target_count == 0, f"Expected 0 target records, found {target_count}"
+        # Verify unrelated record was NOT deleted (not a target of cleanup)
+        assert UserRetirementStatus.objects.filter(id=other_id).exists()
 
     def test_leaves_other_users(self):
         remaining_usernames = []
@@ -1289,33 +1382,6 @@ class TestAccountRetirementPost(RetirementTestCase):
         self.cache_key = UserProfile.country_cache_key_name(self.test_user.id)
         cache.set(self.cache_key, 'Timor-leste')
 
-        # Enterprise model setup
-        self.course_id = 'course-v1:edX+DemoX.1+2T2017'
-        self.enterprise_customer = EnterpriseCustomer.objects.create(
-            name='test_enterprise_customer',
-            site=SiteFactory.create()
-        )
-        self.enterprise_user = EnterpriseCustomerUser.objects.create(
-            enterprise_customer=self.enterprise_customer,
-            user_id=self.test_user.id,
-        )
-        self.enterprise_enrollment = EnterpriseCourseEnrollment.objects.create(
-            enterprise_customer_user=self.enterprise_user,
-            course_id=self.course_id
-        )
-        self.pending_enterprise_user = PendingEnterpriseCustomerUser.objects.create(
-            enterprise_customer_id=self.enterprise_user.enterprise_customer_id,
-            user_email=self.test_user.email
-        )
-        self.sapsf_audit = SapSuccessFactorsLearnerDataTransmissionAudit.objects.create(
-            sapsf_user_id=self.test_user.id,
-            enterprise_course_enrollment_id=self.enterprise_enrollment.id,
-        )
-        self.consent = DataSharingConsent.objects.create(
-            username=self.test_user.username,
-            enterprise_customer=self.enterprise_customer,
-        )
-
         # Entitlement model setup
         self.entitlement = CourseEntitlementFactory.create(user=self.test_user)
         self.entitlement_support_detail = CourseEntitlementSupportDetail.objects.create(
@@ -1348,45 +1414,12 @@ class TestAccountRetirementPost(RetirementTestCase):
         self.headers['content_type'] = "application/json"
         self.url = reverse('accounts_retire')
 
-    def _data_sharing_consent_assertions(self):
-        """
-        Helper method for asserting that ``DataSharingConsent`` objects are retired.
-        """
-        self.consent.refresh_from_db()
-        assert self.retired_username == self.consent.username
-        test_users_data_sharing_consent = DataSharingConsent.objects.filter(
-            username=self.original_username
-        )
-        assert not test_users_data_sharing_consent.exists()
-
     def _entitlement_support_detail_assertions(self):
         """
         Helper method for asserting that ``CourseEntitleSupportDetail`` objects are retired.
         """
         self.entitlement_support_detail.refresh_from_db()
         assert '' == self.entitlement_support_detail.comments
-
-    def _pending_enterprise_customer_user_assertions(self):
-        """
-        Helper method for asserting that ``PendingEnterpriseCustomerUser`` objects are retired.
-        """
-        self.pending_enterprise_user.refresh_from_db()
-        assert self.retired_email == self.pending_enterprise_user.user_email
-        pending_enterprise_users = PendingEnterpriseCustomerUser.objects.filter(
-            user_email=self.original_email
-        )
-        assert not pending_enterprise_users.exists()
-
-    def _sapsf_audit_assertions(self):
-        """
-        Helper method for asserting that ``SapSuccessFactorsLearnerDataTransmissionAudit`` objects are retired.
-        """
-        self.sapsf_audit.refresh_from_db()
-        assert '' == self.sapsf_audit.sapsf_user_id
-        audits_for_original_user_id = SapSuccessFactorsLearnerDataTransmissionAudit.objects.filter(
-            sapsf_user_id=self.test_user.id,
-        )
-        assert not audits_for_original_user_id.exists()
 
     def post_and_assert_status(self, data, expected_status=status.HTTP_204_NO_CONTENT):
         """
@@ -1463,9 +1496,6 @@ class TestAccountRetirementPost(RetirementTestCase):
 
         assert cache.get(self.cache_key) is None
 
-        self._data_sharing_consent_assertions()
-        self._sapsf_audit_assertions()
-        self._pending_enterprise_customer_user_assertions()
         self._entitlement_support_detail_assertions()
 
         assert not PendingEmailChange.objects.filter(user=self.test_user).exists()
@@ -1479,6 +1509,21 @@ class TestAccountRetirementPost(RetirementTestCase):
         self.post_and_assert_status(data)
         fake_completed_retirement(self.test_user)
         self.post_and_assert_status(data)
+
+    @mock.patch('openedx.core.djangoapps.user_api.accounts.views.USER_RETIRE_LMS_CRITICAL')
+    def test_retirement_sends_critical_signal_with_retirement_data(self, mock_signal):
+        """
+        USER_RETIRE_LMS_CRITICAL is sent with retired_username and retired_email kwargs.
+        """
+        data = {'username': self.original_username}
+        self.post_and_assert_status(data)
+
+        mock_signal.send.assert_called_once_with(
+            sender=mock_signal.send.call_args[1]['sender'],
+            user=mock_signal.send.call_args[1]['user'],
+            retired_username=self.retired_username,
+            retired_email=self.retired_email,
+        )
 
     def test_deletes_pii_from_user_profile(self):
         for model_field, value_to_assign in USER_PROFILE_PII.items():
@@ -1519,18 +1564,6 @@ class TestAccountRetirementPost(RetirementTestCase):
     def test_can_delete_user_profiles_country_cache(self):
         AccountRetirementView.delete_users_country_cache(self.test_user)
         assert cache.get(self.cache_key) is None
-
-    def test_can_retire_users_datasharingconsent(self):
-        AccountRetirementView.retire_users_data_sharing_consent(self.test_user.username, self.retired_username)
-        self._data_sharing_consent_assertions()
-
-    def test_can_retire_users_sap_success_factors_audits(self):
-        AccountRetirementView.retire_sapsf_data_transmission(self.test_user)
-        self._sapsf_audit_assertions()
-
-    def test_can_retire_user_from_pendingenterprisecustomeruser(self):
-        AccountRetirementView.retire_user_from_pending_enterprise_customer_user(self.test_user, self.retired_email)
-        self._pending_enterprise_customer_user_assertions()
 
     def test_course_entitlement_support_detail_comments_are_retired(self):
         AccountRetirementView.retire_entitlement_support_detail(self.test_user)
@@ -1584,14 +1617,14 @@ class TestLMSAccountRetirementPost(RetirementTestCase, ModuleStoreTestCase):
         ArticleRevision.objects.create(ip_address="ipaddresss", user=self.test_user, article=article)
 
         # ManualEnrollmentAudit setup
-        course_enrollment = CourseEnrollment.enroll(user=self.test_user, course_key=self.course.id)  # lint-amnesty, pylint: disable=no-member
+        course_enrollment = CourseEnrollment.enroll(user=self.test_user, course_key=self.course.id)  # pylint: disable=no-member
         ManualEnrollmentAudit.objects.create(
             enrollment=course_enrollment, reason=self.pii_standin, enrolled_email=self.pii_standin
         )
 
         # CreditRequest and CreditRequirementStatus setup
         provider = CreditProvider.objects.create(provider_id="Hogwarts")
-        credit_course = CreditCourse.objects.create(course_key=self.course.id)  # lint-amnesty, pylint: disable=no-member
+        credit_course = CreditCourse.objects.create(course_key=self.course.id)  # pylint: disable=no-member
         CreditRequest.objects.create(
             username=self.test_user.username,
             course=credit_course,

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from uuid import UUID
 
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _  # noqa: F401
 from opaque_keys.edx.keys import UsageKey
 from opaque_keys.edx.locator import (
     CourseLocator,
@@ -18,8 +18,7 @@ from opaque_keys.edx.locator import (
     LibraryLocatorV2,
     LibraryUsageLocatorV2,
 )
-
-from openedx.core.djangoapps.content_libraries.api import ContainerType
+from openedx_content import models_api as content_models
 
 
 class CompositionLevel(Enum):
@@ -32,15 +31,15 @@ class CompositionLevel(Enum):
     Component = 'component'
 
     # Container types currently supported by Content Libraries
-    Unit = ContainerType.Unit.value
-    Subsection = ContainerType.Subsection.value
-    Section = ContainerType.Section.value
+    Unit = content_models.Unit.type_code  # "unit"
+    Subsection = content_models.Subsection.type_code  # "subsection"
+    Section = content_models.Section.type_code  # "section"
 
     @property
     def is_container(self) -> bool:
         return self is not self.Component
 
-    def is_higher_than(self, other: 'CompositionLevel') -> bool:
+    def is_higher_than(self, other: 'CompositionLevel') -> bool:  # noqa: UP037
         """
         Is this composition level 'above' (more complex than) the other?
         """
@@ -86,7 +85,7 @@ class RepeatHandlingStrategy(Enum):
         return cls.Skip
 
 
-SourceContextKey: t.TypeAlias = CourseLocator | LibraryLocator
+SourceContextKey: t.TypeAlias = CourseLocator | LibraryLocator  # noqa: UP040
 
 
 @dataclass(frozen=True)

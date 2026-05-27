@@ -17,11 +17,12 @@ from opaque_keys.edx.keys import CourseKey, UsageKey
 from opaque_keys.edx.locator import LibraryContainerLocator
 from openedx_content.api import get_published_version
 from openedx_content.models_api import Component, Container
-from openedx_django_lib.fields import (
-    immutable_uuid_field,
-    key_field,
-    manual_date_time_field,
-)
+
+try:
+    from openedx_django_lib.fields import immutable_uuid_field, manual_date_time_field, ref_field
+except ImportError:  # pragma: no cover - runtime compatibility shim for different openedx_django_lib versions
+    from openedx_django_lib.fields import immutable_uuid_field, manual_date_time_field
+    from openedx_django_lib.fields import key_field as ref_field
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ class EntityLinkBase(models.Model):
     """
     uuid = immutable_uuid_field()
     # Search by library/upstream context key
-    upstream_context_key = key_field(
+    upstream_context_key = ref_field(
         help_text=_("Upstream context key i.e., learning_package/library key"),
         db_index=True,
     )
@@ -131,7 +132,7 @@ class EntityLinkBase(models.Model):
         """
         raise NotImplementedError
 
-    class Meta:
+    class Meta:  # noqa: DJ012
         abstract = True
 
     @classmethod
@@ -269,7 +270,7 @@ class ComponentLink(EntityLinkBase):
         Update or create entity link. This will only update `updated` field if something has changed.
         """
         if not created:
-            created = datetime.now(tz=timezone.utc)
+            created = datetime.now(tz=timezone.utc)  # noqa: UP017
         top_level_parent = None
         if top_level_parent_usage_key is not None:
             try:
@@ -489,7 +490,7 @@ class ContainerLink(EntityLinkBase):
     @classmethod
     def update_or_create(
         cls,
-        upstream_container_id: int | None,
+        upstream_container_id: Container.ID | None,
         /,
         upstream_container_key: LibraryContainerLocator,
         upstream_context_key: str,
@@ -505,7 +506,7 @@ class ContainerLink(EntityLinkBase):
         Update or create entity link. This will only update `updated` field if something has changed.
         """
         if not created:
-            created = datetime.now(tz=timezone.utc)
+            created = datetime.now(tz=timezone.utc)  # noqa: UP017
         top_level_parent = None
         if top_level_parent_usage_key is not None:
             try:
@@ -593,7 +594,7 @@ class LearningContextLinksStatus(models.Model):
             LearningContextLinksStatus object
         """
         if not created:
-            created = datetime.now(tz=timezone.utc)
+            created = datetime.now(tz=timezone.utc)  # noqa: UP017
         status, _ = cls.objects.get_or_create(
             context_key=context_key,
             defaults={
@@ -613,5 +614,5 @@ class LearningContextLinksStatus(models.Model):
         Updates entity links processing status of given learning context.
         """
         self.status = status
-        self.updated = updated or datetime.now(tz=timezone.utc)
+        self.updated = updated or datetime.now(tz=timezone.utc)  # noqa: UP017
         self.save()

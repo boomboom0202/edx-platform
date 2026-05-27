@@ -6,23 +6,22 @@ import logging
 
 from config_models.models import ConfigurationModel
 from django.conf import settings
-from django.contrib.auth.models import User  # lint-amnesty, pylint: disable=imported-auth-user
+from django.contrib.auth.models import User  # pylint: disable=imported-auth-user
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
 from django.utils.translation import gettext_noop
+from edx_django_utils.cache import DEFAULT_REQUEST_CACHE
 from jsonfield.fields import JSONField
 from opaque_keys.edx.django.models import CourseKeyField
-from edx_django_utils.cache import DEFAULT_REQUEST_CACHE
 from opaque_keys.edx.keys import CourseKey
 
-from openedx.core.djangoapps.xmodule_django.models import NoneToEmptyManager
-from openedx.core.lib.cache_utils import request_cached
 from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.student.roles import GlobalStaff
-from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
-from xmodule.modulestore.exceptions import ItemNotFoundError  # lint-amnesty, pylint: disable=wrong-import-order
+from openedx.core.djangoapps.xmodule_django.models import NoneToEmptyManager
+from openedx.core.lib.cache_utils import request_cached
+from xmodule.modulestore.django import modulestore  # pylint: disable=wrong-import-order
+from xmodule.modulestore.exceptions import ItemNotFoundError  # pylint: disable=wrong-import-order
 
 FORUM_ROLE_ADMINISTRATOR = gettext_noop('Administrator')
 FORUM_ROLE_MODERATOR = gettext_noop('Moderator')
@@ -79,7 +78,7 @@ class Role(models.Model):
 
     objects = NoneToEmptyManager()
 
-    name = models.CharField(max_length=30, null=False, blank=False)
+    name = models.CharField(max_length=30, null=False, blank=False)  # noqa: DJ012
     users = models.ManyToManyField(User, related_name="roles")
     course_id = CourseKeyField(max_length=255, blank=True, db_index=True)
 
@@ -107,7 +106,7 @@ class Role(models.Model):
             self.add_permission(per)
 
     def add_permission(self, permission):
-        self.permissions.add(Permission.objects.get_or_create(name=permission)[0])  # lint-amnesty, pylint: disable=no-member
+        self.permissions.add(Permission.objects.get_or_create(name=permission)[0])  # pylint: disable=no-member
 
     def has_permission(self, permission):
         """
@@ -214,7 +213,7 @@ def has_permission(user, permission, course_id=None):
     """
     assert isinstance(course_id, (type(None), CourseKey))
     request_cache_dict = DEFAULT_REQUEST_CACHE.data
-    cache_key = "django_comment_client.permissions.has_permission.all_permissions.{}.{}".format(
+    cache_key = "django_comment_client.permissions.has_permission.all_permissions.{}.{}".format(  # noqa: UP032
         user.id, course_id
     )
     if cache_key in request_cache_dict:
@@ -254,7 +253,7 @@ class ForumsConfig(ConfigurationModel):
         return f"ForumsConfig: timeout={self.connection_timeout}"
 
 
-class CourseDiscussionSettings(models.Model):
+class CourseDiscussionSettings(models.Model):  # noqa: DJ008
     """
     Settings for course discussions
 
@@ -273,7 +272,7 @@ class CourseDiscussionSettings(models.Model):
     )
     always_divide_inline_discussions = models.BooleanField(default=False)
     reported_content_email_notifications = models.BooleanField(default=False)
-    _divided_discussions = models.TextField(db_column='divided_discussions', null=True, blank=True)  # JSON list
+    _divided_discussions = models.TextField(db_column='divided_discussions', null=True, blank=True)  # JSON list  # noqa: DJ001  # pylint: disable=line-too-long
 
     COHORT = 'cohort'
     ENROLLMENT_TRACK = 'enrollment_track'
@@ -342,7 +341,7 @@ class CourseDiscussionSettings(models.Model):
         return self
 
 
-class DiscussionsIdMapping(models.Model):
+class DiscussionsIdMapping(models.Model):  # noqa: DJ008
     """
     This model is a performance optimization, updated on course publish.
 

@@ -9,15 +9,17 @@ import io
 import json
 import logging
 import os
-import requests
-import shutil
 import pathlib
+import shutil
 import zipfile
-import boto3
-
 from contextlib import closing
 from datetime import datetime, timedelta
+from tempfile import NamedTemporaryFile, mkdtemp
 from uuid import uuid4
+from wsgiref.util import FileWrapper
+
+import boto3
+import requests
 from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.http import FileResponse, HttpResponseNotFound, StreamingHttpResponse
@@ -32,13 +34,13 @@ from edxval.api import (
     create_video,
     get_3rd_party_transcription_plans,
     get_available_transcript_languages,
-    get_video_transcript_url,
     get_transcript_preferences,
+    get_video_transcript_url,
     get_videos_for_course,
     remove_transcript_preferences,
     remove_video_for_course,
     update_video_image,
-    update_video_status
+    update_video_status,
 )
 from fs.osfs import OSFS
 from opaque_keys import InvalidKeyError
@@ -47,18 +49,13 @@ from path import Path as path
 from pytz import UTC
 from rest_framework import status as rest_status
 from rest_framework.response import Response
-from tempfile import NamedTemporaryFile, mkdtemp
-from wsgiref.util import FileWrapper
 
 from common.djangoapps.util.json_request import JsonResponse
 from openedx.core.djangoapps.video_config.models import VideoTranscriptEnabledFlag
 from openedx.core.djangoapps.video_config.toggles import PUBLIC_VIDEO_SHARE
-from openedx.core.djangoapps.video_pipeline.config.waffle import (
-    DEPRECATE_YOUTUBE,
-    ENABLE_DEVSTACK_VIDEO_UPLOADS,
-)
+from openedx.core.djangoapps.video_pipeline.config.waffle import DEPRECATE_YOUTUBE, ENABLE_DEVSTACK_VIDEO_UPLOADS
 from openedx.core.djangoapps.waffle_utils import CourseWaffleFlag
-from xmodule.modulestore.django import modulestore  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore.django import modulestore  # pylint: disable=wrong-import-order
 
 from .models import VideoUploadConfig
 from .toggles import use_mock_video_uploads
@@ -72,14 +69,14 @@ LOGGER = logging.getLogger(__name__)
 WAFFLE_NAMESPACE = 'videos'
 
 # Waffle switch for enabling/disabling video image upload feature
-VIDEO_IMAGE_UPLOAD_ENABLED = WaffleSwitch(  # lint-amnesty, pylint: disable=toggle-missing-annotation
+VIDEO_IMAGE_UPLOAD_ENABLED = WaffleSwitch(  # pylint: disable=toggle-missing-annotation
     f'{WAFFLE_NAMESPACE}.video_image_upload_enabled', __name__
 )
 
 # Waffle flag namespace for studio
 WAFFLE_STUDIO_FLAG_NAMESPACE = 'studio'
 
-ENABLE_VIDEO_UPLOAD_PAGINATION = CourseWaffleFlag(  # lint-amnesty, pylint: disable=toggle-missing-annotation
+ENABLE_VIDEO_UPLOAD_PAGINATION = CourseWaffleFlag(  # pylint: disable=toggle-missing-annotation
     f'{WAFFLE_STUDIO_FLAG_NAMESPACE}.enable_video_upload_pagination', __name__
 )
 # Default expiration, in seconds, of one-time URLs used for uploading videos.
@@ -235,7 +232,7 @@ def send_zip(zip_file, size=None):
     """
     wrapper = FileWrapper(zip_file, settings.COURSE_EXPORT_DOWNLOAD_CHUNK_SIZE)
     response = StreamingHttpResponse(wrapper, content_type='application/zip')
-    response['Content-Dispositon'] = 'attachment; filename=%s' % os.path.basename(zip_file.name)
+    response['Content-Dispositon'] = 'attachment; filename=%s' % os.path.basename(zip_file.name)  # noqa: UP031
     response['Content-Length'] = size
     return response
 
@@ -248,7 +245,7 @@ def create_video_zip(course_key_string, files):
     """
     name = course_key_string + '_videos'
     video_folder_zip = NamedTemporaryFile(prefix=name + '_',
-                                          suffix=".zip")  # lint-amnesty, pylint: disable=consider-using-with
+                                          suffix=".zip")  # pylint: disable=consider-using-with
     root_dir = path(mkdtemp())
     video_dir = root_dir + '/' + name
     zip_folder = None
@@ -388,7 +385,7 @@ def validate_transcript_preferences(provider, cielo24_fidelity, cielo24_turnarou
 
     # validate transcription providers
     transcription_plans = get_3rd_party_transcription_plans()
-    if provider in list(transcription_plans.keys()):   # lint-amnesty, pylint: disable=consider-iterating-dictionary
+    if provider in list(transcription_plans.keys()):   # pylint: disable=consider-iterating-dictionary
 
         # Further validations for providers
         if provider == TranscriptProvider.CIELO24:
@@ -814,7 +811,7 @@ def videos_post(course, request):
         try:
             file_name.encode('ascii')
         except UnicodeEncodeError:
-            error_msg = 'The file name for %s must contain only ASCII characters.' % file_name
+            error_msg = 'The file name for %s must contain only ASCII characters.' % file_name  # noqa: UP031
             return {'error': error_msg}, 400
 
         edx_video_id = str(uuid4())
@@ -964,10 +961,10 @@ def get_course_youtube_edx_video_ids(course_id):
     """
     Get a list of youtube edx_video_ids
     """
-    invalid_key_error_msg = "Invalid course_key: '%s'." % course_id
-    unexpected_error_msg = "Unexpected error occurred for course_id: '%s'." % course_id
+    invalid_key_error_msg = "Invalid course_key: '%s'." % course_id  # noqa: UP031
+    unexpected_error_msg = "Unexpected error occurred for course_id: '%s'." % course_id  # noqa: UP031
 
-    try:  # lint-amnesty, pylint: disable=too-many-nested-blocks
+    try:  # pylint: disable=too-many-nested-blocks
         course_key = CourseKey.from_string(course_id)
         course = modulestore().get_course(course_key)
 

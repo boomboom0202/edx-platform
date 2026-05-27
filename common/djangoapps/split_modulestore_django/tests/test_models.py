@@ -1,14 +1,14 @@
 """ Unit tests for SplitModulestoreCourseIndex """
 from datetime import datetime
 
+import pytest
 from bson.objectid import ObjectId
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from opaque_keys.edx.keys import CourseKey
-import pytest
 
 from common.djangoapps.split_modulestore_django.models import SplitModulestoreCourseIndex
-from xmodule.modulestore import ModuleStoreEnum  # lint-amnesty, pylint: disable=wrong-import-order
+from xmodule.modulestore import ModuleStoreEnum  # pylint: disable=wrong-import-order
 
 
 class SplitModulestoreCourseIndexTest(TestCase):

@@ -78,7 +78,7 @@ OS:
 
 Interpreters/Tools:
 
-* Python 3.11 or 3.12
+* Python 3.12
 
 * Node: See the ``.nvmrc`` file in this repository.
 
@@ -293,6 +293,11 @@ Code of Conduct
 
 Please read the `Community Code of Conduct`_ for interacting with this repository.
 
+AI Contribution Policy
+**********************
+
+Note that contributions are expected to follow the Open edX `AI Contribution Policy`_.
+
 Reporting Security Issues
 *************************
 
@@ -302,6 +307,7 @@ security@openedx.org.
 .. _individual contributor agreement: https://openedx.org/cla
 .. _CONTRIBUTING: https://github.com/openedx/.github/blob/master/CONTRIBUTING.md
 .. _Community Code of Conduct: https://openedx.org/code-of-conduct/
+.. _AI Contribution Policy: https://github.com/openedx/.github/blob/master/AI_POLICY.md
 
 People
 ******

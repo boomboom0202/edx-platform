@@ -25,6 +25,13 @@ from edx_django_utils.cache import RequestCache
 
 from openedx.core.lib import ensure_cms, ensure_lms
 
+# Used to ignore queries against authz tables when using assertNumQueries in FilteredQueryCountMixin
+AUTHZ_TABLES = [
+    "casbin_rule",
+    "openedx_authz_policycachecontrol",
+    "django_migrations",
+]
+
 
 class CacheIsolationMixin:
     """
@@ -182,9 +189,9 @@ class _AssertNumQueriesContext(CaptureQueriesContext):
             if self.table_ignorelist:
                 for table in self.table_ignorelist:
                     # SQL contains the following format for columns:
-                    # "table_name"."column_name".  The regex ensures there is no
-                    # "." before the name to avoid matching columns.
-                    if re.search(fr'[^.]"{table}"', query['sql']):
+                    # "table_name"."column_name" or table_name.column_name.
+                    # The regex ensures there is no "." before the name to avoid matching columns.
+                    if re.search(fr'[^."]"?{table}"?', query['sql']):
                         return False
             return True
 
@@ -195,7 +202,7 @@ class _AssertNumQueriesContext(CaptureQueriesContext):
         executed = len(filtered_queries)
 
         assert executed == self.num, (
-            '%d queries executed, %d expected\nCaptured queries were:\n%s' % (
+            '%d queries executed, %d expected\nCaptured queries were:\n%s' % (  # noqa: UP031
                 executed, self.num, '\n'.join(query['sql'] for query in filtered_queries)
             )
         )
@@ -207,7 +214,7 @@ class FilteredQueryCountMixin:
     assertNumQueries with one that accepts a ignorelist of tables to filter out
     of the count.
     """
-    def assertNumQueries(self, num, func=None, table_ignorelist=None, *args, **kwargs):  # lint-amnesty, pylint: disable=keyword-arg-before-vararg
+    def assertNumQueries(self, num, func=None, table_ignorelist=None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
         """
         Used to replace Django's assertNumQueries with the same capability, with
         the addition of the following argument:
