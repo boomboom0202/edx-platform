@@ -65,7 +65,7 @@ class RepositoryDocs:
     def _create_index_rst_file(self, directory_path, title=None):
         directory_name = os.path.basename(directory_path)
         file_path = os.path.join(directory_path, "index.rst")
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and title is None:
             return
         if title is None:
             title = directory_name
