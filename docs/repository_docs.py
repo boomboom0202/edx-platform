@@ -136,6 +136,7 @@ class RepositoryDocs:
                 has_readme = os.path.isfile(os.path.join(app_path, 'README.rst'))
                 has_docs = os.path.isdir(os.path.join(app_path, 'docs'))
                 if has_readme or has_docs:
+                    # :doc: links below are relative to docs/references/ (where this file is generated)
                     rel = f'{service_dir}/{app_name}'
                     app_entries.append((app_name, rel))
 
