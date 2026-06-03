@@ -1,39 +1,15 @@
 <%page expression_filter="h"/>
 <%!
-  import json
   from django.utils.translation import gettext as _
-  from openedx.core.djangolib.js_utils import js_escaped_string, dump_js_escaped_json
 %>
 <%inherit file="../main.html" />
-<%
-  course_discovery_enabled = settings.FEATURES.get('ENABLE_COURSE_DISCOVERY')
-%>
 
 <%namespace name='static' file='../static_content.html'/>
-
-% if course_discovery_enabled:
-<%block name="header_extras">
-  % for template_name in ["course_card", "filter_bar", "filter", "facet", "facet_option"]:
-  <script type="text/template" id="${template_name}-tpl">
-      <%static:include path="discovery/${template_name}.underscore" />
-  </script>
-  % endfor
-  <%static:require_module module_name="js/discovery/discovery_factory" class_name="DiscoveryFactory">
-    DiscoveryFactory(
-      ${course_discovery_meanings | n, dump_js_escaped_json},
-      getParameterByName('search_query'),
-      "${user_language | n, js_escaped_string}",
-      "${user_timezone | n, js_escaped_string}",
-      ${set_default_filter | n, dump_js_escaped_json}
-    );
-  </%static:require_module>
-</%block>
-% endif
 
 <%block name="pagetitle">${_("Courses")}</%block>
 
 <main id="main" aria-label="Content" tabindex="-1">
-    <section class="find-courses">
+    <section class="find-courses ektu-catalog">
       <header class="ektu-catalog-hero">
         <div class="ektu-wrap">
           <span class="ektu-eyebrow">${_("EKTU Course Catalog")}</span>
@@ -41,48 +17,123 @@
           <p>${_("Discover open courses and programs from East Kazakhstan Technical University and start learning today.")}</p>
         </div>
       </header>
-      <section class="courses-container">
-        % if course_discovery_enabled:
-        <div id="discovery-form" role="search" aria-label="course" class="wrapper-search-context">
-          <div id="discovery-message" class="search-status-label"></div>
-          <form class="wrapper-search-input">
-            <label for="discovery-input" class="sr">${_('Search for a course')}</label>
-            <input id="discovery-input" class="discovery-input" placeholder="${_('Search for a course')}" type="text"/>
-            <button type="submit" class="button postfix discovery-submit" title="${_('Search')}">
-              <span class="icon fa fa-search" aria-hidden="true"></span>
-              <div aria-live="polite" aria-relevant="all">
-                <div id="loading-indicator" class="loading-spinner hidden">
-                  <span class="icon fa fa-spinner fa-spin" aria-hidden="true"></span>
-                  <span class="sr">${_('Loading')}</span>
-                </div>
-              </div>
-            </button>
-          </form>
-        </div>
 
-        <div id="filter-bar" class="filters hide-phone is-collapsed">
-        </div>
-        % endif
+      <div class="ektu-wrap ektu-catalog__layout">
 
-        <div class="courses${'' if course_discovery_enabled else ' no-course-discovery'}" role="region" aria-label="${_('List of Courses')}">
-          <ul class="courses-listing courses-list">
-            %for course in courses:
-            <li class="courses-listing-item">
-              <%include file="../course.html" args="course=course" />
-            </li>
-            %endfor
-          </ul>
-        </div>
-
-
-        % if course_discovery_enabled:
-        <aside aria-label="${_('Refine Your Search')}" class="search-facets phone-menu">
-          <h2 class="header-search-facets">${_('Refine Your Search')}</h2>
-          <section class="search-facets-lists">
-          </section>
+        ## ---- Filter sidebar (groups are defined in Python: get_catalog_filter_groups) ----
+        % if course_filter_groups:
+        <aside class="ektu-catalog__filters" aria-label="${_('Filter courses')}">
+          <div class="ektu-catalog__filters-head">
+            <h2>${_("Filters")}</h2>
+            <button type="button" class="ektu-filter-reset" id="ektu-filter-reset">${_("Reset")}</button>
+          </div>
+          % for group in course_filter_groups:
+          <div class="ektu-filter-group" data-group="${group['id']}">
+            <h3 class="ektu-filter-group__title">${group['name']}</h3>
+            <div class="ektu-filter-options" role="group" aria-label="${group['name']}">
+              <button type="button" class="ektu-filter-chip is-active" data-group="${group['id']}" data-value="">${_("All")}</button>
+              % for option in group['options']:
+              <button type="button" class="ektu-filter-chip" data-group="${group['id']}" data-value="${option}">${option}</button>
+              % endfor
+            </div>
+          </div>
+          % endfor
         </aside>
         % endif
 
-      </section>
+        ## ---- Results ----
+        <section class="ektu-catalog__results" role="region" aria-label="${_('List of Courses')}">
+          <div class="ektu-catalog__meta">
+            <span id="ektu-course-count" data-label="${_('Showing {count} of {total} courses').format(count='{count}', total=len(courses))}"></span>
+          </div>
+
+          % if courses:
+          <ul class="courses-listing courses-list" id="ektu-course-list">
+            % for course in courses:
+            <li class="courses-listing-item"
+                data-filter-org="${course.display_org_with_default}"
+                data-filter-language="${(course.language or '').strip()}">
+              <%include file="../course.html" args="course=course" />
+            </li>
+            % endfor
+          </ul>
+          <div class="ektu-catalog__empty" id="ektu-catalog-empty" hidden>
+            <p>${_("No courses match the selected filters.")}</p>
+          </div>
+          % else:
+          <div class="ektu-catalog__empty">
+            <p>${_("There are no courses available at the moment. Please check back soon.")}</p>
+          </div>
+          % endif
+        </section>
+
+      </div>
     </section>
 </main>
+
+<%block name="js_extra">
+<script type="text/javascript">
+(function() {
+  "use strict";
+  var list = document.getElementById('ektu-course-list');
+  var chips = [].slice.call(document.querySelectorAll('.ektu-filter-chip'));
+  var resetBtn = document.getElementById('ektu-filter-reset');
+  var countEl = document.getElementById('ektu-course-count');
+  var emptyEl = document.getElementById('ektu-catalog-empty');
+  if (!list) { return; }
+
+  var items = [].slice.call(list.querySelectorAll('.courses-listing-item'));
+  var selected = {};
+
+  function updateCount(visible) {
+    if (!countEl) { return; }
+    var tpl = countEl.getAttribute('data-label') || '{count}';
+    countEl.textContent = tpl.replace('{count}', visible);
+  }
+
+  function applyFilters() {
+    var visible = 0;
+    items.forEach(function(item) {
+      var show = Object.keys(selected).every(function(group) {
+        var value = selected[group];
+        if (!value) { return true; }
+        return item.getAttribute('data-filter-' + group) === value;
+      });
+      item.style.display = show ? '' : 'none';
+      if (show) { visible++; }
+    });
+    updateCount(visible);
+    if (emptyEl) { emptyEl.hidden = (visible !== 0); }
+  }
+
+  function setActive(group, chip) {
+    chips.forEach(function(c) {
+      if (c.getAttribute('data-group') === group) {
+        c.classList.toggle('is-active', c === chip);
+      }
+    });
+  }
+
+  chips.forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      var group = chip.getAttribute('data-group');
+      selected[group] = chip.getAttribute('data-value');
+      setActive(group, chip);
+      applyFilters();
+    });
+  });
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      selected = {};
+      chips.forEach(function(c) {
+        c.classList.toggle('is-active', c.getAttribute('data-value') === '');
+      });
+      applyFilters();
+    });
+  }
+
+  applyFilters();
+})();
+</script>
+</%block>

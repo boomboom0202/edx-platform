@@ -152,10 +152,7 @@ from openedx.features.enterprise_support.api import data_sharing_consent_require
 
 from ..block_render import get_block, get_block_by_usage_id, get_block_for_descriptor
 from ..tabs import _get_dynamic_tabs
-from ..toggles import (
-    COURSEWARE_OPTIMIZED_RENDER_XBLOCK,
-    ENABLE_COURSE_DISCOVERY_DEFAULT_LANGUAGE_FILTER,
-)
+from ..toggles import COURSEWARE_OPTIMIZED_RENDER_XBLOCK
 
 log = logging.getLogger("edx.courseware")
 
@@ -285,26 +282,73 @@ def user_groups(user):
     return group_names
 
 
+def get_catalog_filter_groups(courses_list):
+    """
+    Build the filter groups displayed on the course catalog page.
+
+    The catalog uses a custom, server-rendered filter UI instead of the
+    JavaScript course-discovery search.  Filters are defined here in Python so
+    they are easy to maintain: to add a new filter, append another entry to
+    ``group_definitions`` with an ``id``, a human readable ``name`` and a
+    ``resolver`` that returns the value for a given course.  The matching value
+    is also emitted as a ``data-filter-<id>`` attribute on each course card,
+    which the lightweight catalog JavaScript uses to show/hide cards.
+
+    Returns a list of dicts shaped like::
+
+        [{"id": "org", "name": "Organization", "options": ["EKTU", ...]}, ...]
+    """
+    group_definitions = [
+        {
+            'id': 'org',
+            'name': gettext('Organization'),
+            'resolver': lambda course: course.display_org_with_default,
+        },
+        {
+            'id': 'language',
+            'name': gettext('Language'),
+            'resolver': lambda course: (course.language or '').strip(),
+        },
+    ]
+
+    filter_groups = []
+    for group in group_definitions:
+        options = sorted({
+            value for value in (group['resolver'](course) for course in courses_list) if value
+        })
+        # Only surface a filter when it actually narrows the catalog down.
+        if len(options) > 1:
+            filter_groups.append({
+                'id': group['id'],
+                'name': group['name'],
+                'options': options,
+            })
+    return filter_groups
+
+
 @ensure_csrf_cookie
 @cache_if_anonymous()
 def courses(request):
     """
-    Render "find courses" page.  The course selection work is done in courseware.courses.
-    """
-    courses_list = []
-    course_discovery_meanings = getattr(settings, 'COURSE_DISCOVERY_MEANINGS', {})
-    set_default_filter = ENABLE_COURSE_DISCOVERY_DEFAULT_LANGUAGE_FILTER.is_enabled()
-    if not settings.FEATURES.get('ENABLE_COURSE_DISCOVERY'):
-        courses_list = get_courses(
-            request.user,
-            filter_={"catalog_visibility": CATALOG_VISIBILITY_CATALOG_AND_ABOUT},
-        )
+    Render the branded "find courses" catalog page.
 
-        if configuration_helpers.get_value("ENABLE_COURSE_SORTING_BY_START_DATE",
-                                           settings.FEATURES["ENABLE_COURSE_SORTING_BY_START_DATE"]):
-            courses_list = sort_by_start_date(courses_list)
-        else:
-            courses_list = sort_by_announcement(courses_list)
+    The catalog is fully server-rendered with a custom Python-defined filter
+    set (see :func:`get_catalog_filter_groups`); the legacy JavaScript
+    course-discovery search box is intentionally not used here.
+    """
+    courses_list = get_courses(
+        request.user,
+        filter_={"catalog_visibility": CATALOG_VISIBILITY_CATALOG_AND_ABOUT},
+    )
+
+    if configuration_helpers.get_value("ENABLE_COURSE_SORTING_BY_START_DATE",
+                                       settings.FEATURES["ENABLE_COURSE_SORTING_BY_START_DATE"]):
+        courses_list = sort_by_start_date(courses_list)
+    else:
+        courses_list = sort_by_announcement(courses_list)
+
+    # Filter groups are computed in Python so the catalog is easy to extend.
+    course_filter_groups = get_catalog_filter_groups(courses_list)
 
     # Add marketable programs to the context.
     programs_list = get_programs_with_type(request.site, include_hidden=False)
@@ -313,8 +357,7 @@ def courses(request):
         "courseware/courses.html",
         {
             'courses': courses_list,
-            'course_discovery_meanings': course_discovery_meanings,
-            'set_default_filter': set_default_filter,
+            'course_filter_groups': course_filter_groups,
             'programs_list': programs_list,
         }
     )
