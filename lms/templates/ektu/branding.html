@@ -131,31 +131,50 @@ header.global-header .nav-links .sign-in-btn.btn:hover {
 }
 
 /* ----------------------------------------------------------------------- */
-/*  Footer                                                                   */
+/*  Footer (EKTU: logo + legal links only)                                  */
 /* ----------------------------------------------------------------------- */
-.wrapper-footer footer,
-#footer-openedx {
+.wrapper-footer.ektu-footer {
   background: var(--ektu-secondary);
-  color: #d7e6e1;
+  border-top: 4px solid var(--ektu-primary);
 }
-.wrapper-footer footer a,
-#footer-openedx a {
+.ektu-footer #footer-ektu {
+  background: var(--ektu-secondary);
+}
+.ektu-footer .ektu-footer__inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.ektu-footer__logo img {
+  max-height: 48px;
+  width: auto;
+  display: block;
+}
+.ektu-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 28px;
+}
+.ektu-footer__nav a {
   color: #ffffff !important;
+  font-family: var(--ektu-font-display);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  transition: color 0.18s ease;
 }
-.wrapper-footer footer a:hover,
-#footer-openedx a:hover {
+.ektu-footer__nav a:hover {
   color: var(--ektu-accent) !important;
 }
-#footer-openedx .colophon nav ol,
-#footer-openedx .nav-legal ul {
-  list-style: none;
-}
-.wrapper-footer footer .copyright,
-#footer-openedx .copyright {
-  color: #9fc0b8;
-}
-.wrapper-footer {
-  border-top: 4px solid var(--ektu-primary);
+@media (max-width: 600px) {
+  .ektu-footer .ektu-footer__inner { flex-direction: column; align-items: flex-start; }
+  .ektu-footer__nav { gap: 16px; flex-direction: column; align-items: flex-start; }
 }
 
 /* ----------------------------------------------------------------------- */
