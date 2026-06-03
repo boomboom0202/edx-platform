@@ -39,7 +39,64 @@ from openedx.core.djangolib.markup import HTML, Text
         </div>
 
       </header>
+
+      <section class="ektu-stats">
+        <div class="ektu-wrap">
+          <div class="ektu-stat">
+            <div class="ektu-stat__num">14 000+</div>
+            <div class="ektu-stat__label">${_("Students")}</div>
+          </div>
+          <div class="ektu-stat">
+            <div class="ektu-stat__num">60+</div>
+            <div class="ektu-stat__label">${_("Educational programs")}</div>
+          </div>
+          <div class="ektu-stat">
+            <div class="ektu-stat__num">90+</div>
+            <div class="ektu-stat__label">${_("Years of history")}</div>
+          </div>
+          <div class="ektu-stat">
+            <div class="ektu-stat__num">100%</div>
+            <div class="ektu-stat__label">${_("Online access")}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ektu-section ektu-features">
+        <div class="ektu-wrap">
+          <div class="ektu-section__head">
+            <span class="ektu-eyebrow">${_("Why EKTU")}</span>
+            <h2>${_("Learning built on engineering excellence")}</h2>
+            <p>${_("We combine the academic traditions of East Kazakhstan Technical University with a modern digital learning experience.")}</p>
+          </div>
+          <div class="ektu-grid">
+            <div class="ektu-card">
+              <div class="ektu-card__icon"><span class="icon fa fa-graduation-cap" aria-hidden="true"></span></div>
+              <h3>${_("Accredited programs")}</h3>
+              <p>${_("Courses designed by university faculty across engineering, IT, business and the natural sciences.")}</p>
+            </div>
+            <div class="ektu-card">
+              <div class="ektu-card__icon"><span class="icon fa fa-laptop" aria-hidden="true"></span></div>
+              <h3>${_("Learn at your pace")}</h3>
+              <p>${_("Study anywhere and anytime with interactive materials, practical assignments and progress tracking.")}</p>
+            </div>
+            <div class="ektu-card">
+              <div class="ektu-card__icon"><span class="icon fa fa-certificate" aria-hidden="true"></span></div>
+              <h3>${_("Recognized certificates")}</h3>
+              <p>${_("Earn verified certificates that confirm your skills and support your professional growth.")}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <%include file="${courses_list}" />
+
+      <section class="ektu-section ektu-cta-band">
+        <div class="ektu-wrap">
+          <h2>${_("Start learning with EKTU today")}</h2>
+          <p>${_("Join thousands of learners and open new opportunities with East Kazakhstan Technical University.")}</p>
+          <a class="ektu-btn ektu-btn--light" href="${marketing_link('COURSES')}">${_("Browse the catalog")}</a>
+        </div>
+      </section>
 
     </section>
 </main>

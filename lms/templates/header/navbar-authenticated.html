@@ -28,6 +28,12 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
 
 <div class="nav-links">
   <div class="main">
+    <div class="mobile-nav-item hidden-mobile nav-item nav-tab">
+      <a class="tab-nav-link ektu-about-link" href="${marketing_link('ABOUT')}"
+         aria-current="${'page' if request.path == '/about' else 'false'}">
+         ${_("About Us")}
+      </a>
+    </div>
     % if show_dashboard_tabs:
       <div class="mobile-nav-item hidden-mobile nav-item nav-tab">
         <a class="${'active ' if reverse('dashboard') == request.path else ''}tab-nav-link" href="${reverse('dashboard')}"

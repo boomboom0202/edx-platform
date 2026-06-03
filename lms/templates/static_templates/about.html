@@ -2,15 +2,64 @@
 <%! from django.utils.translation import gettext as _ %>
 <%inherit file="../main.html" />
 
-<%block name="pagetitle">${_("About")}</%block>
+<%block name="pagetitle">${_("About Us")}</%block>
 
 <main id="main" aria-label="Content" tabindex="-1">
-    <section class="container about">
-        <h1>
-            <%block name="pageheader">${page_header or _("About")}</%block>
-        </h1>
-        <p>
-            <%block name="pagecontent">${page_content or _("This page left intentionally blank. Feel free to add your own content.")}</%block>
-        </p>
-    </section>
+
+  <header class="ektu-about-hero">
+    <div class="ektu-wrap">
+      <span class="ektu-eyebrow">${_("About the University")}</span>
+      <h1>
+        <%block name="pageheader">${page_header or _("East Kazakhstan Technical University")}</%block>
+      </h1>
+      <p>${_("A leading center of engineering and technical education in East Kazakhstan, preparing specialists for industry, science and the digital economy.")}</p>
+    </div>
+  </header>
+
+  <section class="ektu-section ektu-about-body">
+    <div class="ektu-wrap">
+      <p class="ektu-about-lead">
+        <%block name="pagecontent">${page_content or _("East Kazakhstan Technical University (EKTU) is one of the oldest and most respected universities in the region. For decades we have trained engineers, scientists and innovators, combining strong academic traditions with modern technology and a practice-oriented approach to learning.")}</%block>
+      </p>
+
+      <div class="ektu-split">
+        <div>
+          <h2>${_("Our mission")}</h2>
+          <p>${_("To deliver high-quality, accessible education and research that drives the sustainable development of the region and the country. Through this online platform we open the university's knowledge to learners everywhere — without barriers of place or time.")}</p>
+          <p>${_("We believe that modern engineering education must be open, practical and connected to real industry needs. That is why our courses are built together with faculty members and partners from leading enterprises.")}</p>
+        </div>
+        <div class="ektu-split__media">
+          ${_("Engineering the future since 1958")}
+        </div>
+      </div>
+
+      <h2 style="margin-top:56px;">${_("Our values")}</h2>
+      <div class="ektu-values">
+        <div class="ektu-card">
+          <div class="ektu-card__icon"><span class="icon fa fa-lightbulb-o" aria-hidden="true"></span></div>
+          <h3>${_("Innovation")}</h3>
+          <p>${_("We embrace new technologies and teaching methods to keep our education relevant and forward-looking.")}</p>
+        </div>
+        <div class="ektu-card">
+          <div class="ektu-card__icon"><span class="icon fa fa-users" aria-hidden="true"></span></div>
+          <h3>${_("Openness")}</h3>
+          <p>${_("Knowledge should be accessible to everyone. We share our courses openly with students and lifelong learners.")}</p>
+        </div>
+        <div class="ektu-card">
+          <div class="ektu-card__icon"><span class="icon fa fa-trophy" aria-hidden="true"></span></div>
+          <h3>${_("Excellence")}</h3>
+          <p>${_("We hold ourselves to the highest academic and professional standards in everything we teach.")}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ektu-section ektu-cta-band">
+    <div class="ektu-wrap">
+      <h2>${_("Ready to learn with us?")}</h2>
+      <p>${_("Browse the catalog and join the East Kazakhstan Technical University learning community.")}</p>
+      <a class="ektu-btn ektu-btn--light" href="${marketing_link('COURSES')}">${_("Explore courses")}</a>
+    </div>
+  </section>
+
 </main>

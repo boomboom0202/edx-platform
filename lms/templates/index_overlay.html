@@ -5,6 +5,10 @@ from django.utils.translation import gettext as _
 from openedx.core.djangolib.markup import HTML, Text
 %>
 
-<h1>${Text(_(u"Welcome to {platform_name}")).format(platform_name=settings.PLATFORM_NAME)}</h1>
-## Translators: 'Open edX' is a registered trademark, please keep this untranslated. See https://openedx.org for more information.
-<p>${Text(_("It works! Powered by the Open edX{registered_trademark} Platform")).format(registered_trademark=HTML("<sup style='font-size: 65%'>&reg;</sup>"))}</p>
+<span class="ektu-eyebrow">${_("East Kazakhstan Technical University")}</span>
+<h1>${Text(_(u"Knowledge that builds the future of {platform_name}")).format(platform_name=settings.PLATFORM_NAME)}</h1>
+<p>${_("The online learning platform of East Kazakhstan Technical University — open courses, modern programs and engineering expertise available to everyone, anywhere.")}</p>
+<div class="ektu-hero-cta">
+  <a class="ektu-btn ektu-btn--light" href="${marketing_link('COURSES')}">${_("Explore courses")}</a>
+  <a class="ektu-btn ektu-btn--ghost" href="${marketing_link('ABOUT')}" style="color:#fff;border-color:rgba(255,255,255,0.7);">${_("About the university")}</a>
+</div>
