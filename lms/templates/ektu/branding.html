@@ -131,6 +131,13 @@ header.global-header .header-logo img.logo {
     float: none !important;
     margin: 0 0 0 auto !important;   /* push to the far right */
   }
+  /* Anonymous header wraps the buttons in an extra <div>; flex it too so
+     "Register for free" and "Sign in" sit side by side, not stacked. */
+  header.global-header .nav-links .secondary > div {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+  }
   header.global-header .nav-links .nav-item {
     display: flex !important;
     align-items: center;
