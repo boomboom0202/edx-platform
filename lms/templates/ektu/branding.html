@@ -420,16 +420,18 @@ header.global-header .dropdown-user-menu .dropdown-item:last-child a {
   color: #fff !important;
   font-family: var(--ektu-font-display);
   font-weight: 600;
-  text-decoration: none;
+  text-decoration: none !important;
   padding: 14px 30px;
   border-radius: 999px;
   transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
   box-shadow: 0 10px 24px rgba(var(--ektu-primary-rgb), 0.28);
 }
-.ektu-btn:hover {
+.ektu-btn:hover,
+.ektu-btn:focus {
   background: var(--ektu-primary-dark);
   transform: translateY(-2px);
   color: #fff !important;
+  text-decoration: none !important;
 }
 .ektu-btn--ghost {
   background: transparent;
@@ -437,7 +439,8 @@ header.global-header .dropdown-user-menu .dropdown-item:last-child a {
   border: 1.5px solid var(--ektu-primary);
   box-shadow: none;
 }
-.ektu-btn--ghost:hover {
+.ektu-btn--ghost:hover,
+.ektu-btn--ghost:focus {
   background: var(--ektu-primary);
   color: #fff !important;
 }
@@ -445,6 +448,35 @@ header.global-header .dropdown-user-menu .dropdown-item:last-child a {
   background: #fff;
   color: var(--ektu-primary) !important;
   box-shadow: 0 10px 24px rgba(1, 58, 58, 0.25);
+}
+/* Hero ghost button ("About the university") must stay white on the gradient */
+.home > header .ektu-btn--ghost {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+}
+.home > header .ektu-btn--ghost:hover,
+.home > header .ektu-btn--ghost:focus {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: #fff !important;
+  color: #fff !important;
+}
+
+/* Never underline branded buttons / link-buttons on hover or focus */
+.ektu-btn,
+.ektu-btn:hover,
+.ektu-btn:focus,
+.ektu-hero-cta a,
+.ektu-hero-cta a:hover,
+.courses-more-cta,
+.courses-more-cta:hover,
+.ektu-footer__nav a,
+.ektu-footer__nav a:hover,
+.ektu-filter-chip,
+.ektu-filter-chip:hover,
+.courses-listing-item .course a,
+.courses-listing-item .course a:hover,
+.courses-listing-item .course a:focus {
+  text-decoration: none !important;
 }
 
 /* ----------------------------------------------------------------------- */
@@ -621,9 +653,7 @@ header.global-header .dropdown-user-menu .dropdown-item:last-child a {
   display: block;
 }
 .courses-listing-item .course .learn-more {
-  background: var(--ektu-primary);
-  font-family: var(--ektu-font-display);
-  font-weight: 600;
+  display: none !important;
 }
 .courses-listing-item .course .course-info { padding: 18px 20px 22px; }
 .courses-listing-item .course .course-organization {
