@@ -212,17 +212,35 @@ header.global-header .nav-links .sign-in-btn.btn:hover {
 .home > header {
   background:
     radial-gradient(1200px 520px at 85% -10%, rgba(47, 174, 143, 0.35), transparent 60%),
-    linear-gradient(135deg, var(--ektu-secondary) 0%, var(--ektu-primary) 100%);
+    linear-gradient(135deg, var(--ektu-secondary) 0%, var(--ektu-primary) 100%) !important;
+  background-image:
+    radial-gradient(1200px 520px at 85% -10%, rgba(47, 174, 143, 0.35), transparent 60%),
+    linear-gradient(135deg, var(--ektu-secondary) 0%, var(--ektu-primary) 100%) !important;
   color: #fff;
   padding: 0;
   border: 0;
+  box-shadow: none;
 }
+/* Full-bleed hero: stretch edge to edge, no centered max-width */
 .home > header .outer-wrapper {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 96px 24px 104px;
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 96px 5vw 104px !important;
 }
-.home > header .heading-group { max-width: 720px; }
+/* Drop the legacy white box around the hero text so the brand
+   gradient shows through and the white copy stays readable. */
+.home > header .title {
+  background: transparent !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  float: none !important;
+  min-height: 0 !important;
+}
+.home > header .heading-group { max-width: 760px; }
 .home > header .heading-group .ektu-eyebrow { color: #c8f3e8; }
 .home > header h1 {
   font-family: var(--ektu-font-display) !important;
@@ -240,34 +258,6 @@ header.global-header .nav-links .sign-in-btn.btn:hover {
   margin: 0 0 32px;
 }
 .home > header .ektu-hero-cta { display: flex; flex-wrap: wrap; gap: 14px; }
-
-/* Hero search box */
-.home > header .course-search { margin-top: 36px; max-width: 560px; }
-.home > header .course-search form {
-  display: flex;
-  background: #fff;
-  border-radius: 999px;
-  padding: 6px;
-  box-shadow: 0 18px 40px rgba(1, 38, 38, 0.28);
-}
-.home > header .course-search .search-input {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  padding: 12px 20px;
-  font-size: 16px;
-  color: var(--ektu-ink);
-  outline: none;
-}
-.home > header .course-search .search-button {
-  border: 0;
-  background: var(--ektu-primary);
-  color: #fff;
-  border-radius: 999px;
-  width: 52px;
-  cursor: pointer;
-}
-.home > header .course-search .search-button:hover { background: var(--ektu-primary-dark); }
 
 /* Stats strip */
 .ektu-stats {
