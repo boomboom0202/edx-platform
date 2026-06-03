@@ -352,6 +352,74 @@ header.global-header .dropdown-user-menu .dropdown-item:last-child a {
   font-weight: 600 !important;
 }
 
+/* ---- Language selector (dark/preview lang) embedded in the header ---- */
+header.global-header .ektu-lang-form {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+header.global-header .ektu-lang-control {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  margin: 0 !important;
+  padding: 7px 14px !important;
+  background: rgba(var(--ektu-primary-rgb), 0.07);
+  border: 1px solid var(--ektu-border);
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+header.global-header .ektu-lang-control:hover,
+header.global-header .ektu-lang-control:focus-within {
+  background: rgba(var(--ektu-primary-rgb), 0.12);
+  border-color: var(--ektu-primary);
+}
+header.global-header .ektu-lang-icon {
+  color: var(--ektu-primary);
+  font-size: 15px;
+}
+header.global-header .ektu-lang-control .language-selector {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--ektu-secondary) !important;
+  font-family: var(--ektu-font-display) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  height: auto !important;
+  min-width: 0;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 2px 0 0 !important;
+  cursor: pointer;
+}
+header.global-header .ektu-lang-control .language-selector:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+header.global-header .ektu-lang-control::after {
+  content: "\25BE";   /* ▾ caret */
+  color: var(--ektu-primary);
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
+}
+@media (max-width: 991px) {
+  /* Keep the header clean on mobile; language stays in the mobile menu flow */
+  header.global-header .ektu-lang-form { display: none !important; }
+}
+@media (min-width: 992px) {
+  header.global-header .main-header .ektu-lang-form {
+    flex: 0 0 auto;
+    margin-left: 14px !important;
+  }
+}
+
 /* ----------------------------------------------------------------------- */
 /*  Footer (EKTU: logo + legal links only)                                  */
 /* ----------------------------------------------------------------------- */
