@@ -71,181 +71,278 @@ a:hover, a:focus { color: var(--ektu-primary-dark); }
 /*  Header / top navigation                                                 */
 /* ----------------------------------------------------------------------- */
 header.global-header {
-  background: #ffffff;
+  background: #ffffff !important;
   border-top: 4px solid var(--ektu-primary);
   border-bottom: 1px solid var(--ektu-border);
   box-shadow: 0 2px 14px rgba(1, 58, 58, 0.06);
-}
-header.global-header .main-header {
-  max-width: 1180px;
-  margin: 0 auto;
+  overflow: visible !important;   /* let the user dropdown escape the header */
+  padding-bottom: 0 !important;
 }
 header.global-header .header-logo .logo,
 header.global-header .header-logo img.logo {
   max-height: 46px;
   width: auto;
 }
-header.global-header .nav-links .nav-item > a,
-header.global-header .nav-links .tab-nav-link {
+/* Desktop layout: logo left, nav stretched, account/buttons on the far right.
+   Scoped to >= lg so the mobile hamburger layout is left untouched. */
+@media (min-width: 992px) {
+  header.global-header .main-header {
+    display: flex !important;
+    align-items: center;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    box-sizing: border-box;
+  }
+  header.global-header .header-logo {
+    display: flex !important;
+    align-items: center;
+    margin: 0 !important;
+  }
+  header.global-header .header-logo a {
+    float: none !important;
+    margin: 0 24px 0 0 !important;
+    display: flex !important;
+    align-items: center;
+  }
+  header.global-header .header-logo .logo,
+  header.global-header .header-logo img.logo {
+    float: none !important;
+  }
+  header.global-header .nav-links {
+    flex: 1 1 auto;
+    display: flex !important;
+    align-items: center;
+    float: none !important;
+    margin: 0 !important;
+    width: auto !important;
+  }
+  header.global-header .nav-links .main {
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    float: none !important;
+    margin: 0 !important;
+  }
+  header.global-header .nav-links .secondary {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    float: none !important;
+    margin: 0 0 0 auto !important;   /* push to the far right */
+  }
+  header.global-header .nav-links .nav-item {
+    display: flex !important;
+    align-items: center;
+    float: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+/* -------- Textual nav links: identical look in BOTH header states -------- */
+/* Kills the old blue hover underline and gives a clean green pill hover.    */
+header.global-header .nav-links .main .nav-item > a,
+header.global-header .nav-links .nav-tab a,
+header.global-header .nav-links .tab-nav-link,
+header.global-header .nav-links .help-link,
+header.global-header .nav-links .ektu-about-link {
   color: var(--ektu-secondary) !important;
-  font-family: var(--ektu-font-display);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  transition: color 0.18s ease;
+  font-family: var(--ektu-font-display) !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  letter-spacing: 0 !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 10px !important;
+  padding: 9px 14px !important;
+  margin: 0 !important;
+  display: inline-block !important;
+  line-height: 1.2 !important;
+  transition: background 0.16s ease, color 0.16s ease !important;
 }
-header.global-header .nav-links .nav-item > a:hover,
+header.global-header .nav-links .main .nav-item > a:hover,
+header.global-header .nav-links .main .nav-item > a:focus,
+header.global-header .nav-links .main .nav-item > a:active,
+header.global-header .nav-links .nav-tab a:hover,
+header.global-header .nav-links .nav-tab a:focus,
 header.global-header .nav-links .tab-nav-link:hover,
-header.global-header .nav-links .tab-nav-link.active {
+header.global-header .nav-links .tab-nav-link:focus,
+header.global-header .nav-links .tab-nav-link.active,
+header.global-header .nav-links .help-link:hover,
+header.global-header .nav-links .help-link:focus,
+header.global-header .nav-links .ektu-about-link:hover,
+header.global-header .nav-links .ektu-about-link:focus {
+  background: rgba(var(--ektu-primary-rgb), 0.10) !important;
   color: var(--ektu-primary) !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
 }
-/* EKTU "About / О нас" pill in the nav */
-header.global-header .nav-item .ektu-about-link {
-  position: relative;
+
+/* -------- Buttons (Sign in / Register) on the far right -------- */
+header.global-header .nav-links .secondary .btn,
+header.global-header .nav-links .register-btn.btn,
+header.global-header .nav-links .sign-in-btn.btn {
+  font-family: var(--ektu-font-display) !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  border-radius: 999px !important;
+  padding: 9px 24px !important;
+  margin: 0 !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease !important;
 }
-header.global-header .nav-links .register-btn.btn {
+header.global-header .nav-links .sign-in-btn.btn {
   background: var(--ektu-primary) !important;
   border: 1px solid var(--ektu-primary) !important;
   color: #fff !important;
-  border-radius: 999px !important;
-  padding: 8px 22px !important;
-  font-family: var(--ektu-font-display);
-  font-weight: 600;
-  box-shadow: 0 6px 16px rgba(var(--ektu-primary-rgb), 0.25);
 }
-header.global-header .nav-links .register-btn.btn:hover {
+header.global-header .nav-links .sign-in-btn.btn:hover,
+header.global-header .nav-links .sign-in-btn.btn:focus {
   background: var(--ektu-primary-dark) !important;
   border-color: var(--ektu-primary-dark) !important;
+  color: #fff !important;
 }
-header.global-header .nav-links .sign-in-btn.btn {
+header.global-header .nav-links .register-btn.btn {
   background: transparent !important;
   border: 1px solid var(--ektu-primary) !important;
   color: var(--ektu-primary) !important;
-  border-radius: 999px !important;
-  padding: 8px 22px !important;
-  font-family: var(--ektu-font-display);
-  font-weight: 600;
 }
-header.global-header .nav-links .sign-in-btn.btn:hover {
+header.global-header .nav-links .register-btn.btn:hover,
+header.global-header .nav-links .register-btn.btn:focus {
   background: var(--ektu-primary) !important;
   color: #fff !important;
 }
 
-/* Consistent nav item spacing / alignment for both auth states */
-header.global-header .nav-links {
-  display: flex;
-  align-items: center;
-}
-header.global-header .nav-links .main,
-header.global-header .nav-links .secondary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-header.global-header .nav-links .nav-item {
-  display: flex;
-  align-items: center;
-}
-header.global-header .nav-links .nav-item > a,
-header.global-header .nav-links .tab-nav-link {
-  padding: 8px 14px;
-  border-radius: 8px;
-  line-height: 1.2;
-}
-header.global-header .nav-links .nav-item > a:hover,
-header.global-header .nav-links .tab-nav-link:hover {
-  background: rgba(var(--ektu-primary-rgb), 0.08);
-}
-/* Active tab underline (authenticated nav) */
-header.global-header .nav-links .tab-nav-link.active {
-  background: rgba(var(--ektu-primary-rgb), 0.1);
-}
-header.global-header .nav-links .help-link {
-  color: var(--ektu-secondary) !important;
-  font-family: var(--ektu-font-display);
-  font-weight: 600;
-}
-
 /* ---- Authenticated user menu (MFE-style avatar + dropdown) ---- */
-header.global-header .nav-item-dropdown,
-header.global-header .toggle-user-dropdown { position: relative; }
+header.global-header .nav-item-dropdown { position: relative !important; }
 header.global-header .menu-title {
   display: inline-flex !important;
   align-items: center;
   gap: 10px;
-  padding: 6px 10px !important;
-  border-radius: 999px;
+  padding: 5px 10px !important;
+  border-radius: 999px !important;
   color: var(--ektu-secondary) !important;
-  font-family: var(--ektu-font-display);
-  font-weight: 600;
-  transition: background 0.18s ease;
+  font-family: var(--ektu-font-display) !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  transition: background 0.18s ease !important;
 }
-header.global-header .menu-title:hover { background: rgba(var(--ektu-primary-rgb), 0.08); }
+header.global-header .menu-title:hover,
+header.global-header .menu-title:focus {
+  background: rgba(var(--ektu-primary-rgb), 0.10) !important;
+  outline: none !important;
+}
 header.global-header .user-image-frame {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px;
+  max-width: 38px !important;
+  border-radius: 50% !important;
   object-fit: cover;
-  border: 2px solid var(--ektu-primary);
+  border: 2px solid var(--ektu-primary) !important;
   background: var(--ektu-surface);
   box-shadow: 0 2px 6px rgba(1, 58, 58, 0.12);
+  margin: 0 !important;
+  padding: 0 !important;
 }
 header.global-header .menu-title .username {
-  color: var(--ektu-secondary);
+  color: var(--ektu-secondary) !important;
+  font-family: var(--ektu-font-display) !important;
+  font-weight: 600 !important;
   font-size: 15px;
+  margin: 0 !important;
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  float: none !important;
 }
 header.global-header .toggle-user-dropdown {
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  color: var(--ektu-secondary);
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  color: var(--ektu-secondary) !important;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
+  text-decoration: none !important;
+  transition: background 0.18s ease, color 0.18s ease !important;
 }
-header.global-header .toggle-user-dropdown:hover {
-  background: rgba(var(--ektu-primary-rgb), 0.1);
-  color: var(--ektu-primary);
+header.global-header .toggle-user-dropdown:hover,
+header.global-header .toggle-user-dropdown:focus {
+  background: rgba(var(--ektu-primary-rgb), 0.12) !important;
+  color: var(--ektu-primary) !important;
+  outline: none !important;
 }
 header.global-header .dropdown-user-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 10px);
-  min-width: 220px;
-  background: #fff;
-  border: 1px solid var(--ektu-border);
-  border-radius: 14px;
-  box-shadow: 0 18px 44px rgba(1, 58, 58, 0.16);
-  padding: 8px;
-  z-index: 1000;
+  position: absolute !important;
+  right: 0 !important;
+  left: auto !important;
+  top: calc(100% + 12px) !important;
+  min-width: 224px !important;
+  width: auto !important;
+  background: #fff !important;
+  border: 1px solid var(--ektu-border) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 18px 44px rgba(1, 58, 58, 0.16) !important;
+  padding: 8px !important;
+  margin: 0 !important;
+  z-index: 1000 !important;
   list-style: none;
 }
-header.global-header .dropdown-user-menu .dropdown-item { margin: 0; }
-header.global-header .dropdown-user-menu .dropdown-item a {
-  display: block;
-  padding: 10px 14px;
-  border-radius: 9px;
-  color: var(--ektu-secondary) !important;
-  font-family: var(--ektu-font-body);
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.16s ease, color 0.16s ease;
+/* hide the legacy CSS arrow on the old dropdown */
+header.global-header .dropdown-user-menu::before {
+  display: none !important;
 }
-header.global-header .dropdown-user-menu .dropdown-item a:hover {
-  background: rgba(var(--ektu-primary-rgb), 0.1);
+header.global-header .dropdown-user-menu .dropdown-item {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+header.global-header .dropdown-user-menu .dropdown-item:hover {
+  background: transparent !important;
+}
+header.global-header .dropdown-user-menu .dropdown-item a {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  padding: 10px 14px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  color: var(--ektu-secondary) !important;
+  font-family: var(--ektu-font-body) !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: background 0.16s ease, color 0.16s ease !important;
+}
+header.global-header .dropdown-user-menu .dropdown-item a:hover,
+header.global-header .dropdown-user-menu .dropdown-item a:focus {
+  background: rgba(var(--ektu-primary-rgb), 0.10) !important;
   color: var(--ektu-primary) !important;
+  outline: none !important;
 }
 header.global-header .dropdown-user-menu .dropdown-item:last-child a {
-  margin-top: 4px;
-  border-top: 1px solid var(--ektu-border);
-  border-radius: 0 0 9px 9px;
+  margin-top: 4px !important;
+  border-top: 1px solid var(--ektu-border) !important;
+  border-radius: 0 0 9px 9px !important;
   color: var(--ektu-primary) !important;
-  font-weight: 600;
+  font-weight: 600 !important;
 }
 
 /* ----------------------------------------------------------------------- */
