@@ -83,25 +83,27 @@ header.global-header .header-logo img.logo {
   max-height: 46px;
   width: auto;
 }
-/* Desktop layout: logo left, nav stretched, account/buttons on the far right.
+/* Desktop layout: logo left, nav, then language + account/buttons on the right.
    Scoped to >= lg so the mobile hamburger layout is left untouched. */
 @media (min-width: 992px) {
   header.global-header .main-header {
     display: flex !important;
     align-items: center;
+    gap: 12px;
     max-width: 1180px;
     margin: 0 auto;
     padding: 12px 24px;
     box-sizing: border-box;
   }
   header.global-header .header-logo {
+    order: 1;
     display: flex !important;
     align-items: center;
     margin: 0 !important;
   }
   header.global-header .header-logo a {
     float: none !important;
-    margin: 0 24px 0 0 !important;
+    margin: 0 16px 0 0 !important;
     display: flex !important;
     align-items: center;
   }
@@ -109,27 +111,31 @@ header.global-header .header-logo img.logo {
   header.global-header .header-logo img.logo {
     float: none !important;
   }
-  header.global-header .nav-links {
-    flex: 1 1 auto;
-    display: flex !important;
-    align-items: center;
-    float: none !important;
-    margin: 0 !important;
-    width: auto !important;
+  /* Dissolve .nav-links so .main / .secondary become flex items of .main-header,
+     which lets us order: logo | main | language | account-or-buttons. */
+  header.global-header .main-header > .nav-links {
+    display: contents !important;
   }
   header.global-header .nav-links .main {
+    order: 2;
     display: flex !important;
     align-items: center;
     gap: 4px;
     float: none !important;
+    margin: 0 auto 0 0 !important;   /* push everything after it to the right */
+  }
+  header.global-header .ektu-lang-form {
+    order: 3;
+    flex: 0 0 auto;
     margin: 0 !important;
   }
   header.global-header .nav-links .secondary {
+    order: 4;
     display: flex !important;
     align-items: center;
     gap: 10px;
     float: none !important;
-    margin: 0 0 0 auto !important;   /* push to the far right */
+    margin: 0 !important;
   }
   /* Anonymous header wraps the buttons in an extra <div>; flex it too so
      "Register for free" and "Sign in" sit side by side, not stacked. */
@@ -232,39 +238,46 @@ header.global-header .nav-links .register-btn.btn:focus {
 
 /* ---- Authenticated user menu (MFE-style avatar + dropdown) ---- */
 header.global-header .nav-item-dropdown { position: relative !important; }
-header.global-header .menu-title {
+/* Single pill trigger (avatar + username + caret) — same look as the MFE slot */
+header.global-header .toggle-user-dropdown.ektu-user {
   display: inline-flex !important;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
-  padding: 5px 10px !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 6px 12px !important;
+  border: 1px solid var(--ektu-primary) !important;
   border-radius: 999px !important;
+  background: #fff !important;
   color: var(--ektu-secondary) !important;
   font-family: var(--ektu-font-display) !important;
   font-weight: 600 !important;
+  font-size: 15px !important;
+  cursor: pointer;
   text-decoration: none !important;
-  background: transparent !important;
-  border: 0 !important;
   transition: background 0.18s ease !important;
 }
-header.global-header .menu-title:hover,
-header.global-header .menu-title:focus {
-  background: rgba(var(--ektu-primary-rgb), 0.10) !important;
+header.global-header .toggle-user-dropdown.ektu-user:hover,
+header.global-header .toggle-user-dropdown.ektu-user:focus,
+header.global-header .toggle-user-dropdown.ektu-user.open {
+  background: rgba(var(--ektu-primary-rgb), 0.08) !important;
+  color: var(--ektu-secondary) !important;
   outline: none !important;
 }
-header.global-header .user-image-frame {
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px;
-  max-width: 38px !important;
+header.global-header .toggle-user-dropdown .user-image-frame {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+  max-width: 30px !important;
   border-radius: 50% !important;
   object-fit: cover;
   border: 2px solid var(--ektu-primary) !important;
   background: var(--ektu-surface);
-  box-shadow: 0 2px 6px rgba(1, 58, 58, 0.12);
   margin: 0 !important;
   padding: 0 !important;
 }
-header.global-header .menu-title .username {
+header.global-header .toggle-user-dropdown .username {
   color: var(--ektu-secondary) !important;
   font-family: var(--ektu-font-display) !important;
   font-weight: 600 !important;
@@ -276,24 +289,10 @@ header.global-header .menu-title .username {
   white-space: nowrap;
   float: none !important;
 }
-header.global-header .toggle-user-dropdown {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  width: 36px !important;
-  height: 36px !important;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  color: var(--ektu-secondary) !important;
-  cursor: pointer;
-  text-decoration: none !important;
-  transition: background 0.18s ease, color 0.18s ease !important;
-}
-header.global-header .toggle-user-dropdown:hover,
-header.global-header .toggle-user-dropdown:focus {
-  background: rgba(var(--ektu-primary-rgb), 0.12) !important;
+header.global-header .toggle-user-dropdown .ektu-user__caret {
   color: var(--ektu-primary) !important;
-  outline: none !important;
+  font-size: 13px;
+  margin: 0 !important;
 }
 header.global-header .dropdown-user-menu {
   position: absolute !important;
@@ -413,12 +412,6 @@ header.global-header .ektu-lang-control::after {
   /* Keep the header clean on mobile; language stays in the mobile menu flow */
   header.global-header .ektu-lang-form { display: none !important; }
 }
-@media (min-width: 992px) {
-  header.global-header .main-header .ektu-lang-form {
-    flex: 0 0 auto;
-    margin-left: 14px !important;
-  }
-}
 
 /* ----------------------------------------------------------------------- */
 /*  Footer (EKTU: logo + legal links only)                                  */
@@ -461,6 +454,14 @@ header.global-header .ektu-lang-control::after {
 }
 .ektu-footer__nav a:hover {
   color: var(--ektu-accent) !important;
+}
+.ektu-footer .ektu-footer__copy {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px 5vw 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9fc0b8;
+  font-size: 13px;
 }
 @media (max-width: 600px) {
   .ektu-footer .ektu-footer__inner { flex-direction: column; align-items: flex-start; }

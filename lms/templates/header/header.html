@@ -11,6 +11,7 @@ import waffle
 
 from lms.djangoapps.ccx.overrides import get_current_ccx
 from openedx.core.djangolib.markup import HTML, Text
+from openedx.core.djangolib.js_utils import js_escaped_string
 
 # App that handles subdomain specific branding
 from lms.djangoapps.branding import api as branding_api
@@ -87,6 +88,26 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
                         </select>
                     </label>
                 </form>
+                ## Keep dark-lang / LMS language in sync with the MFEs: also store the
+                ## language-preference cookie on the shared parent domain so MFEs running
+                ## on a sibling subdomain read the same value.
+                <script type="text/javascript">
+                (function() {
+                    var sel = document.getElementById('settings-language-value');
+                    if (!sel) { return; }
+                    var COOKIE_NAME = "${settings.LANGUAGE_COOKIE_NAME | n, js_escaped_string}";
+                    function sharedDomain() {
+                        var host = window.location.hostname;
+                        var parts = host.split('.');
+                        return parts.length > 2 ? '.' + parts.slice(-2).join('.') : host;
+                    }
+                    sel.addEventListener('change', function() {
+                        var lang = sel.value;
+                        document.cookie = COOKIE_NAME + '=' + lang + '; path=/; domain='
+                            + sharedDomain() + '; max-age=31536000';
+                    }, true);
+                })();
+                </script>
             % endif
         % endif
     </div>
