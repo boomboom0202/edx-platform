@@ -357,16 +357,17 @@ header.global-header .ektu-lang-form {
   padding: 0 !important;
 }
 header.global-header .ektu-lang-control {
+  position: relative !important;
   display: inline-flex !important;
   align-items: center;
-  gap: 7px;
   margin: 0 !important;
-  padding: 7px 14px !important;
+  padding: 0 !important;
   background: rgba(var(--ektu-primary-rgb), 0.07);
   border: 1px solid var(--ektu-border);
   border-radius: 999px;
   cursor: pointer;
   line-height: 1;
+  overflow: hidden;
   transition: background 0.16s ease, border-color 0.16s ease;
 }
 header.global-header .ektu-lang-control:hover,
@@ -374,10 +375,30 @@ header.global-header .ektu-lang-control:focus-within {
   background: rgba(var(--ektu-primary-rgb), 0.12);
   border-color: var(--ektu-primary);
 }
+/* Globe and caret are purely decorative overlays so clicks reach the select. */
 header.global-header .ektu-lang-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--ektu-primary);
   font-size: 15px;
+  pointer-events: none;
+  z-index: 1;
 }
+header.global-header .ektu-lang-control::after {
+  content: "\25BE";   /* ▾ caret */
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ektu-primary);
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 1;
+}
+/* The select fills the whole pill, so the entire area is clickable. */
 header.global-header .ektu-lang-control .language-selector {
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -390,23 +411,17 @@ header.global-header .ektu-lang-control .language-selector {
   font-family: var(--ektu-font-display) !important;
   font-weight: 600 !important;
   font-size: 14px !important;
-  height: auto !important;
+  height: 38px !important;
+  line-height: 38px !important;
   min-width: 0;
-  width: auto !important;
+  width: 100% !important;
   margin: 0 !important;
-  padding: 0 2px 0 0 !important;
+  padding: 0 34px 0 36px !important;   /* room for globe (left) + caret (right) */
   cursor: pointer;
 }
 header.global-header .ektu-lang-control .language-selector:focus {
   outline: none !important;
   box-shadow: none !important;
-}
-header.global-header .ektu-lang-control::after {
-  content: "\25BE";   /* ▾ caret */
-  color: var(--ektu-primary);
-  font-size: 11px;
-  line-height: 1;
-  pointer-events: none;
 }
 @media (max-width: 991px) {
   /* Keep the header clean on mobile; language stays in the mobile menu flow */
