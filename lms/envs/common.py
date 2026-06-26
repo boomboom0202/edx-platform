@@ -1985,7 +1985,6 @@ LANGUAGES = [
     ('id', 'Bahasa Indonesia'),  # Indonesian
     ('it-it', 'Italiano (Italia)'),  # Italian (Italy)
     ('ja-jp', '日本語 (日本)'),  # Japanese (Japan)
-    ('kk-kz', 'қазақ тілі (Қазақстан)'),  # Kazakh (Kazakhstan)
     ('km-kh', 'ភាសាខ្មែរ (កម្ពុជា)'),  # Khmer (Cambodia)
     ('kn', 'ಕನ್ನಡ'),  # Kannada
     ('ko-kr', '한국어 (대한민국)'),  # Korean (Korea)
@@ -2003,7 +2002,7 @@ LANGUAGES = [
     ('pt-pt', 'Português (Portugal)'),  # Portuguese (Portugal)
     ('ro', 'română'),  # Romanian
     ('ru', 'Русский'),# Russian
-    ('kk', 'Қазақ тілі'),# KAzakh
+    ('kk', 'Қазақша'),# KAzakh
     ('si', 'සිංහල'),  # Sinhala
     ('sk', 'Slovenčina'),  # Slovak
     ('sl', 'Slovenščina'),  # Slovenian
