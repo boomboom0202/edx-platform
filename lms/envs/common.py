@@ -2002,7 +2002,8 @@ LANGUAGES = [
     ('pt-br', 'Português (Brasil)'),  # Portuguese (Brazil)
     ('pt-pt', 'Português (Portugal)'),  # Portuguese (Portugal)
     ('ro', 'română'),  # Romanian
-    ('ru', 'Русский'),  # Russian
+    ('ru', 'Русский'),# Russian
+    ('kk', 'Қазақ тілі'),# KAzakh
     ('si', 'සිංහල'),  # Sinhala
     ('sk', 'Slovenčina'),  # Slovak
     ('sl', 'Slovenščina'),  # Slovenian
