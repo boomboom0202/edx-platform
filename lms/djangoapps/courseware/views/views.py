@@ -6,7 +6,7 @@ Courseware views functions
 import json
 import logging
 import urllib
-from collections import OrderedDict, namedtuple
+from collections import Counter, OrderedDict, namedtuple
 from datetime import datetime
 from urllib.parse import quote_plus, urlencode, urljoin, urlparse, urlunparse
 
@@ -294,9 +294,13 @@ def get_catalog_filter_groups(courses_list):
     is also emitted as a ``data-filter-<id>`` attribute on each course card,
     which the lightweight catalog JavaScript uses to show/hide cards.
 
+    Each option carries the number of courses that match it so the catalog can
+    render native facet-style rows with a count badge.
+
     Returns a list of dicts shaped like::
 
-        [{"id": "org", "name": "Organization", "options": ["EKTU", ...]}, ...]
+        [{"id": "org", "name": "Organization", "options": [
+            {"value": "EKTU", "count": 12}, ...]}, ...]
     """
     group_definitions = [
         {
@@ -313,11 +317,15 @@ def get_catalog_filter_groups(courses_list):
 
     filter_groups = []
     for group in group_definitions:
-        options = sorted({
+        counts = Counter(
             value for value in (group['resolver'](course) for course in courses_list) if value
-        })
+        )
         # Only surface a filter when it actually narrows the catalog down.
-        if len(options) > 1:
+        if len(counts) > 1:
+            options = [
+                {'value': value, 'count': counts[value]}
+                for value in sorted(counts)
+            ]
             filter_groups.append({
                 'id': group['id'],
                 'name': group['name'],

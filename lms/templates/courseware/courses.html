@@ -22,20 +22,29 @@
 
         ## ---- Filter sidebar (groups are defined in Python: get_catalog_filter_groups) ----
         % if course_filter_groups:
-        <aside class="ektu-catalog__filters" aria-label="${_('Filter courses')}">
+        <aside class="ektu-catalog__filters" id="ektu-filters" aria-label="${_('Filter courses')}">
           <div class="ektu-catalog__filters-head">
             <h2>${_("Filters")}</h2>
-            <button type="button" class="ektu-filter-reset" id="ektu-filter-reset">${_("Reset")}</button>
+            <button type="button" class="ektu-filter-reset" id="ektu-filter-reset" hidden>${_("Clear all")}</button>
           </div>
           % for group in course_filter_groups:
           <div class="ektu-filter-group" data-group="${group['id']}">
             <h3 class="ektu-filter-group__title">${group['name']}</h3>
-            <div class="ektu-filter-options" role="group" aria-label="${group['name']}">
-              <button type="button" class="ektu-filter-chip is-active" data-group="${group['id']}" data-value="">${_("All")}</button>
+            <ul class="ektu-filter-options" role="group" aria-label="${group['name']}">
+              <li>
+                <button type="button" class="ektu-filter-option is-active" data-group="${group['id']}" data-value="">
+                  <span class="ektu-filter-option__label">${_("All")}</span>
+                </button>
+              </li>
               % for option in group['options']:
-              <button type="button" class="ektu-filter-chip" data-group="${group['id']}" data-value="${option}">${option}</button>
+              <li>
+                <button type="button" class="ektu-filter-option" data-group="${group['id']}" data-value="${option['value']}">
+                  <span class="ektu-filter-option__label">${option['value']}</span>
+                  <span class="ektu-filter-option__count">${option['count']}</span>
+                </button>
+              </li>
               % endfor
-            </div>
+            </ul>
           </div>
           % endfor
         </aside>
@@ -43,25 +52,46 @@
 
         ## ---- Results ----
         <section class="ektu-catalog__results" role="region" aria-label="${_('List of Courses')}">
+
+          <div class="ektu-catalog__toolbar">
+            <div class="ektu-catalog__search">
+              <span class="ektu-catalog__search-icon fa fa-search" aria-hidden="true"></span>
+              <input type="search" id="ektu-course-search" class="ektu-catalog__search-input"
+                     placeholder="${_('Search courses by title or organization')}"
+                     aria-label="${_('Search courses')}" autocomplete="off">
+            </div>
+            % if course_filter_groups:
+            <button type="button" class="ektu-filter-toggle" id="ektu-filter-toggle" aria-expanded="false" aria-controls="ektu-filters">
+              <span class="fa fa-sliders" aria-hidden="true"></span> ${_("Filters")}
+            </button>
+            % endif
+          </div>
+
           <div class="ektu-catalog__meta">
             <span id="ektu-course-count" data-label="${_('Showing {count} of {total} courses').format(count='{count}', total=len(courses))}"></span>
           </div>
+
+          <div class="ektu-catalog__tags" id="ektu-active-tags" hidden aria-label="${_('Active filters')}"></div>
 
           % if courses:
           <ul class="courses-listing courses-list" id="ektu-course-list">
             % for course in courses:
             <li class="courses-listing-item"
                 data-filter-org="${course.display_org_with_default}"
-                data-filter-language="${(course.language or '').strip()}">
+                data-filter-language="${(course.language or '').strip()}"
+                data-search="${course.display_name_with_default} ${course.display_org_with_default} ${course.display_number_with_default}">
               <%include file="../course.html" args="course=course" />
             </li>
             % endfor
           </ul>
           <div class="ektu-catalog__empty" id="ektu-catalog-empty" hidden>
+            <span class="ektu-catalog__empty-icon fa fa-search" aria-hidden="true"></span>
             <p>${_("No courses match the selected filters.")}</p>
+            <button type="button" class="ektu-btn ektu-btn--ghost" id="ektu-empty-reset">${_("Clear filters")}</button>
           </div>
           % else:
           <div class="ektu-catalog__empty">
+            <span class="ektu-catalog__empty-icon fa fa-graduation-cap" aria-hidden="true"></span>
             <p>${_("There are no courses available at the moment. Please check back soon.")}</p>
           </div>
           % endif
@@ -76,14 +106,20 @@
 (function() {
   "use strict";
   var list = document.getElementById('ektu-course-list');
-  var chips = [].slice.call(document.querySelectorAll('.ektu-filter-chip'));
+  var options = [].slice.call(document.querySelectorAll('.ektu-filter-option'));
   var resetBtn = document.getElementById('ektu-filter-reset');
+  var emptyResetBtn = document.getElementById('ektu-empty-reset');
   var countEl = document.getElementById('ektu-course-count');
   var emptyEl = document.getElementById('ektu-catalog-empty');
+  var tagsEl = document.getElementById('ektu-active-tags');
+  var searchEl = document.getElementById('ektu-course-search');
+  var filterToggle = document.getElementById('ektu-filter-toggle');
+  var filtersPanel = document.getElementById('ektu-filters');
   if (!list) { return; }
 
   var items = [].slice.call(list.querySelectorAll('.courses-listing-item'));
   var selected = {};
+  var query = '';
 
   function updateCount(visible) {
     if (!countEl) { return; }
@@ -91,45 +127,96 @@
     countEl.textContent = tpl.replace('{count}', visible);
   }
 
+  function hasActiveFilters() {
+    return query !== '' || Object.keys(selected).some(function(g) { return !!selected[g]; });
+  }
+
+  function renderTags() {
+    if (!tagsEl) { return; }
+    tagsEl.innerHTML = '';
+    Object.keys(selected).forEach(function(group) {
+      var value = selected[group];
+      if (!value) { return; }
+      var tag = document.createElement('button');
+      tag.type = 'button';
+      tag.className = 'ektu-tag';
+      tag.setAttribute('data-group', group);
+      tag.innerHTML = '<span class="ektu-tag__label"></span><span class="ektu-tag__x fa fa-times" aria-hidden="true"></span>';
+      tag.querySelector('.ektu-tag__label').textContent = value;
+      tag.setAttribute('aria-label', 'Remove filter ' + value);
+      tag.addEventListener('click', function() { clearGroup(group); });
+      tagsEl.appendChild(tag);
+    });
+    tagsEl.hidden = tagsEl.children.length === 0;
+    if (resetBtn) { resetBtn.hidden = !hasActiveFilters(); }
+  }
+
   function applyFilters() {
     var visible = 0;
     items.forEach(function(item) {
-      var show = Object.keys(selected).every(function(group) {
+      var matchFilters = Object.keys(selected).every(function(group) {
         var value = selected[group];
         if (!value) { return true; }
         return item.getAttribute('data-filter-' + group) === value;
       });
+      var matchSearch = !query ||
+        (item.getAttribute('data-search') || '').toLowerCase().indexOf(query) !== -1;
+      var show = matchFilters && matchSearch;
       item.style.display = show ? '' : 'none';
       if (show) { visible++; }
     });
     updateCount(visible);
     if (emptyEl) { emptyEl.hidden = (visible !== 0); }
+    renderTags();
   }
 
-  function setActive(group, chip) {
-    chips.forEach(function(c) {
-      if (c.getAttribute('data-group') === group) {
-        c.classList.toggle('is-active', c === chip);
+  function setActive(group) {
+    options.forEach(function(o) {
+      if (o.getAttribute('data-group') === group) {
+        o.classList.toggle('is-active', o.getAttribute('data-value') === (selected[group] || ''));
       }
     });
   }
 
-  chips.forEach(function(chip) {
-    chip.addEventListener('click', function() {
-      var group = chip.getAttribute('data-group');
-      selected[group] = chip.getAttribute('data-value');
-      setActive(group, chip);
+  function clearGroup(group) {
+    selected[group] = '';
+    setActive(group);
+    applyFilters();
+  }
+
+  function resetAll() {
+    selected = {};
+    options.forEach(function(o) {
+      o.classList.toggle('is-active', o.getAttribute('data-value') === '');
+    });
+    if (searchEl) { searchEl.value = ''; }
+    query = '';
+    applyFilters();
+  }
+
+  options.forEach(function(option) {
+    option.addEventListener('click', function() {
+      var group = option.getAttribute('data-group');
+      selected[group] = option.getAttribute('data-value');
+      setActive(group);
       applyFilters();
     });
   });
 
-  if (resetBtn) {
-    resetBtn.addEventListener('click', function() {
-      selected = {};
-      chips.forEach(function(c) {
-        c.classList.toggle('is-active', c.getAttribute('data-value') === '');
-      });
+  if (resetBtn) { resetBtn.addEventListener('click', resetAll); }
+  if (emptyResetBtn) { emptyResetBtn.addEventListener('click', resetAll); }
+
+  if (searchEl) {
+    searchEl.addEventListener('input', function() {
+      query = searchEl.value.trim().toLowerCase();
       applyFilters();
+    });
+  }
+
+  if (filterToggle && filtersPanel) {
+    filterToggle.addEventListener('click', function() {
+      var open = filtersPanel.classList.toggle('is-open');
+      filterToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
   }
 
