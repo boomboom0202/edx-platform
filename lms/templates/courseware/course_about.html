@@ -54,32 +54,28 @@ from openedx.core.lib.courses import course_image_url
 
 <%block name="pagetitle">${course.display_name_with_default}</%block>
 
-<section class="course-info">
+## NOTE: the wrapper class is intentionally NOT "course-info" so the legacy
+## float/table based stylesheet (sass/multicourse/_course_about.scss) does not
+## apply.  All styling for this page lives in the EKTU brand layer
+## (lms/templates/ektu/branding.html) under ".ektu-course-about".
+<section class="ektu-course-about">
 
   <%block name="course_about_header">
-  <header class="course-profile">
-    <div class="intro-inner-wrapper">
-      <div class="table">
-      <section class="intro">
+  <header class="ca-profile">
+    <div class="ca-hero">
+      <section class="ca-hero__intro">
         <div class="heading-group">
-          <p><small>${course.display_org_with_default}</small></p>
+          <p class="ca-org">${course.display_org_with_default}</p>
           <h1>${course.display_name_with_default}</h1>
-          <br />
-          <p>${get_course_about_section(request, course, 'short_description')}</p>
+          <p class="ca-short">${get_course_about_section(request, course, 'short_description')}</p>
         </div>
 
         <div class="main-cta">
         %if user.is_authenticated and registered:
           %if show_courseware_link:
-            <a href="${course_target}">
+            <a class="ca-view-course" href="${course_target}">${_("View Course")}</a>
           %endif
-
-          <span class="register disabled">${_("You are enrolled in this course")}</span>
-
-          %if show_courseware_link:
-            <strong>${_("View Course")}</strong>
-            </a>
-          %endif
+          <span class="enrolled-note">${_("You are enrolled in this course")}</span>
 
         % elif is_course_full:
           <span class="register disabled">
@@ -94,9 +90,7 @@ from openedx.core.lib.courses import course_image_url
           <span class="register disabled">${_("Enrollment is Closed")}</span>
         %elif allow_anonymous:
           %if show_courseware_link:
-            <a href="${course_target}">
-            <strong>${_("View Course")}</strong>
-            </a>
+            <a class="ca-view-course" href="${course_target}">${_("View Course")}</a>
           %endif
         %else:
           <%
@@ -117,26 +111,28 @@ from openedx.core.lib.courses import course_image_url
         </div>
 
       </section>
-      % if get_course_about_section(request, course, "video"):
-      <a href="#video-modal" class="media" rel="leanModal">
-        <div class="hero">
-          <img src="${course_image_urls['large']}" alt="" />
-          <div class="play-intro"></div>
+
+      <div class="ca-hero__media">
+        % if get_course_about_section(request, course, "video"):
+        <a href="#video-modal" class="media" rel="leanModal">
+          <div class="hero">
+            <img src="${course_image_urls['large']}" alt="" />
+            <div class="play-intro"></div>
+          </div>
+        </a>
+        %else:
+        <div class="media">
+          <div class="hero">
+            <img src="${course_image_urls['large']}" alt="" />
+          </div>
         </div>
-      </a>
-      %else:
-      <div class="media">
-        <div class="hero">
-          <img src="${course_image_urls['large']}" alt="" />
-        </div>
+        % endif
       </div>
-      % endif
     </div>
-      </div>
   </header>
   </%block>
 
-  <div class="container">
+  <div class="ca-body">
 
     <%block name="course_about_details">
     <div class="details">
@@ -152,7 +148,7 @@ from openedx.core.lib.courses import course_image_url
     </div>
     </%block>
 
-    <div class="course-sidebar">
+    <aside class="course-sidebar">
       <div class="course-summary">
 
         <%include file="course_about_sidebar_header.html" />
@@ -206,8 +202,6 @@ from openedx.core.lib.courses import course_image_url
             <li class="important-dates-item"><span class="icon fa fa-pencil" aria-hidden="true"></span><p class="important-dates-item-title">${_("Estimated Effort")}</p><span class="important-dates-item-text effort">${get_course_about_section(request, course, "effort")}</span></li>
           % endif
 
-          ##<li class="important-dates-item"><span class="icon fa fa-clock-o" aria-hidden="true"></span><p class="important-dates-item-title">${_('Course Length')}</p><span class="important-dates-item-text course-length">${_('{number} weeks').format(number=15)}</span></li>
-
           %if course_price and (is_cosmetic_price_enabled):
             <li class="important-dates-item">
               <span class="icon fa fa-money" aria-hidden="true"></span>
@@ -242,34 +236,26 @@ from openedx.core.lib.courses import course_image_url
           % endif
         </ol>
         </%block>
-    </div>
+      </div>
 
       ## For now, ocw links are the only thing that goes in additional resources
       % if get_course_about_section(request, course, "ocw_links"):
       <div class="additional-resources">
-        <header>
-          <h1>${_("Additional Resources")}</h1>
+        <h2 class="opencourseware">MITOpenCourseware</h2>
+        ${get_course_about_section(request, course, "ocw_links")}
       </div>
-
-        <div>
-          ## "MITOpenCourseware" should *not* be translated
-          <h2 class="opencourseware">MITOpenCourseware</h2>
-             ${get_course_about_section(request, course, "ocw_links")}
-        </div>
-    </div>
       %endif
 
-    % if sidebar_html_enabled:
-      % if get_course_about_section(request, course, "about_sidebar_html"):
-        <section class="about-sidebar-html">
-          ${get_course_about_section(request, course, "about_sidebar_html")}
-        </section>
-      % endif
-    %endif
-  </div>
+      % if sidebar_html_enabled:
+        % if get_course_about_section(request, course, "about_sidebar_html"):
+          <section class="about-sidebar-html">
+            ${get_course_about_section(request, course, "about_sidebar_html")}
+          </section>
+        % endif
+      %endif
+    </aside>
 
   </div>
-</div>
 
 ## Need to put this hidden form on the page so that the registration button works.
 ## Since it's no harm to display a hidden form, we display it with the most permissive conditional
@@ -288,6 +274,8 @@ from openedx.core.lib.courses import course_image_url
     </form>
   </div>
 %endif
+
+</section>
 
 <%include file="../video_modal.html" />
 

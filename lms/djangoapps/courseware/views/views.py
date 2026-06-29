@@ -6,7 +6,7 @@ Courseware views functions
 import json
 import logging
 import urllib
-from collections import Counter, OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple
 from datetime import datetime
 from urllib.parse import quote_plus, urlencode, urljoin, urlparse, urlunparse
 
@@ -282,66 +282,14 @@ def user_groups(user):
     return group_names
 
 
-def get_catalog_filter_groups(courses_list):
-    """
-    Build the filter groups displayed on the course catalog page.
-
-    The catalog uses a custom, server-rendered filter UI instead of the
-    JavaScript course-discovery search.  Filters are defined here in Python so
-    they are easy to maintain: to add a new filter, append another entry to
-    ``group_definitions`` with an ``id``, a human readable ``name`` and a
-    ``resolver`` that returns the value for a given course.  The matching value
-    is also emitted as a ``data-filter-<id>`` attribute on each course card,
-    which the lightweight catalog JavaScript uses to show/hide cards.
-
-    Each option carries the number of courses that match it so the catalog can
-    render native facet-style rows with a count badge.
-
-    Returns a list of dicts shaped like::
-
-        [{"id": "org", "name": "Organization", "options": [
-            {"value": "EKTU", "count": 12}, ...]}, ...]
-    """
-    group_definitions = [
-        {
-            'id': 'org',
-            'name': gettext('Organization'),
-            'resolver': lambda course: course.display_org_with_default,
-        },
-        {
-            'id': 'language',
-            'name': gettext('Language'),
-            'resolver': lambda course: (course.language or '').strip(),
-        },
-    ]
-
-    filter_groups = []
-    for group in group_definitions:
-        counts = Counter(
-            value for value in (group['resolver'](course) for course in courses_list) if value
-        )
-        # Only surface a filter when it actually narrows the catalog down.
-        if len(counts) > 1:
-            options = [
-                {'value': value, 'count': counts[value]}
-                for value in sorted(counts)
-            ]
-            filter_groups.append({
-                'id': group['id'],
-                'name': group['name'],
-                'options': options,
-            })
-    return filter_groups
-
-
 @ensure_csrf_cookie
 @cache_if_anonymous()
 def courses(request):
     """
     Render the branded "find courses" catalog page.
 
-    The catalog is fully server-rendered with a custom Python-defined filter
-    set (see :func:`get_catalog_filter_groups`); the legacy JavaScript
+    The catalog is fully server-rendered with a lightweight client-side search
+    box (see ``courseware/courses.html``); the legacy JavaScript
     course-discovery search box is intentionally not used here.
     """
     courses_list = get_courses(
@@ -355,9 +303,6 @@ def courses(request):
     else:
         courses_list = sort_by_announcement(courses_list)
 
-    # Filter groups are computed in Python so the catalog is easy to extend.
-    course_filter_groups = get_catalog_filter_groups(courses_list)
-
     # Add marketable programs to the context.
     programs_list = get_programs_with_type(request.site, include_hidden=False)
 
@@ -365,7 +310,6 @@ def courses(request):
         "courseware/courses.html",
         {
             'courses': courses_list,
-            'course_filter_groups': course_filter_groups,
             'programs_list': programs_list,
         }
     )
