@@ -54,10 +54,16 @@ from openedx.core.lib.courses import course_image_url
 
 <%block name="pagetitle">${course.display_name_with_default}</%block>
 
+## "ektu-page" unlocks the full-bleed layout: main.html wraps every page in
+## ".content-wrapper" (max-width + gutters, see sass/base/_base.scss) which
+## would box the hero gradient in.  The reset lives in ektu/branding.html.
+<%block name="bodyclass">ektu-page ektu-page-course-about</%block>
+
 ## NOTE: the wrapper class is intentionally NOT "course-info" so the legacy
 ## float/table based stylesheet (sass/multicourse/_course_about.scss) does not
 ## apply.  All styling for this page lives in the EKTU brand layer
 ## (lms/templates/ektu/branding.html) under ".ektu-course-about".
+<main id="main" aria-label="Content" tabindex="-1">
 <section class="ektu-course-about">
 
   <%block name="course_about_header">
@@ -276,6 +282,7 @@ from openedx.core.lib.courses import course_image_url
 %endif
 
 </section>
+</main>
 
 <%include file="../video_modal.html" />
 

@@ -555,8 +555,6 @@ header.global-header .ektu-lang-control .language-selector:focus {
 .courses-more-cta:hover,
 .ektu-footer__nav a,
 .ektu-footer__nav a:hover,
-.ektu-filter-option,
-.ektu-filter-option:hover,
 .courses-listing-item .course a,
 .courses-listing-item .course a:hover,
 .courses-listing-item .course a:focus {
@@ -691,8 +689,7 @@ header.global-header .ektu-lang-control .language-selector:focus {
 .home .highlighted-courses {
   max-width: 1180px; margin: 0 auto; padding: 0 24px;
 }
-.home .courses-listing,
-.find-courses .courses-listing {
+.home .courses-listing {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 26px;
@@ -739,15 +736,40 @@ header.global-header .ektu-lang-control .language-selector:focus {
 .courses-listing-item .course .learn-more {
   display: none !important;
 }
-.courses-listing-item .course .course-info { padding: 18px 20px 22px; }
+/* flex column so the date row pins to the card bottom across the whole grid */
+.courses-listing-item .course > a {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.courses-listing-item .course .course-info {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+/* the card title is an h2 — reset the v1 base h2 (gray serif + margin) */
+.courses-listing-item .course .course-name {
+  margin: 0;
+  font-size: 100%;
+  line-height: 1.4;
+}
 .courses-listing-item .course .course-organization {
+  display: inline-block;
   color: var(--ektu-primary);
+  font-family: var(--ektu-font-body);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 12px;
+  line-height: 1.4;
 }
-.courses-listing-item .course .course-code { color: var(--ektu-muted); font-size: 13px; }
+.courses-listing-item .course .course-code {
+  color: var(--ektu-muted);
+  font-family: var(--ektu-font-body);
+  font-size: 12px;
+  line-height: 1.4;
+}
 .courses-listing-item .course .course-title {
   display: block;
   color: var(--ektu-ink);
@@ -755,51 +777,75 @@ header.global-header .ektu-lang-control .language-selector:focus {
   font-weight: 700;
   font-size: 18px;
   margin-top: 6px;
-  line-height: 1.25;
+  line-height: 1.3;
 }
-.courses-listing-item .course .course-date { color: var(--ektu-muted); font-size: 13px; margin-top: 12px; }
+.courses-listing-item .course .course-date {
+  color: var(--ektu-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: auto;         /* pushes the date to the bottom of the card */
+  padding-top: 12px;
+  border-top: 1px solid var(--ektu-border);
+}
+.courses-listing-item .course .course-name { padding-bottom: 14px; }
 
 /* ----------------------------------------------------------------------- */
-/*  Course catalog page (/courses) — search-only, no sidebar filters        */
+/*  EKTU full-bleed page reset                                              */
+/*  main.html wraps every page in ".content-wrapper" (max-width + gutters + */
+/*  top margin — see sass/base/_base.scss).  Pages that opt in through the  */
+/*  "ektu-page" body class render edge-to-edge and manage their own         */
+/*  gutters, so hero gradients are not boxed into a floating container.     */
 /* ----------------------------------------------------------------------- */
-.find-courses {
-  background: var(--ektu-surface);
+body.ektu-page .content-wrapper {
+  max-width: none;
+  margin: 0;
+  padding: 0;
 }
-.find-courses .ektu-catalog-hero {
+
+/* ----------------------------------------------------------------------- */
+/*  Course catalog page (/courses) — hero search, card grid                 */
+/*  Root class is ".ektu-catalog" (NOT the legacy "find-courses") so the    */
+/*  old discovery stylesheet (sass/multicourse/_courses.scss) stays inert.  */
+/* ----------------------------------------------------------------------- */
+.ektu-catalog {
+  background: var(--ektu-surface);
+  line-height: 1.5;   /* the v1 base sets body { line-height: 1em } */
+}
+.ektu-catalog-hero {
   background:
     radial-gradient(900px 420px at 90% -20%, rgba(47, 174, 143, 0.3), transparent 60%),
     linear-gradient(135deg, var(--ektu-secondary) 0%, var(--ektu-primary) 100%);
   color: #fff;
-  padding: 64px 5vw 72px;
+  padding: clamp(56px, 7vw, 84px) 24px clamp(64px, 7vw, 92px);
   text-align: center;
 }
-.find-courses .ektu-catalog-hero h1 {
+.ektu-catalog-hero h1 {
   color: #fff;
+  font-family: var(--ektu-font-display);
   font-size: clamp(32px, 5vw, 48px);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;      /* the v1 base h1 also centers, keep it explicit */
   margin: 0 0 14px;
 }
-.find-courses .ektu-catalog-hero p {
+.ektu-catalog-hero p {
   color: rgba(255, 255, 255, 0.9);
   font-size: 18px;
   line-height: 1.6;
   max-width: 620px;
   margin: 0 auto;
 }
-.find-courses .ektu-catalog-hero .ektu-eyebrow { color: #c8f3e8; }
+.ektu-catalog-hero .ektu-eyebrow { color: #c8f3e8; }
 
-.ektu-catalog__body {
-  padding: 40px 5vw 88px;
-}
-
-/* Search box (centered, the only catalog control) */
+/* Search pill inside the hero */
 .ektu-catalog__search {
   position: relative;
-  max-width: 560px;
-  margin: 0 auto 22px;
+  max-width: 640px;
+  margin: 34px auto 0;
 }
 .ektu-catalog__search-icon {
   position: absolute;
-  left: 18px;
+  left: 22px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--ektu-muted);
@@ -807,60 +853,66 @@ header.global-header .ektu-lang-control .language-selector:focus {
   pointer-events: none;
 }
 .ektu-catalog__search-input {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   box-sizing: border-box;
-  height: 50px;
-  border: 1px solid var(--ektu-border);
+  height: 56px;
+  border: 0;
   border-radius: 999px;
   background: #fff;
   color: var(--ektu-ink);
   font-family: var(--ektu-font-body);
-  font-size: 15px;
-  padding: 0 20px 0 46px;
+  font-size: 16px;
+  line-height: 56px;
+  padding: 0 24px 0 50px;
   outline: none;
-  box-shadow: 0 2px 10px rgba(1, 58, 58, 0.05);
-  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+  box-shadow: 0 16px 40px rgba(1, 38, 38, 0.28);
+  transition: box-shadow 0.15s ease;
 }
 .ektu-catalog__search-input::placeholder { color: var(--ektu-muted); }
 .ektu-catalog__search-input:focus {
-  border-color: var(--ektu-primary);
-  box-shadow: 0 0 0 3px rgba(var(--ektu-primary-rgb), 0.14);
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.35),
+    0 16px 40px rgba(1, 38, 38, 0.28);
 }
 
+/* Results */
+.ektu-catalog__body {
+  padding: 44px 24px 88px;
+}
 .ektu-catalog__meta {
   color: var(--ektu-muted);
   font-family: var(--ektu-font-display);
   font-weight: 600;
   font-size: 14px;
   text-align: center;
-  margin-bottom: 26px;
+  margin: 0 0 28px;
 }
-
 .ektu-catalog__body .courses-listing {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
   gap: 24px;
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 .ektu-catalog__empty {
   background: #fff;
   border: 1px solid var(--ektu-border);
-  border-radius: 16px;
-  padding: 64px 24px;
+  border-radius: 18px;
+  padding: 72px 24px;
   text-align: center;
   color: var(--ektu-muted);
   font-size: 16px;
 }
 .ektu-catalog__empty-icon {
   display: block;
-  font-size: 34px;
+  font-size: 36px;
   color: var(--ektu-border);
   margin-bottom: 16px;
 }
-.ektu-catalog__empty p { margin: 0 0 20px; }
+.ektu-catalog__empty p { margin: 0 0 22px; }
 .ektu-catalog__empty .ektu-btn { box-shadow: none; }
 
 /* ----------------------------------------------------------------------- */
@@ -938,11 +990,16 @@ header.global-header .ektu-lang-control .language-selector:focus {
 /* ----------------------------------------------------------------------- */
 /*  Course about page (/courses/<id>/about)                                 */
 /*  Self-contained layout. The template root is ".ektu-course-about" (NOT   */
-/*  ".course-info") so the legacy float/table stylesheet does not apply.    */
+/*  ".course-info") so the legacy float/table stylesheet                    */
+/*  (sass/multicourse/_course_about.scss) does not apply.  Typography is    */
+/*  set explicitly everywhere because the v1 base ships h1 { text-align:    */
+/*  center }, gray serif h2 and body { line-height: 1em }.                  */
 /* ----------------------------------------------------------------------- */
 .ektu-course-about {
   background: var(--ektu-surface);
   font-family: var(--ektu-font-body);
+  line-height: 1.6;
+  color: var(--ektu-ink);
 }
 
 /* ---- Hero ---- */
@@ -955,11 +1012,11 @@ header.global-header .ektu-lang-control .language-selector:focus {
 .ektu-course-about .ca-hero {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 64px 5vw 72px;
   box-sizing: border-box;
+  padding: clamp(48px, 6vw, 76px) 24px;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 48px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(28px, 4vw, 56px);
   align-items: center;
 }
 .ektu-course-about .ca-hero__intro { min-width: 0; }
@@ -968,57 +1025,65 @@ header.global-header .ektu-lang-control .language-selector:focus {
   color: #c8f3e8;
   font-family: var(--ektu-font-display);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-size: 13px;
-  margin: 0 0 10px;
+  line-height: 1.4;
+  margin: 0 0 12px;
 }
 .ektu-course-about .heading-group h1 {
   color: #fff;
   font-family: var(--ektu-font-display);
   font-size: clamp(30px, 4.5vw, 46px);
-  line-height: 1.08;
   font-weight: 700;
+  line-height: 1.12;
+  text-align: start;            /* the v1 base centers every h1 */
   margin: 0 0 16px;
 }
 .ektu-course-about .ca-short {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
   font-size: 18px;
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
-  max-width: 560px;
+  max-width: 56ch;
 }
 
-/* CTA buttons */
+/* CTA row */
 .ektu-course-about .main-cta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 14px;
-  margin-top: 28px;
+  margin-top: 30px;
 }
 .ektu-course-about .main-cta .register,
 .ektu-course-about .main-cta .add-to-cart,
 .ektu-course-about .main-cta .ca-view-course {
   display: inline-block;
   background: #fff;
+  border: 0;
   color: var(--ektu-primary);
   font-family: var(--ektu-font-display);
   font-weight: 700;
   font-size: 16px;
-  text-decoration: none;
-  padding: 14px 34px;
+  line-height: 1.2;
+  text-decoration: none !important;
+  padding: 15px 34px;
   border-radius: 999px;
+  cursor: pointer;
   box-shadow: 0 12px 26px rgba(1, 38, 38, 0.3);
   transition: transform 0.18s ease, background 0.18s ease;
 }
 .ektu-course-about .main-cta .register:hover,
+.ektu-course-about .main-cta .register:focus,
 .ektu-course-about .main-cta .add-to-cart:hover,
-.ektu-course-about .main-cta .ca-view-course:hover {
+.ektu-course-about .main-cta .add-to-cart:focus,
+.ektu-course-about .main-cta .ca-view-course:hover,
+.ektu-course-about .main-cta .ca-view-course:focus {
   transform: translateY(-2px);
   background: #eafff8;
   color: var(--ektu-primary);
-  text-decoration: none;
+  text-decoration: none !important;
 }
 .ektu-course-about .main-cta .register.disabled {
   background: rgba(255, 255, 255, 0.16);
@@ -1026,7 +1091,8 @@ header.global-header .ektu-lang-control .language-selector:focus {
   box-shadow: none;
   cursor: default;
 }
-.ektu-course-about .main-cta .register.disabled:hover {
+.ektu-course-about .main-cta .register.disabled:hover,
+.ektu-course-about .main-cta .register.disabled:focus {
   transform: none;
   background: rgba(255, 255, 255, 0.16);
 }
@@ -1034,22 +1100,30 @@ header.global-header .ektu-lang-control .language-selector:focus {
   color: rgba(255, 255, 255, 0.92);
   font-family: var(--ektu-font-display);
   font-weight: 600;
+  line-height: 1.4;
 }
+/* Hidden until the enroll JS fills it in and flips display to block */
 .ektu-course-about .main-cta #register_error {
+  display: none;
   flex-basis: 100%;
   margin-top: 4px;
   color: #fff;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.28);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 10px 16px;
+  line-height: 1.5;
 }
 
-/* Hero media */
+/* Hero media (course image / video thumbnail) */
 .ektu-course-about .ca-hero__media { min-width: 0; }
-.ektu-course-about .media { display: block; margin: 0; text-decoration: none; }
+.ektu-course-about .media {
+  display: block;
+  margin: 0;
+  text-decoration: none !important;
+}
 .ektu-course-about .media .hero {
   position: relative;
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 18px 44px rgba(1, 38, 38, 0.35);
 }
@@ -1082,70 +1156,147 @@ header.global-header .ektu-lang-control .language-selector:focus {
   border-width: 12px 0 12px 20px;
   border-color: transparent transparent transparent var(--ektu-primary);
 }
-.ektu-course-about .media:hover .play-intro {
+.ektu-course-about .media:hover .play-intro,
+.ektu-course-about .media:focus .play-intro {
   transform: scale(1.06);
   background: #fff;
 }
 
-/* ---- Body: overview + sidebar ---- */
+/* ---- Body: overview card + sidebar card ---- */
 .ektu-course-about .ca-body {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 56px 5vw 80px;
   box-sizing: border-box;
+  padding: clamp(36px, 5vw, 56px) 24px 88px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 48px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: clamp(24px, 3vw, 40px);
   align-items: start;
 }
 .ektu-course-about .details { min-width: 0; }
-.ektu-course-about .wrap-instructor-info.studio-view { margin-bottom: 18px; }
+
+/* Studio shortcut for staff */
+.ektu-course-about .wrap-instructor-info.studio-view { margin: 0 0 16px; }
 .ektu-course-about .instructor-info-action {
   display: inline-block;
   color: var(--ektu-primary);
   font-weight: 600;
+  font-size: 14px;
+  background: #fff;
   border: 1px solid var(--ektu-border);
   border-radius: 999px;
-  padding: 7px 16px;
-  text-decoration: none;
+  padding: 8px 18px;
+  text-decoration: none !important;
 }
-.ektu-course-about .instructor-info-action:hover {
-  background: rgba(var(--ektu-primary-rgb), 0.08);
+.ektu-course-about .instructor-info-action:hover,
+.ektu-course-about .instructor-info-action:focus {
+  border-color: var(--ektu-primary);
+  background: rgba(var(--ektu-primary-rgb), 0.06);
+  color: var(--ektu-primary);
 }
+
+/* Overview card: hosts author-supplied HTML, so style defensively */
 .ektu-course-about .details .inner-wrapper {
-  color: var(--ektu-ink);
-  line-height: 1.75;
+  background: #fff;
+  border: 1px solid var(--ektu-border);
+  border-radius: 18px;
+  padding: clamp(24px, 3.5vw, 40px);
+  box-shadow: 0 2px 10px rgba(1, 58, 58, 0.05);
+  color: #40544f;
   font-size: 16px;
+  line-height: 1.75;
+  overflow-wrap: break-word;
 }
-.ektu-course-about .details .inner-wrapper img { max-width: 100%; height: auto; }
-.ektu-course-about .details .inner-wrapper a { color: var(--ektu-primary); }
 .ektu-course-about .details .inner-wrapper h1,
 .ektu-course-about .details .inner-wrapper h2,
-.ektu-course-about .details .inner-wrapper h3 {
+.ektu-course-about .details .inner-wrapper h3,
+.ektu-course-about .details .inner-wrapper h4 {
   color: var(--ektu-ink);
   font-family: var(--ektu-font-display);
-  line-height: 1.2;
-  margin: 28px 0 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: start;
+  margin: 32px 0 12px;
 }
-.ektu-course-about .details .inner-wrapper > :first-child { margin-top: 0; }
+.ektu-course-about .details .inner-wrapper h1 { font-size: 28px; }
+.ektu-course-about .details .inner-wrapper h2 { font-size: 24px; }
+.ektu-course-about .details .inner-wrapper h3 { font-size: 19px; }
+.ektu-course-about .details .inner-wrapper h4 { font-size: 17px; }
+.ektu-course-about .details .inner-wrapper > :first-child,
+.ektu-course-about .details .inner-wrapper section:first-child > :first-child { margin-top: 0; }
+.ektu-course-about .details .inner-wrapper section { margin: 0 0 8px; }
+.ektu-course-about .details .inner-wrapper p { margin: 0 0 16px; }
 .ektu-course-about .details .inner-wrapper ul,
-.ektu-course-about .details .inner-wrapper ol { padding-left: 22px; }
-.ektu-course-about .details .inner-wrapper li { margin-bottom: 6px; }
+.ektu-course-about .details .inner-wrapper ol {
+  margin: 0 0 18px;
+  padding: 0 0 0 24px;
+  list-style: disc;
+}
+.ektu-course-about .details .inner-wrapper ol { list-style: decimal; }
+.ektu-course-about .details .inner-wrapper li { margin: 6px 0; }
+.ektu-course-about .details .inner-wrapper a {
+  color: var(--ektu-primary);
+  font-weight: 600;
+}
+.ektu-course-about .details .inner-wrapper img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+.ektu-course-about .details .inner-wrapper blockquote {
+  margin: 20px 0;
+  padding: 14px 20px;
+  border-left: 3px solid var(--ektu-primary);
+  background: var(--ektu-surface);
+  border-radius: 0 12px 12px 0;
+}
+.ektu-course-about .details .inner-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 18px;
+}
+.ektu-course-about .details .inner-wrapper th,
+.ektu-course-about .details .inner-wrapper td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ektu-border);
+  text-align: start;
+}
+/* Common "course staff" author markup */
+.ektu-course-about .details .inner-wrapper .teacher { margin: 0 0 24px; overflow: hidden; }
+.ektu-course-about .details .inner-wrapper .teacher-image {
+  float: left;
+  width: 110px;
+  height: 110px;
+  margin: 4px 18px 8px 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.ektu-course-about .details .inner-wrapper .teacher-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
 
-/* Sidebar card */
-.ektu-course-about .course-sidebar { min-width: 0; }
+/* ---- Sidebar ---- */
+.ektu-course-about .course-sidebar {
+  min-width: 0;
+  position: sticky;
+  top: 24px;
+}
 .ektu-course-about .course-summary {
   background: #fff;
   border: 1px solid var(--ektu-border);
-  border-radius: 16px;
-  padding: 8px 22px 16px;
+  border-radius: 18px;
+  padding: 6px 24px 18px;
   box-shadow: 0 2px 10px rgba(1, 58, 58, 0.05);
 }
-.ektu-course-about .social-sharing { padding: 16px 0 6px; }
+.ektu-course-about .social-sharing { padding: 18px 0 8px; }
 .ektu-course-about .social-sharing .sharing-message {
   color: var(--ektu-muted);
   font-size: 13px;
-  margin-bottom: 10px;
+  line-height: 1.4;
+  margin: 0 0 10px;
 }
 .ektu-course-about .social-sharing .share {
   display: inline-grid;
@@ -1154,12 +1305,14 @@ header.global-header .ektu-lang-control .language-selector:focus {
   height: 38px;
   margin-right: 8px;
   border-radius: 50%;
-  background: rgba(var(--ektu-primary-rgb), 0.10);
+  background: rgba(var(--ektu-primary-rgb), 0.1);
   color: var(--ektu-primary);
-  text-decoration: none;
+  font-size: 15px;
+  text-decoration: none !important;
   transition: background 0.16s ease, color 0.16s ease;
 }
-.ektu-course-about .social-sharing .share:hover {
+.ektu-course-about .social-sharing .share:hover,
+.ektu-course-about .social-sharing .share:focus {
   background: var(--ektu-primary);
   color: #fff;
 }
@@ -1171,56 +1324,73 @@ header.global-header .ektu-lang-control .language-selector:focus {
 }
 .ektu-course-about .important-dates-item {
   position: relative;
-  padding: 14px 0 14px 30px;
+  padding: 14px 0 14px 32px;
   border-bottom: 1px solid var(--ektu-border);
+  line-height: 1.5;
 }
-.ektu-course-about .important-dates-item:last-child { border-bottom: 0; }
+.ektu-course-about .important-dates-item:last-child { border-bottom: 0; padding-bottom: 6px; }
 .ektu-course-about .important-dates-item .icon {
   position: absolute;
   left: 0;
-  top: 16px;
+  top: 17px;
   color: var(--ektu-primary);
+  font-size: 15px;
 }
 .ektu-course-about .important-dates-item-title {
   color: var(--ektu-muted);
   font-size: 12px;
+  line-height: 1.4;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 4px;
+  letter-spacing: 0.06em;
+  margin: 0 0 3px;
 }
 .ektu-course-about .important-dates-item-text {
+  display: block;
   color: var(--ektu-ink);
   font-family: var(--ektu-font-display);
   font-weight: 600;
+  font-size: 15px;
+  line-height: 1.45;
 }
 .ektu-course-about .important-dates-item .tip {
   color: var(--ektu-muted);
   font-size: 13px;
   font-weight: 400;
-  margin-top: 6px;
+  line-height: 1.5;
+  margin: 6px 0 0;
 }
 .ektu-course-about .important-dates a { color: var(--ektu-primary); }
 
-.ektu-course-about .additional-resources {
+.ektu-course-about .additional-resources,
+.ektu-course-about .about-sidebar-html {
   margin-top: 20px;
   background: #fff;
   border: 1px solid var(--ektu-border);
-  border-radius: 16px;
-  padding: 20px 22px;
+  border-radius: 18px;
+  padding: 20px 24px;
   color: var(--ektu-muted);
+  line-height: 1.6;
 }
-.ektu-course-about .additional-resources h2 {
+.ektu-course-about .additional-resources h2,
+.ektu-course-about .about-sidebar-html h2 {
   color: var(--ektu-ink);
   font-family: var(--ektu-font-display);
-  font-size: 18px;
+  font-size: 17px;
   margin: 0 0 12px;
 }
-.ektu-course-about .about-sidebar-html { margin-top: 20px; }
 
-@media (max-width: 900px) {
-  .ektu-course-about .ca-hero { grid-template-columns: 1fr; gap: 32px; }
+/* ---- Responsive ---- */
+@media (max-width: 960px) {
+  .ektu-course-about .ca-hero {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
   .ektu-course-about .ca-hero__media { order: -1; }
-  .ektu-course-about .ca-body { grid-template-columns: 1fr; gap: 36px; }
+  .ektu-course-about .ca-body {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .ektu-course-about .course-sidebar { position: static; }
 }
 
 /* ----------------------------------------------------------------------- */
