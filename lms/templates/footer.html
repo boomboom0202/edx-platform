@@ -27,26 +27,26 @@
       </div>
 
       <div class="ektu-footer__cols">
-        <nav class="ektu-footer__col" aria-label="Обучение">
-          <h2 class="ektu-footer__col-title">Обучение</h2>
-          <a href="/courses">Каталог курсов</a>
-          <a href="${marketing_link('ABOUT')}">Об университете</a>
+        <nav class="ektu-footer__col" aria-label="${_('Learning')}">
+          <h2 class="ektu-footer__col-title">${_("Learning")}</h2>
+          <a href="/courses">${_("Course catalog")}</a>
+          <a href="${marketing_link('ABOUT')}">${_("About the university")}</a>
         </nav>
 
-        <nav class="ektu-footer__col" aria-label="Поддержка">
-          <h2 class="ektu-footer__col-title">Поддержка</h2>
-          <a href="${reverse('help_edx')}">Помощь</a>
-          <a href="${reverse('faq')}">Частые вопросы</a>
-          <a href="${links['helpdesk']}" target="_blank" rel="noopener">Справочная служба</a>
-          <a href="${reverse('contact')}">Контакты</a>
+        <nav class="ektu-footer__col" aria-label="${_('Support')}">
+          <h2 class="ektu-footer__col-title">${_("Support")}</h2>
+          <a href="${reverse('help_edx')}">${_("Help")}</a>
+          <a href="${reverse('faq')}">${_("Frequently asked questions")}</a>
+          <a href="${links['helpdesk']}" target="_blank" rel="noopener">${_("Support desk")}</a>
+          <a href="${reverse('contact')}">${_("Contact")}</a>
         </nav>
 
-        <nav class="ektu-footer__col" aria-label="Ресурсы">
-          <h2 class="ektu-footer__col-title">Ресурсы</h2>
-          <a href="${links['login_guide']}" target="_blank" rel="noopener">Инструкция по входу</a>
-          <a href="${links['students']}" target="_blank" rel="noopener">Студентам</a>
-          <a href="${links['teachers']}" target="_blank" rel="noopener">Преподавателям</a>
-          <a href="${links['center']}" target="_blank" rel="noopener">Центр образовательных технологий</a>
+        <nav class="ektu-footer__col" aria-label="${_('Resources')}">
+          <h2 class="ektu-footer__col-title">${_("Resources")}</h2>
+          <a href="${links['login_guide']}" target="_blank" rel="noopener">${_("Sign-in guide")}</a>
+          <a href="${links['students']}" target="_blank" rel="noopener">${_("For students")}</a>
+          <a href="${links['teachers']}" target="_blank" rel="noopener">${_("For teachers")}</a>
+          <a href="${links['center']}" target="_blank" rel="noopener">${_("Center for Educational Technologies")}</a>
         </nav>
       </div>
     </div>

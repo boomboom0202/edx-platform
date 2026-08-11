@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils.translation import gettext as _
 from django.urls import reverse
 
+from openedx.core.djangolib.markup import HTML, Text
 from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_microfrontend
 %>
 <%inherit file="../main.html" />
@@ -27,113 +28,111 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
 
     <header class="ektu-page-hero">
       <div class="ektu-wrap">
-        <span class="ektu-eyebrow">Поддержка</span>
+        <span class="ektu-eyebrow">${_("Support")}</span>
         <h1>
-          <%block name="pageheader">${page_header or "Помощь"}</%block>
+          <%block name="pageheader">${page_header or _("Help")}</%block>
         </h1>
-        <p>Как войти на платформу, где найти инструкции и куда обращаться, если что-то не работает.</p>
+        <p>${_("How to sign in, where to find guides, and who to contact when something is not working.")}</p>
       </div>
     </header>
 
     <section class="ektu-section">
       <div class="ektu-wrap">
 
-        <h2 class="ektu-static__h2">Как войти на платформу</h2>
+        <h2 class="ektu-static__h2">${_("How to sign in")}</h2>
         <p class="ektu-static__lead">
-          Способ входа зависит от того, учитесь или работаете ли вы в университете.
+          ${_("The way you sign in depends on whether you study or work at the university.")}
         </p>
 
         <div class="ektu-two-col">
           <div class="ektu-card">
             <div class="ektu-card__icon"><span class="icon fa fa-university" aria-hidden="true"></span></div>
-            <h3>Студентам и сотрудникам EKTU</h3>
+            <h3>${_("University students and staff")}</h3>
             <p>
-              Входите кнопкой <strong>«Войти через Google»</strong>, используя свой
-              университетский аккаунт. Отдельный пароль создавать не нужно.
+              ${Text(_("Sign in with the {strong_start}Sign in with Google{strong_end} button using your university account. You do not need to create a separate password.")).format(
+                strong_start=HTML('<strong>'),
+                strong_end=HTML('</strong>'),
+              )}
             </p>
             <a class="ektu-btn ektu-btn--ghost" href="${links['login_guide']}" target="_blank" rel="noopener">
-              Пошаговая инструкция по входу
+              ${_("Step-by-step sign-in guide")}
             </a>
           </div>
 
           <div class="ektu-card">
             <div class="ektu-card__icon"><span class="icon fa fa-user-plus" aria-hidden="true"></span></div>
-            <h3>Внешним слушателям</h3>
+            <h3>${_("External learners")}</h3>
             <p>
-              Если вы не связаны с университетом, зарегистрируйтесь обычным способом —
-              по своей электронной почте, придумав пароль.
+              ${_("If you are not affiliated with the university, register the usual way: with your own email address and a password you choose.")}
             </p>
-            <a class="ektu-btn ektu-btn--ghost" href="${register_url}">Зарегистрироваться</a>
+            <a class="ektu-btn ektu-btn--ghost" href="${register_url}">${_("Register")}</a>
           </div>
         </div>
 
         <div class="ektu-note">
           <span class="ektu-note__icon fa fa-exclamation-circle" aria-hidden="true"></span>
           <div>
-            <strong>Важно для студентов и сотрудников университета.</strong>
-            Не регистрируйтесь отдельно по паролю на тот же адрес, которым пользуетесь для
-            входа через Google. Две учётные записи на один адрес конфликтуют между собой, и
-            войти не получится — потребуется помощь технической поддержки.
+            <strong>${_("Important for university students and staff.")}</strong>
+            ${_("Do not register separately with a password using the same address you sign in with through Google. Two accounts on one address conflict with each other and you will not be able to sign in, which then requires help from technical support.")}
           </div>
         </div>
 
-        <h2 class="ektu-static__h2">Не получается войти или что-то не работает</h2>
+        <h2 class="ektu-static__h2">${_("Cannot sign in, or something is not working")}</h2>
         <p class="ektu-static__lead">
-          Опишите проблему в справочной службе — заявку увидят инженеры центра. По возможности
-          укажите свою почту, название курса и приложите скриншот.
+          ${_("Describe the problem in the support desk and the engineers of the center will see your ticket. Where possible, include your email address, the course name and a screenshot.")}
         </p>
         <p>
           <a class="ektu-btn" href="${links['helpdesk']}" target="_blank" rel="noopener">
-            Написать в справочную службу
+            ${_("Contact the support desk")}
           </a>
         </p>
 
-        <h2 class="ektu-static__h2">Полезные ресурсы</h2>
+        <h2 class="ektu-static__h2">${_("Useful resources")}</h2>
         <div class="ektu-linkcards">
           <a class="ektu-linkcard" href="${links['students']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-graduation-cap" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>Студентам</strong>
-              <span>Инструкции по входу, аккаунтам и сервисам университета</span>
+              <strong>${_("For students")}</strong>
+              <span>${_("Guides on signing in, accounts and university services")}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${links['teachers']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-book" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>Преподавателям</strong>
-              <span>Как создавать и вести курсы на платформе</span>
+              <strong>${_("For teachers")}</strong>
+              <span>${_("How to build and run courses on the platform")}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${links['helpdesk']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-life-ring" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>Справочная служба</strong>
-              <span>Заявки по техническим проблемам</span>
+              <strong>${_("Support desk")}</strong>
+              <span>${_("Tickets for technical problems")}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${links['center']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-lightbulb-o" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>Центр образовательных технологий</strong>
-              <span>О центре, новости и блог</span>
+              <strong>${_("Center for Educational Technologies")}</strong>
+              <span>${_("About the center, news and blog")}</span>
             </span>
           </a>
         </div>
 
-        <h2 class="ektu-static__h2">Наши платформы</h2>
+        <h2 class="ektu-static__h2">${_("Our platforms")}</h2>
         <div class="ektu-linkcards">
           <a class="ektu-linkcard" href="${links['platform_students']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-university" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
               <strong>edx.ektu.kz</strong>
-              <span>Платформа для студентов университета</span>
+              <span>${_("The platform for university students")}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${links['platform_open']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-globe" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
               <strong>open.ektu.kz</strong>
-              <span>Открытая платформа, доступная всем желающим</span>
+              <span>${_("The open platform, available to everyone")}</span>
             </span>
           </a>
         </div>
@@ -143,9 +142,9 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
 
     <section class="ektu-section ektu-cta-band">
       <div class="ektu-wrap">
-        <h2>Остались вопросы?</h2>
-        <p>Посмотрите ответы на частые вопросы — возможно, ваш случай уже разобран.</p>
-        <a class="ektu-btn ektu-btn--light" href="${reverse('faq')}">Частые вопросы</a>
+        <h2>${_("Still have questions?")}</h2>
+        <p>${_("Take a look at the frequently asked questions: your case may already be covered there.")}</p>
+        <a class="ektu-btn ektu-btn--light" href="${reverse('faq')}">${_("Frequently asked questions")}</a>
       </div>
     </section>
 

@@ -1,5 +1,9 @@
 <%page expression_filter="h"/>
-<%! from django.utils.translation import gettext as _ %>
+<%!
+from django.utils.translation import gettext as _
+
+from openedx.core.djangolib.markup import HTML, Text
+%>
 <%inherit file="../main.html" />
 <%namespace name="ektu" file="/ektu/links.html"/>
 <% links = ektu.attr.EKTU_LINKS %>
@@ -14,11 +18,11 @@
 
     <header class="ektu-page-hero">
       <div class="ektu-wrap">
-        <span class="ektu-eyebrow">Поддержка</span>
+        <span class="ektu-eyebrow">${_("Support")}</span>
         <h1>
-          <%block name="pageheader">${page_header or "Частые вопросы"}</%block>
+          <%block name="pageheader">${page_header or _("Frequently Asked Questions")}</%block>
         </h1>
-        <p>Ответы на вопросы, с которыми студенты и преподаватели обращаются чаще всего.</p>
+        <p>${_("Answers to the questions students and teachers ask most often.")}</p>
       </div>
     </header>
 
@@ -29,106 +33,119 @@
         <div class="ektu-faq">
 
           <details class="ektu-faq__item" open>
-            <summary class="ektu-faq__q">Как войти на платформу?</summary>
+            <summary class="ektu-faq__q">${_("How do I sign in?")}</summary>
             <div class="ektu-faq__a">
               <p>
-                Студентам и сотрудникам университета нужно входить кнопкой
-                <strong>«Войти через Google»</strong> под университетским аккаунтом —
-                отдельный пароль создавать не нужно.
-                Есть <a href="${links['login_guide']}" target="_blank" rel="noopener">пошаговая инструкция по входу</a>.
+                ${Text(_("University students and staff sign in with the {strong_start}Sign in with Google{strong_end} button using their university account; there is no need to create a separate password. There is a {link_start}step-by-step sign-in guide{link_end}.")).format(
+                  strong_start=HTML('<strong>'),
+                  strong_end=HTML('</strong>'),
+                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['login_guide']),
+                  link_end=HTML('</a>'),
+                )}
               </p>
               <p>
-                Внешние слушатели регистрируются обычным способом — по своей электронной почте.
+                ${_("External learners register the usual way, with their own email address.")}
               </p>
             </div>
           </details>
 
           <details class="ektu-faq__item">
-            <summary class="ektu-faq__q">Не могу войти: аккаунт не связывается или пишет, что почта уже занята</summary>
+            <summary class="ektu-faq__q">${_("I cannot sign in: my account is not linked, or it says the email is already taken")}</summary>
             <div class="ektu-faq__a">
               <p>
-                Чаще всего это происходит, когда на один и тот же адрес заведены две учётные
-                записи: одна создана через Google, другая — обычной регистрацией с паролем.
-                Такие записи конфликтуют между собой.
+                ${_("This usually happens when two accounts exist for the same address: one created through Google and another created by regular registration with a password. Such accounts conflict with each other.")}
               </p>
               <p>
-                Решить это самостоятельно нельзя — нужна помощь инженеров.
-                <a href="${links['helpdesk']}" target="_blank" rel="noopener">Оставьте заявку в справочной службе</a>
-                и укажите адрес почты, под которым пытаетесь войти.
+                ${Text(_("You cannot fix this yourself, the engineers have to do it. {link_start}Submit a ticket to the support desk{link_end} and include the email address you are trying to sign in with.")).format(
+                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+                  link_end=HTML('</a>'),
+                )}
               </p>
             </div>
           </details>
 
           <details class="ektu-faq__item">
-            <summary class="ektu-faq__q">Как записаться на курс?</summary>
+            <summary class="ektu-faq__q">${_("How do I enroll in a course?")}</summary>
             <div class="ektu-faq__a">
               <p>
-                Откройте страницу курса в <a href="/courses">каталоге</a> и нажмите
-                <strong>«Записаться»</strong>. Если кнопка недоступна, значит запись на курс
-                закрыта, курс уже завершился или запись ведётся только по приглашению —
-                в этом случае вас зачислит преподаватель.
+                ${Text(_("Open the course page in the {link_start}catalog{link_end} and click {strong_start}Enroll{strong_end}. If the button is unavailable, enrollment is closed, the course has already finished, or enrollment is by invitation only, in which case the teacher will enroll you.")).format(
+                  link_start=HTML('<a href="/courses">'),
+                  link_end=HTML('</a>'),
+                  strong_start=HTML('<strong>'),
+                  strong_end=HTML('</strong>'),
+                )}
               </p>
             </div>
           </details>
 
           <details class="ektu-faq__item">
-            <summary class="ektu-faq__q">Где посмотреть свои оценки?</summary>
+            <summary class="ektu-faq__q">${_("Where can I see my grades?")}</summary>
             <div class="ektu-faq__a">
               <p>
-                Оценки за задания доступны в самом курсе, в разделе <strong>«Прогресс»</strong>.
-                Они обновляются сразу после проверки работы.
+                ${Text(_("Grades for assignments are available inside the course, in the {strong_start}Progress{strong_end} section. They are updated as soon as your work has been graded.")).format(
+                  strong_start=HTML('<strong>'),
+                  strong_end=HTML('</strong>'),
+                )}
               </p>
             </div>
           </details>
 
           <details class="ektu-faq__item">
-            <summary class="ektu-faq__q">Когда появится сертификат?</summary>
+            <summary class="ektu-faq__q">${_("When will my certificate appear?")}</summary>
             <div class="ektu-faq__a">
               <p>
-                Сертификат выдаётся при наборе проходного балла. По умолчанию он становится
-                доступен <strong>после даты окончания курса</strong>, поэтому сразу после
-                сдачи последней работы его может ещё не быть.
+                ${Text(_("A certificate is issued once you reach the passing grade. By default it becomes available {strong_start}after the course end date{strong_end}, so it may not be there straight after you submit your last assignment.")).format(
+                  strong_start=HTML('<strong>'),
+                  strong_end=HTML('</strong>'),
+                )}
               </p>
               <p>
-                Если курс уже закончился, проходной балл набран, а сертификата нет —
-                <a href="${links['helpdesk']}" target="_blank" rel="noopener">напишите в справочную службу</a>.
+                ${Text(_("If the course has finished and you reached the passing grade but there is still no certificate, {link_start}contact the support desk{link_end}.")).format(
+                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+                  link_end=HTML('</a>'),
+                )}
               </p>
             </div>
           </details>
 
           <details class="ektu-faq__item">
-            <summary class="ektu-faq__q">Во время экзамена произошёл сбой, попытка пропала</summary>
+            <summary class="ektu-faq__q">${_("Something went wrong during the exam and my attempt was lost")}</summary>
             <div class="ektu-faq__a">
               <p>
-                Сообщите об этом преподавателю курса — попытку можно сбросить, но делается это
-                только с его разрешения. Если проблема техническая и повторяется,
-                продублируйте обращение в
-                <a href="${links['helpdesk']}" target="_blank" rel="noopener">справочную службу</a>.
+                ${Text(_("Tell the course teacher: an attempt can be reset, but only with their approval. If the problem is technical and keeps happening, also report it to the {link_start}support desk{link_end}.")).format(
+                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+                  link_end=HTML('</a>'),
+                )}
               </p>
             </div>
           </details>
 
           <details class="ektu-faq__item">
-            <summary class="ektu-faq__q">Чем отличаются edx.ektu.kz и open.ektu.kz?</summary>
+            <summary class="ektu-faq__q">${_("What is the difference between edx.ektu.kz and open.ektu.kz?")}</summary>
             <div class="ektu-faq__a">
               <p>
-                <a href="${links['platform_students']}" target="_blank" rel="noopener">edx.ektu.kz</a> —
-                платформа для студентов университета, курсы там связаны с учебным процессом.
+                ${Text(_("{link_start}edx.ektu.kz{link_end} is the platform for university students; its courses are part of the study process.")).format(
+                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['platform_students']),
+                  link_end=HTML('</a>'),
+                )}
               </p>
               <p>
-                <a href="${links['platform_open']}" target="_blank" rel="noopener">open.ektu.kz</a> —
-                открытая платформа: её курсы доступны всем желающим, а не только студентам.
+                ${Text(_("{link_start}open.ektu.kz{link_end} is the open platform: its courses are available to everyone, not only to students.")).format(
+                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['platform_open']),
+                  link_end=HTML('</a>'),
+                )}
               </p>
             </div>
           </details>
 
           <details class="ektu-faq__item">
-            <summary class="ektu-faq__q">Куда обращаться с технической проблемой?</summary>
+            <summary class="ektu-faq__q">${_("Where do I report a technical problem?")}</summary>
             <div class="ektu-faq__a">
               <p>
-                В <a href="${links['helpdesk']}" target="_blank" rel="noopener">справочную службу</a>.
-                Чтобы заявку разобрали быстрее, укажите свою почту, название курса, что именно
-                вы делали и приложите скриншот ошибки.
+                ${Text(_("To the {link_start}support desk{link_end}. To get your ticket resolved faster, include your email address, the course name, what exactly you were doing, and a screenshot of the error.")).format(
+                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+                  link_end=HTML('</a>'),
+                )}
               </p>
             </div>
           </details>
@@ -140,10 +157,10 @@
 
     <section class="ektu-section ektu-cta-band">
       <div class="ektu-wrap">
-        <h2>Не нашли свой вопрос?</h2>
-        <p>Опишите проблему в справочной службе — инженеры центра помогут разобраться.</p>
+        <h2>${_("Did not find your question?")}</h2>
+        <p>${_("Describe the problem in the support desk and the engineers of the center will help you sort it out.")}</p>
         <a class="ektu-btn ektu-btn--light" href="${links['helpdesk']}" target="_blank" rel="noopener">
-          Написать в справочную службу
+          ${_("Contact the support desk")}
         </a>
       </div>
     </section>

@@ -37,7 +37,7 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
     <div class="mobile-nav-item hidden-mobile nav-item nav-tab">
       <a class="tab-nav-link ektu-about-link" href="${reverse('help_edx')}"
          aria-current="${'page' if request.path == '/help' else 'false'}">
-         Помощь
+         ${_("Help")}
       </a>
     </div>
     % if show_dashboard_tabs:

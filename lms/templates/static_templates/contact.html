@@ -17,64 +17,62 @@ from django.urls import reverse
 
     <header class="ektu-page-hero">
       <div class="ektu-wrap">
-        <span class="ektu-eyebrow">Связаться с нами</span>
+        <span class="ektu-eyebrow">${_("Get in touch")}</span>
         <h1>
-          <%block name="pageheader">${page_header or "Контакты"}</%block>
+          <%block name="pageheader">${page_header or _("Contact")}</%block>
         </h1>
-        <p>Платформу развивает Центр образовательных технологий университета.</p>
+        <p>${_("The platform is run by the university Center for Educational Technologies.")}</p>
       </div>
     </header>
 
     <section class="ektu-section">
       <div class="ektu-wrap ektu-wrap--narrow">
 
-        <h2 class="ektu-static__h2">Технические вопросы</h2>
+        <h2 class="ektu-static__h2">${_("Technical questions")}</h2>
         <p class="ektu-static__lead">
-          Всё, что связано с работой платформы — вход, доступ к курсу, оценки, сертификаты —
-          решается через справочную службу. Так обращение не потеряется и попадёт сразу к инженерам.
+          ${_("Everything to do with how the platform works, such as signing in, course access, grades and certificates, is handled through the support desk. That way your request does not get lost and reaches the engineers directly.")}
         </p>
         <p>
           <a class="ektu-btn" href="${links['helpdesk']}" target="_blank" rel="noopener">
-            Оставить заявку
+            ${_("Submit a ticket")}
           </a>
         </p>
 
         <div class="ektu-note">
           <span class="ektu-note__icon fa fa-info-circle" aria-hidden="true"></span>
           <div>
-            Вопросы по содержанию курса, заданиям и срокам сдачи решает преподаватель курса —
-            их лучше задавать прямо в курсе.
+            ${_("Questions about course content, assignments and deadlines are handled by the course teacher, so it is best to ask them inside the course itself.")}
           </div>
         </div>
 
-        <h2 class="ektu-static__h2">Полезные ссылки</h2>
+        <h2 class="ektu-static__h2">${_("Useful links")}</h2>
         <div class="ektu-linkcards">
           <a class="ektu-linkcard" href="${links['center']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-lightbulb-o" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>Центр образовательных технологий</strong>
-              <span>О центре, сотрудники, новости и блог</span>
+              <strong>${_("Center for Educational Technologies")}</strong>
+              <span>${_("About the center, its staff, news and blog")}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${links['students']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-graduation-cap" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>Студентам</strong>
-              <span>Инструкции по аккаунтам и сервисам университета</span>
+              <strong>${_("For students")}</strong>
+              <span>${_("Guides on accounts and university services")}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${links['teachers']}" target="_blank" rel="noopener">
             <span class="ektu-linkcard__icon fa fa-book" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>Преподавателям</strong>
-              <span>Как создавать и вести курсы на платформе</span>
+              <strong>${_("For teachers")}</strong>
+              <span>${_("How to build and run courses on the platform")}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${reverse('help_edx')}">
             <span class="ektu-linkcard__icon fa fa-life-ring" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>Помощь</strong>
-              <span>Как войти на платформу и что делать при проблемах</span>
+              <strong>${_("Help")}</strong>
+              <span>${_("How to sign in and what to do if there are problems")}</span>
             </span>
           </a>
         </div>
