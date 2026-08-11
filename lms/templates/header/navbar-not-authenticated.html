@@ -26,9 +26,6 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
     <div class="mobile-nav-item hidden-mobile nav-item">
       <a class="ektu-about-link" href="${marketing_link('ABOUT')}">${_("About Us")}</a>
     </div>
-    <div class="mobile-nav-item hidden-mobile nav-item">
-      <a class="ektu-about-link" href="${reverse('help_edx')}">${_("Help")}</a>
-    </div>
   % if mktg_site_enabled:
     <div class="mobile-nav-item hidden-mobile nav-item">
       <a href="${marketing_link('HOW_IT_WORKS')}">${_("How it Works")}</a>
