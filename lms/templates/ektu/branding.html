@@ -1473,12 +1473,20 @@ body.ektu-page .content-wrapper {
   text-align: center;
   margin: 0 0 14px;
 }
+/* Scoped with .ektu-static so the generic ".ektu-static p" rule further down
+   cannot win on source order and strip the horizontal "auto" margins — that
+   left the 620px block glued to the left edge instead of centred. */
+.ektu-static .ektu-page-hero p,
 .ektu-page-hero p {
   color: rgba(255, 255, 255, 0.9);
   font-size: 18px;
   line-height: 1.6;
   max-width: 620px;
-  margin: 0 auto;
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
 }
 
 .ektu-static__h2 {
@@ -1492,14 +1500,16 @@ body.ektu-page .content-wrapper {
 }
 .ektu-static .ektu-wrap > .ektu-static__h2:first-child,
 .ektu-static .ektu-wrap--narrow > .ektu-static__h2:first-child { margin-top: 0; }
-.ektu-static__lead {
+.ektu-static p { margin: 0 0 16px; }
+/* Needs to outrank ".ektu-static p" above, which is more specific than a bare
+   class selector would be. */
+.ektu-static p.ektu-static__lead {
   color: var(--ektu-muted);
   font-size: 17px;
   line-height: 1.7;
   margin: 0 0 20px;
   max-width: 70ch;
 }
-.ektu-static p { margin: 0 0 16px; }
 .ektu-static a { color: var(--ektu-primary); font-weight: 600; }
 
 /* Two-column card row (sign-in paths) */
