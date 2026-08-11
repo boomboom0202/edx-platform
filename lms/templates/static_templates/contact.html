@@ -1,16 +1,86 @@
 <%page expression_filter="h"/>
-<%! from django.utils.translation import gettext as _ %>
+<%!
+from django.utils.translation import gettext as _
+from django.urls import reverse
+%>
 <%inherit file="../main.html" />
+<%namespace name="ektu" file="/ektu/links.html"/>
+<% links = ektu.attr.EKTU_LINKS %>
 
 <%block name="pagetitle">${_("Contact")}</%block>
 
+## Full-bleed layout: see the "ektu-page" reset in ektu/branding.html.
+<%block name="bodyclass">ektu-page ektu-page-contact</%block>
+
 <main id="main" aria-label="Content" tabindex="-1">
-    <section class="container about">
+  <section class="ektu-static">
+
+    <header class="ektu-page-hero">
+      <div class="ektu-wrap">
+        <span class="ektu-eyebrow">Связаться с нами</span>
         <h1>
-            <%block name="pageheader">${page_header or _("Contact")}</%block>
+          <%block name="pageheader">${page_header or "Контакты"}</%block>
         </h1>
-        <p>
-            <%block name="pagecontent">${page_content or _("This page left intentionally blank. Feel free to add your own content.")}</%block>
+        <p>Платформу развивает Центр образовательных технологий университета.</p>
+      </div>
+    </header>
+
+    <section class="ektu-section">
+      <div class="ektu-wrap ektu-wrap--narrow">
+
+        <h2 class="ektu-static__h2">Технические вопросы</h2>
+        <p class="ektu-static__lead">
+          Всё, что связано с работой платформы — вход, доступ к курсу, оценки, сертификаты —
+          решается через справочную службу. Так обращение не потеряется и попадёт сразу к инженерам.
         </p>
+        <p>
+          <a class="ektu-btn" href="${links['helpdesk']}" target="_blank" rel="noopener">
+            Оставить заявку
+          </a>
+        </p>
+
+        <div class="ektu-note">
+          <span class="ektu-note__icon fa fa-info-circle" aria-hidden="true"></span>
+          <div>
+            Вопросы по содержанию курса, заданиям и срокам сдачи решает преподаватель курса —
+            их лучше задавать прямо в курсе.
+          </div>
+        </div>
+
+        <h2 class="ektu-static__h2">Полезные ссылки</h2>
+        <div class="ektu-linkcards">
+          <a class="ektu-linkcard" href="${links['center']}" target="_blank" rel="noopener">
+            <span class="ektu-linkcard__icon fa fa-lightbulb-o" aria-hidden="true"></span>
+            <span class="ektu-linkcard__body">
+              <strong>Центр образовательных технологий</strong>
+              <span>О центре, сотрудники, новости и блог</span>
+            </span>
+          </a>
+          <a class="ektu-linkcard" href="${links['students']}" target="_blank" rel="noopener">
+            <span class="ektu-linkcard__icon fa fa-graduation-cap" aria-hidden="true"></span>
+            <span class="ektu-linkcard__body">
+              <strong>Студентам</strong>
+              <span>Инструкции по аккаунтам и сервисам университета</span>
+            </span>
+          </a>
+          <a class="ektu-linkcard" href="${links['teachers']}" target="_blank" rel="noopener">
+            <span class="ektu-linkcard__icon fa fa-book" aria-hidden="true"></span>
+            <span class="ektu-linkcard__body">
+              <strong>Преподавателям</strong>
+              <span>Как создавать и вести курсы на платформе</span>
+            </span>
+          </a>
+          <a class="ektu-linkcard" href="${reverse('help_edx')}">
+            <span class="ektu-linkcard__icon fa fa-life-ring" aria-hidden="true"></span>
+            <span class="ektu-linkcard__body">
+              <strong>Помощь</strong>
+              <span>Как войти на платформу и что делать при проблемах</span>
+            </span>
+          </a>
+        </div>
+
+      </div>
     </section>
+
+  </section>
 </main>

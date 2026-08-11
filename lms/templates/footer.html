@@ -9,21 +9,49 @@
 <% footer = get_footer(is_secure=is_secure) %>
 <% icp_license_info = getattr(settings, 'ICP_LICENSE_INFO', {})%>
 <%namespace name='static' file='static_content.html'/>
+<%namespace name="ektu" file="/ektu/links.html"/>
+<% links = ektu.attr.EKTU_LINKS %>
 
-## EKTU footer: brand logo + three legal links only.
+## EKTU footer: brand logo, helpful link columns and the legal links.
 <div class="wrapper wrapper-footer ektu-footer">
   <footer id="footer-ektu"
     % if bidi:
       dir=${bidi}
     % endif
   >
-    <div class="ektu-footer__inner">
+    <div class="ektu-footer__top">
       <div class="ektu-footer__logo">
         <a href="/">
           <img alt="${_('organization logo')}" src="${footer['logo_image']}">
         </a>
       </div>
 
+      <div class="ektu-footer__cols">
+        <nav class="ektu-footer__col" aria-label="Обучение">
+          <h2 class="ektu-footer__col-title">Обучение</h2>
+          <a href="/courses">Каталог курсов</a>
+          <a href="${marketing_link('ABOUT')}">Об университете</a>
+        </nav>
+
+        <nav class="ektu-footer__col" aria-label="Поддержка">
+          <h2 class="ektu-footer__col-title">Поддержка</h2>
+          <a href="${reverse('help_edx')}">Помощь</a>
+          <a href="${reverse('faq')}">Частые вопросы</a>
+          <a href="${links['helpdesk']}" target="_blank" rel="noopener">Справочная служба</a>
+          <a href="${reverse('contact')}">Контакты</a>
+        </nav>
+
+        <nav class="ektu-footer__col" aria-label="Ресурсы">
+          <h2 class="ektu-footer__col-title">Ресурсы</h2>
+          <a href="${links['login_guide']}" target="_blank" rel="noopener">Инструкция по входу</a>
+          <a href="${links['students']}" target="_blank" rel="noopener">Студентам</a>
+          <a href="${links['teachers']}" target="_blank" rel="noopener">Преподавателям</a>
+          <a href="${links['center']}" target="_blank" rel="noopener">Центр образовательных технологий</a>
+        </nav>
+      </div>
+    </div>
+
+    <div class="ektu-footer__inner">
       <nav class="ektu-footer__nav" aria-label="${_('Legal')}">
         <a href="${marketing_link('HONOR')}">Кодекс чести</a>
         <a href="${marketing_link('TOS')}">Договор публичной оферты</a>

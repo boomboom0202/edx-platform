@@ -1,0 +1,33 @@
+## mako
+## ============================================================================
+##  EKTU public link registry.
+##
+##  Single source of truth for the outward-facing EKTU URLs used by the help,
+##  FAQ and contact pages, the footer and the header.  When one of these
+##  services moves, change it here only.
+##
+##  Usage:
+##      <%namespace name="ektu" file="/ektu/links.html"/>
+##      <a href="${ektu.attr.EKTU_LINKS['helpdesk']}">...</a>
+##
+##  NOTE: only public, student/teacher facing resources belong here.  Internal
+##  engineering resources (course development instance, backups, credential
+##  spreadsheets) must never be linked from the platform UI.
+## ============================================================================
+<%!
+EKTU_LINKS = {
+    # Step-by-step "how to sign in with the university Google account" guide.
+    'login_guide': 'https://edu.ektu.kz/ru/logging-in/how-to-log-into-google-account',
+    # Ticket system for technical problems.
+    'helpdesk': 'https://edu.ektu.kz/tickets/',
+    # Knowledge base for students.
+    'students': 'https://edu.ektu.kz/ru',
+    # Knowledge base for teachers.
+    'teachers': 'https://help.edtech.ektu.kz/ru',
+    # Site of the Center for Educational Technologies (ЦОТ).
+    'center': 'https://edtech.ektu.kz',
+    # Learning platforms.
+    'platform_students': 'https://edx.ektu.kz',
+    'platform_open': 'https://open.ektu.kz',
+}
+%>

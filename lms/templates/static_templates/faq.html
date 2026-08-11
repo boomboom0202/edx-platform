@@ -1,16 +1,152 @@
 <%page expression_filter="h"/>
 <%! from django.utils.translation import gettext as _ %>
 <%inherit file="../main.html" />
+<%namespace name="ektu" file="/ektu/links.html"/>
+<% links = ektu.attr.EKTU_LINKS %>
 
 <%block name="pagetitle">${_("FAQ")}</%block>
 
+## Full-bleed layout: see the "ektu-page" reset in ektu/branding.html.
+<%block name="bodyclass">ektu-page ektu-page-faq</%block>
+
 <main id="main" aria-label="Content" tabindex="-1">
-    <section class="container about">
+  <section class="ektu-static">
+
+    <header class="ektu-page-hero">
+      <div class="ektu-wrap">
+        <span class="ektu-eyebrow">Поддержка</span>
         <h1>
-            <%block name="pageheader">${page_header or _("FAQ")}</%block>
+          <%block name="pageheader">${page_header or "Частые вопросы"}</%block>
         </h1>
-        <p>
-            <%block name="pagecontent">${page_content or _("This page left intentionally blank. Feel free to add your own content.")}</%block>
-        </p>
+        <p>Ответы на вопросы, с которыми студенты и преподаватели обращаются чаще всего.</p>
+      </div>
+    </header>
+
+    <section class="ektu-section">
+      <div class="ektu-wrap ektu-wrap--narrow">
+
+        ## Native <details> accordion — no JavaScript required.
+        <div class="ektu-faq">
+
+          <details class="ektu-faq__item" open>
+            <summary class="ektu-faq__q">Как войти на платформу?</summary>
+            <div class="ektu-faq__a">
+              <p>
+                Студентам и сотрудникам университета нужно входить кнопкой
+                <strong>«Войти через Google»</strong> под университетским аккаунтом —
+                отдельный пароль создавать не нужно.
+                Есть <a href="${links['login_guide']}" target="_blank" rel="noopener">пошаговая инструкция по входу</a>.
+              </p>
+              <p>
+                Внешние слушатели регистрируются обычным способом — по своей электронной почте.
+              </p>
+            </div>
+          </details>
+
+          <details class="ektu-faq__item">
+            <summary class="ektu-faq__q">Не могу войти: аккаунт не связывается или пишет, что почта уже занята</summary>
+            <div class="ektu-faq__a">
+              <p>
+                Чаще всего это происходит, когда на один и тот же адрес заведены две учётные
+                записи: одна создана через Google, другая — обычной регистрацией с паролем.
+                Такие записи конфликтуют между собой.
+              </p>
+              <p>
+                Решить это самостоятельно нельзя — нужна помощь инженеров.
+                <a href="${links['helpdesk']}" target="_blank" rel="noopener">Оставьте заявку в справочной службе</a>
+                и укажите адрес почты, под которым пытаетесь войти.
+              </p>
+            </div>
+          </details>
+
+          <details class="ektu-faq__item">
+            <summary class="ektu-faq__q">Как записаться на курс?</summary>
+            <div class="ektu-faq__a">
+              <p>
+                Откройте страницу курса в <a href="/courses">каталоге</a> и нажмите
+                <strong>«Записаться»</strong>. Если кнопка недоступна, значит запись на курс
+                закрыта, курс уже завершился или запись ведётся только по приглашению —
+                в этом случае вас зачислит преподаватель.
+              </p>
+            </div>
+          </details>
+
+          <details class="ektu-faq__item">
+            <summary class="ektu-faq__q">Где посмотреть свои оценки?</summary>
+            <div class="ektu-faq__a">
+              <p>
+                Оценки за задания доступны в самом курсе, в разделе <strong>«Прогресс»</strong>.
+                Они обновляются сразу после проверки работы.
+              </p>
+            </div>
+          </details>
+
+          <details class="ektu-faq__item">
+            <summary class="ektu-faq__q">Когда появится сертификат?</summary>
+            <div class="ektu-faq__a">
+              <p>
+                Сертификат выдаётся при наборе проходного балла. По умолчанию он становится
+                доступен <strong>после даты окончания курса</strong>, поэтому сразу после
+                сдачи последней работы его может ещё не быть.
+              </p>
+              <p>
+                Если курс уже закончился, проходной балл набран, а сертификата нет —
+                <a href="${links['helpdesk']}" target="_blank" rel="noopener">напишите в справочную службу</a>.
+              </p>
+            </div>
+          </details>
+
+          <details class="ektu-faq__item">
+            <summary class="ektu-faq__q">Во время экзамена произошёл сбой, попытка пропала</summary>
+            <div class="ektu-faq__a">
+              <p>
+                Сообщите об этом преподавателю курса — попытку можно сбросить, но делается это
+                только с его разрешения. Если проблема техническая и повторяется,
+                продублируйте обращение в
+                <a href="${links['helpdesk']}" target="_blank" rel="noopener">справочную службу</a>.
+              </p>
+            </div>
+          </details>
+
+          <details class="ektu-faq__item">
+            <summary class="ektu-faq__q">Чем отличаются edx.ektu.kz и open.ektu.kz?</summary>
+            <div class="ektu-faq__a">
+              <p>
+                <a href="${links['platform_students']}" target="_blank" rel="noopener">edx.ektu.kz</a> —
+                платформа для студентов университета, курсы там связаны с учебным процессом.
+              </p>
+              <p>
+                <a href="${links['platform_open']}" target="_blank" rel="noopener">open.ektu.kz</a> —
+                открытая платформа: её курсы доступны всем желающим, а не только студентам.
+              </p>
+            </div>
+          </details>
+
+          <details class="ektu-faq__item">
+            <summary class="ektu-faq__q">Куда обращаться с технической проблемой?</summary>
+            <div class="ektu-faq__a">
+              <p>
+                В <a href="${links['helpdesk']}" target="_blank" rel="noopener">справочную службу</a>.
+                Чтобы заявку разобрали быстрее, укажите свою почту, название курса, что именно
+                вы делали и приложите скриншот ошибки.
+              </p>
+            </div>
+          </details>
+
+        </div>
+
+      </div>
     </section>
+
+    <section class="ektu-section ektu-cta-band">
+      <div class="ektu-wrap">
+        <h2>Не нашли свой вопрос?</h2>
+        <p>Опишите проблему в справочной службе — инженеры центра помогут разобраться.</p>
+        <a class="ektu-btn ektu-btn--light" href="${links['helpdesk']}" target="_blank" rel="noopener">
+          Написать в справочную службу
+        </a>
+      </div>
+    </section>
+
+  </section>
 </main>
