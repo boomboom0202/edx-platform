@@ -973,6 +973,9 @@ body.ektu-page .content-wrapper {
     linear-gradient(135deg, var(--ektu-secondary) 0%, var(--ektu-primary) 100%);
   color: #fff;
   padding: 92px 24px 100px;
+  /* Without this only the h1 was centred — by the v1 global "h1 { text-align:
+     center }" — while the eyebrow and the lead paragraph stayed left. */
+  text-align: center;
 }
 .ektu-about-hero .ektu-wrap { max-width: 900px; }
 .ektu-about-hero .ektu-eyebrow { color: #c8f3e8; }
@@ -981,13 +984,18 @@ body.ektu-page .content-wrapper {
   font-size: clamp(36px, 5.5vw, 58px);
   margin: 0 0 18px;
   line-height: 1.05;
+  text-align: center;
 }
 .ektu-about-hero p {
   color: rgba(255, 255, 255, 0.9);
   font-size: 20px;
   line-height: 1.6;
   max-width: 720px;
-  margin: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
 }
 .ektu-about-body { background: #fff; }
 .ektu-about-lead {
@@ -1025,6 +1033,9 @@ body.ektu-page .content-wrapper {
   font-family: var(--ektu-font-display);
   font-weight: 700;
   font-size: 26px;
+  /* The v1 base sets body { line-height: 1em }; without an explicit value the
+     two lines of this caption overlapped each other. */
+  line-height: 1.3;
   padding: 40px;
   text-align: center;
 }
