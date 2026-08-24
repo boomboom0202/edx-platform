@@ -1454,6 +1454,141 @@ body.ektu-page .content-wrapper {
 }
 
 /* ----------------------------------------------------------------------- */
+/*  Embedded PDF viewer with a language switcher (/honor, /privacy)        */
+/* ----------------------------------------------------------------------- */
+.ektu-pdf-section { padding-bottom: 0; }
+.ektu-pdf {
+  background: #fff;
+  border: 1px solid var(--ektu-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(1, 58, 58, 0.05);
+}
+.ektu-pdf__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ektu-border);
+  background: var(--ektu-surface);
+}
+.ektu-pdf__langs { display: flex; flex-wrap: wrap; gap: 4px; }
+.ektu-pdf__lang {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ektu-secondary);
+  font-family: var(--ektu-font-display);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+.ektu-pdf__lang:hover { background: rgba(var(--ektu-primary-rgb), 0.08); color: var(--ektu-primary); }
+.ektu-pdf__lang.is-active {
+  background: var(--ektu-primary);
+  border-color: var(--ektu-primary);
+  color: #fff;
+}
+.ektu-pdf__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* Scoped with .ektu-pdf: the v1 base ships "a:not(.btn)" which is more
+   specific than a bare class and would repaint these links blue. */
+.ektu-pdf .ektu-pdf__action {
+  display: inline-block;
+  border: 1px solid var(--ektu-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ektu-secondary);
+  font-family: var(--ektu-font-display);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  padding: 8px 16px;
+  text-decoration: none !important;
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+}
+.ektu-pdf .ektu-pdf__action:hover,
+.ektu-pdf .ektu-pdf__action:focus {
+  border-color: var(--ektu-primary);
+  color: var(--ektu-primary);
+}
+.ektu-pdf .ektu-pdf__action--primary {
+  background: var(--ektu-primary);
+  border-color: var(--ektu-primary);
+  color: #fff;
+}
+.ektu-pdf .ektu-pdf__action--primary:hover,
+.ektu-pdf .ektu-pdf__action--primary:focus {
+  background: var(--ektu-primary-dark);
+  border-color: var(--ektu-primary-dark);
+  color: #fff;
+}
+.ektu-pdf__frame {
+  display: block;
+  width: 100%;
+  height: min(78vh, 900px);
+  min-height: 460px;
+  border: 0;
+  background: var(--ektu-surface);
+}
+.ektu-pdf__hint {
+  color: var(--ektu-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 12px 2px 0;
+}
+
+/* Collapsible plain-text version, kept for accessibility and small screens */
+.ektu-doc__details {
+  background: #fff;
+  border: 1px solid var(--ektu-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.ektu-doc__details[open] { border-color: var(--ektu-primary); }
+.ektu-doc__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  list-style: none;
+  padding: 18px 22px;
+  color: var(--ektu-ink);
+  font-family: var(--ektu-font-display);
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.45;
+}
+.ektu-doc__summary::-webkit-details-marker { display: none; }
+.ektu-doc__summary::after {
+  content: "+";
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(var(--ektu-primary-rgb), 0.1);
+  color: var(--ektu-primary);
+  font-size: 17px;
+  line-height: 1;
+}
+.ektu-doc__details[open] .ektu-doc__summary { color: var(--ektu-primary); }
+.ektu-doc__details[open] .ektu-doc__summary::after { content: "\2212"; }
+.ektu-doc__summary:hover { background: rgba(var(--ektu-primary-rgb), 0.04); }
+.ektu-doc__body { padding: 0 22px 24px; }
+
+@media (max-width: 600px) {
+  .ektu-pdf__bar { flex-direction: column; align-items: stretch; }
+  .ektu-pdf__frame { height: 62vh; min-height: 360px; }
+}
+
+/* ----------------------------------------------------------------------- */
 /*  Long-form legal pages (/honor, /privacy) — built on .ektu-static        */
 /* ----------------------------------------------------------------------- */
 .ektu-doc .ektu-wrap--narrow { max-width: 780px; }

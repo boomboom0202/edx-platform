@@ -5,6 +5,7 @@ from django.utils.translation import gettext as _
 from openedx.core.djangolib.markup import HTML, Text
 %>
 <%inherit file="../main.html" />
+<%namespace name="static" file="../static_content.html"/>
 <%namespace name="ektu" file="/ektu/links.html"/>
 <% links = ektu.attr.EKTU_LINKS %>
 
@@ -30,8 +31,39 @@ from openedx.core.djangolib.markup import HTML, Text
       </div>
     </header>
 
-    <section class="ektu-section">
+    <section class="ektu-section ektu-pdf-section">
       <div class="ektu-wrap ektu-wrap--narrow">
+        <div class="ektu-pdf" id="ektu-pdf">
+          <div class="ektu-pdf__bar">
+            <div class="ektu-pdf__langs" role="group" aria-label="${_('Document language')}">
+              <button type="button" class="ektu-pdf__lang is-active" lang="en"
+                      data-src="${static.url('ektu/docs/privacy-en.pdf')}">English</button>
+              <button type="button" class="ektu-pdf__lang" lang="ru"
+                      data-src="${static.url('ektu/docs/privacy-ru.pdf')}">Русский</button>
+              <button type="button" class="ektu-pdf__lang" lang="kk"
+                      data-src="${static.url('ektu/docs/privacy-kk.pdf')}">Қазақша</button>
+            </div>
+            <div class="ektu-pdf__actions">
+              <a class="ektu-pdf__action" id="ektu-pdf-open" target="_blank" rel="noopener"
+                 href="${static.url('ektu/docs/privacy-en.pdf')}">${_("Open in a new tab")}</a>
+              <a class="ektu-pdf__action ektu-pdf__action--primary" id="ektu-pdf-download" download
+                 href="${static.url('ektu/docs/privacy-en.pdf')}">${_("Download PDF")}</a>
+            </div>
+          </div>
+          <iframe class="ektu-pdf__frame" id="ektu-pdf-frame" title="${_('Document')}"
+                  src="${static.url('ektu/docs/privacy-en.pdf')}"></iframe>
+        </div>
+        <p class="ektu-pdf__hint">
+          ${_("If the document does not open above, use \"Download PDF\" — some mobile browsers cannot display PDF files inside a page.")}
+        </p>
+      </div>
+    </section>
+
+    <section class="ektu-section ektu-doc__text">
+      <div class="ektu-wrap ektu-wrap--narrow">
+        <details class="ektu-doc__details">
+          <summary class="ektu-doc__summary">${_("Read the full text on this page")}</summary>
+          <div class="ektu-doc__body">
 
         <p class="ektu-doc__meta">
           ${_("Information Privacy Policy, P NAO \"EKTU\" 183-I-2026. Approved by the Chairman of the Board and Rector on 10 March 2026.")}
@@ -142,8 +174,45 @@ from openedx.core.djangolib.markup import HTML, Text
           </div>
         </div>
 
+          </div>
+        </details>
       </div>
     </section>
 
   </section>
 </main>
+
+<%block name="js_extra">
+<script type="text/javascript">
+(function() {
+  "use strict";
+  var frame = document.getElementById('ektu-pdf-frame');
+  var open = document.getElementById('ektu-pdf-open');
+  var dl = document.getElementById('ektu-pdf-download');
+  var langs = [].slice.call(document.querySelectorAll('.ektu-pdf__lang'));
+  if (!frame || !langs.length) { return; }
+
+  function select(btn) {
+    var src = btn.getAttribute('data-src');
+    frame.src = src;
+    if (open) { open.href = src; }
+    if (dl) { dl.href = src; }
+    langs.forEach(function(b) {
+      var on = b === btn;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  langs.forEach(function(btn) {
+    btn.setAttribute('aria-pressed', btn.classList.contains('is-active') ? 'true' : 'false');
+    btn.addEventListener('click', function() { select(btn); });
+  });
+
+  // Open the document in the language the site is currently displayed in.
+  var page = (document.documentElement.getAttribute('lang') || '').slice(0, 2).toLowerCase();
+  var match = langs.filter(function(b) { return b.getAttribute('lang') === page; })[0];
+  if (match) { select(match); }
+})();
+</script>
+</%block>
