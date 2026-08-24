@@ -1454,6 +1454,47 @@ body.ektu-page .content-wrapper {
 }
 
 /* ----------------------------------------------------------------------- */
+/*  Long-form legal pages (/honor, /privacy) — built on .ektu-static        */
+/* ----------------------------------------------------------------------- */
+.ektu-doc .ektu-wrap--narrow { max-width: 780px; }
+.ektu-doc__meta {
+  color: var(--ektu-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 14px 18px;
+  margin: 0 0 8px;
+  background: #fff;
+  border: 1px solid var(--ektu-border);
+  border-radius: 12px;
+}
+/* Numbered top-level sections read better with a little more air above. */
+.ektu-doc .ektu-static__h2 { margin-top: 44px; }
+.ektu-doc__h3 {
+  color: var(--ektu-ink);
+  font-family: var(--ektu-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: start;
+  margin: 26px 0 8px;
+}
+.ektu-doc p {
+  color: var(--ektu-muted);
+  font-size: 16px;
+  line-height: 1.75;
+}
+.ektu-doc ul {
+  margin: 0 0 18px;
+  padding: 0 0 0 22px;
+  list-style: disc;
+  color: var(--ektu-muted);
+  font-size: 16px;
+  line-height: 1.75;
+}
+.ektu-doc li { margin: 0 0 8px; }
+.ektu-doc .ektu-note { margin-top: 36px; }
+
+/* ----------------------------------------------------------------------- */
 /*  Static support pages (/help, /faq, /contact)                            */
 /*  Typography is explicit throughout: the v1 base centers every h1, makes  */
 /*  h2 gray serif and sets body line-height to 1em.                         */

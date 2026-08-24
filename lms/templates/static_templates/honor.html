@@ -1,16 +1,190 @@
 <%page expression_filter="h"/>
-<%! from django.utils.translation import gettext as _ %>
+<%!
+from django.utils.translation import gettext as _
+
+from openedx.core.djangolib.markup import HTML, Text
+%>
 <%inherit file="../main.html" />
+<%namespace name="ektu" file="/ektu/links.html"/>
+<% links = ektu.attr.EKTU_LINKS %>
 
 <%block name="pagetitle">${_("Honor Code")}</%block>
 
+## Full-bleed layout: see the "ektu-page" reset in ektu/branding.html.
+<%block name="bodyclass">ektu-page ektu-page-doc</%block>
+
+## Content is based on the university regulation "Code of Academic Integrity for
+## Students", К НАО «ВКТУ» 059-II-2025, approved by the Academic Council on
+## 28 October 2025 (minutes No. 3).
 <main id="main" aria-label="Content" tabindex="-1">
-    <section class="container about">
+  <section class="ektu-static ektu-doc">
+
+    <header class="ektu-page-hero">
+      <div class="ektu-wrap">
+        <span class="ektu-eyebrow">${_("Academic integrity")}</span>
         <h1>
-            <%block name="pageheader">${page_header or _("Honor Code")}</%block>
+          <%block name="pageheader">${page_header or _("Honor Code")}</%block>
         </h1>
-        <p>
-            <%block name="pagecontent">${page_content or _("This page left intentionally blank. Feel free to add your own content.")}</%block>
+        <p>${_("The rules of academic integrity that every student of the university is expected to follow.")}</p>
+      </div>
+    </header>
+
+    <section class="ektu-section">
+      <div class="ektu-wrap ektu-wrap--narrow">
+
+        <p class="ektu-doc__meta">
+          ${_("Code of Academic Integrity for Students, K NAO \"EKTU\" 059-II-2025. Approved by the Academic Council on 28 October 2025, minutes No. 3.")}
         </p>
+
+        <h2 class="ektu-static__h2">${_("1. Purpose and scope")}</h2>
+        <p>${_("This Code is a set of rules and procedures that govern the conduct of students of D. Serikbayev East Kazakhstan Technical University. It was developed in line with the Constitution and the education legislation of the Republic of Kazakhstan, the internal regulations of the university, and the Standards and Guidelines for Quality Assurance in the European Higher Education Area (ESG).")}</p>
+        <p>${_("The Code describes academic violations, sets out the procedure for each type of case, and balances the protection of students and fair process against the duty of the university to uphold its standards and reputation. It is binding on all students and teaching staff.")}</p>
+
+        <h2 class="ektu-static__h2">${_("2. Principles of academic integrity")}</h2>
+        <ul>
+          <li>${_("Academic integrity is a core institutional value that shapes honesty and mutual respect in academic work.")}</li>
+          <li>${_("The rules of academic integrity are fair and objective and are meant to build high ethical standards.")}</li>
+          <li>${_("Students follow a consistent and uninterrupted learning path, with a clear mechanism for transferring credits on the basis of verifiable transcripts from other institutions.")}</li>
+          <li>${_("Breaches of the principles of academic integrity carry responsibility.")}</li>
+          <li>${_("Teachers set out a clear policy on discipline and on what is expected from students.")}</li>
+          <li>${_("Teachers treat students with respect, as mentors who help build an academic culture.")}</li>
+          <li>${_("Members of the academic community are encouraged and recognised for promoting and defending academic integrity.")}</li>
+          <li>${_("Measures for breaches of academic integrity are applied in accordance with the legislation of the Republic of Kazakhstan.")}</li>
+          <li>${_("The university maintains an academic environment that gives students educational, social and psychological support and helps prevent academic dishonesty.")}</li>
+        </ul>
+
+        <h2 class="ektu-static__h2">${_("3. What counts as an academic violation")}</h2>
+        <p>${_("An academic violation occurs when a student:")}</p>
+        <ul>
+          <li>${_("takes credit for the work or effort of another person without permission or without citing them;")}</li>
+          <li>${_("uses unauthorised materials or false data when completing coursework;")}</li>
+          <li>${_("forges or falsifies academic documents or grade records;")}</li>
+          <li>${_("deliberately obstructs or undermines the academic work of other students;")}</li>
+          <li>${_("acts so as to present false information about the performance of any student;")}</li>
+          <li>${_("cheats in any form during an examination or while completing an assignment;")}</li>
+          <li>${_("helps another student to do any of the above.")}</li>
+        </ul>
+
+        <h2 class="ektu-static__h2">${_("4. Types of violation")}</h2>
+
+        <h3 class="ektu-doc__h3">${_("Plagiarism")}</h3>
+        <p>${_("Presenting the results of someone else's work as your own, whether deliberately or through carelessness. This includes submitting work that was wholly or partly done by another person, and presenting another person's work, idea or statement without properly citing the source. Plagiarism occurs when a student:")}</p>
+        <ul>
+          <li>${_("copies one or more sentences from another person's written work without proper citation, including material from the internet or other electronic sources;")}</li>
+          <li>${_("changes the words but copies the sentence structure without citing the source, paraphrases one or more paragraphs closely without citing the source, or uses charts, images, drawings, diagrams and other video or audio material without citing the source or without the author's consent;")}</li>
+          <li>${_("presents false or altered information in any assignment, such as invented experimental data, changed data, or references to non-existent articles and fictitious sources;")}</li>
+          <li>${_("submits work done wholly or partly by another student as their own;")}</li>
+          <li>${_("uses essay-writing services or the help of other students, or submits a translation from another language as their own original work;")}</li>
+          <li>${_("uses computer code written by another student in programming classes.")}</li>
+        </ul>
+
+        <h3 class="ektu-doc__h3">${_("Cheating")}</h3>
+        <p>${_("Cheating does real harm to the university community. Honest students are put at a disadvantage, and a student who cheats gains no real education. Cheating occurs when a person:")}</p>
+        <ul>
+          <li>${_("obtains or provides unauthorised access to examination materials;")}</li>
+          <li>${_("uses cribs, mobile phones, books, calculators or other materials and devices during an examination without the teacher's permission;")}</li>
+          <li>${_("copies from another student's examination paper, with or without their agreement, or lets another student copy from their own paper;")}</li>
+          <li>${_("obstructs or interferes with other students while they are working;")}</li>
+          <li>${_("gives a false reason when asking for an extension for an examination or a written assignment;")}</li>
+          <li>${_("keeps writing after the examination time is over, or talks during an examination;")}</li>
+          <li>${_("asks another student to sit an examination or a test for them;")}</li>
+          <li>${_("does anything else that gives an unfair advantage in an examination or in any graded assignment, or helps or organises any of the above.")}</li>
+        </ul>
+
+        <h3 class="ektu-doc__h3">${_("Misrepresentation and falsification")}</h3>
+        <p>${_("Students may not submit false assignments, research, certificates or other documents, or misrepresent facts for academic purposes. This includes altered research materials and results, invented facts or sources, forged medical certificates, forged admission documents, forged reference letters, forged transcripts or diplomas, and altered grade records or examination materials.")}</p>
+        <p>${_("Falsification of documents also occurs when a person submits a forged application or financial aid request, submits a forged or false medical certificate for missed classes or examinations, uses a forged or illegally altered student card, or forges grade sheets and other academic records.")}</p>
+
+        <h3 class="ektu-doc__h3">${_("Impersonation and concealment of information")}</h3>
+        <p>${_("Passing yourself off as another person in order to gain an academic advantage in examinations, tests or laboratory work is a breach of this Code. So is deliberately concealing information, including transcripts and other academic records, in order to mislead or to gain an academic advantage.")}</p>
+
+        <h3 class="ektu-doc__h3">${_("Use of artificial intelligence")}</h3>
+        <ul>
+          <li>${_("Relying on generative artificial intelligence for coursework without genuine involvement of the student is a breach of academic integrity.")}</li>
+          <li>${_("Students may not submit work produced with AI as their own if the use of these tools was not clearly stated.")}</li>
+          <li>${_("The purpose of coursework is not only the result but the development of analytical, research and creative ability. AI must not replace the student's own work.")}</li>
+          <li>${_("Students may use AI for learning purposes: to work more efficiently, manage their time, find and organise information, and generate notes, summaries and short overviews of study materials.")}</li>
+          <li>${_("In written, graphic, multimedia and other work produced with AI, students must inform the teacher which tools were used, giving the name and, where available, a link to the source.")}</li>
+          <li>${_("In final qualification papers and research work, all results, positions, recommendations and conclusions must be formulated by the author independently.")}</li>
+          <li>${_("The author must state that AI was used, describing at which stages, how the results were checked for accuracy, and how they were processed and interpreted. If this information is absent, the work is treated as having been produced without AI.")}</li>
+          <li>${_("AI may be used in final and research work only with the prior approval of the academic supervisor or consultant.")}</li>
+          <li>${_("Using AI without stating its name, vendor, version and the date of use breaches the principles of academic integrity.")}</li>
+          <li>${_("Technical tools, including generative AI, must not be used to hide plagiarism or to make it harder to detect.")}</li>
+        </ul>
+
+        <h2 class="ektu-static__h2">${_("5. Categories of violation")}</h2>
+        <p>${_("Each case is assessed individually, taking into account how serious the incident is, whether there were earlier recorded violations, and the extent to which the interests of the university were affected.")}</p>
+
+        <h3 class="ektu-doc__h3">${_("Category A")}</h3>
+        <p>${_("Violations that usually arise from inexperience or from not knowing academic conventions, and are often not the result of dishonest intent. Examples: working in a pair on small laboratory or home assignments where this is not allowed; missing footnotes or proper citation in a small part of an assignment; using an idea or general argument without citing the text; an accidental omission of citations with no previous violations.")}</p>
+
+        <h3 class="ektu-doc__h3">${_("Category B")}</h3>
+        <p>${_("Examples: moderate direct quotation or paraphrasing without citing the source or using quotation marks; submitting work that is a copy or a substantial part of another work for more than one course without the permission of the teacher receiving it again; using data or explanatory material for laboratory reports without proper attribution; failing to credit other people who took part in an assignment or project where their help was an integral part of it; copying from another student's examination paper, talking during an examination, or continuing to write after time is up.")}</p>
+
+        <h3 class="ektu-doc__h3">${_("Category C")}</h3>
+        <p>${_("Examples: a repeat of a category A or category B violation, whether or not sanctions were applied before; presenting another person's work as your own in any assignment, examination, term paper, diploma project, dissertation, research article, working paper or conference paper; using cribs, phones, computers, books or calculators in an examination without permission; plagiarism in a large part of a written assignment; helping someone cheat in an examination; submitting purchased work; fabricating or deliberately distorting data; forging grade sheets, stealing or buying examination materials, or altering university records; sitting an examination for another person or having someone sit it for you; distributing copies of examination materials without authorisation; agreeing with other students in advance on ways to exchange information during an examination.")}</p>
+
+        <h2 class="ektu-static__h2">${_("6. Sanctions")}</h2>
+
+        <h3 class="ektu-doc__h3">${_("Category A sanctions")}</h3>
+        <ul>
+          <li>${_("an oral reprimand;")}</li>
+          <li>${_("a written reprimand addressed to the student only;")}</li>
+          <li>${_("a requirement to attend additional non-credit classes or seminars on ethics or academic integrity;")}</li>
+          <li>${_("a written assignment or research project on ethics or academic integrity;")}</li>
+          <li>${_("an additional assignment, harder than the first one;")}</li>
+          <li>${_("a fail for the assignment, which is the minimum sanction in cases of plagiarism.")}</li>
+        </ul>
+
+        <h3 class="ektu-doc__h3">${_("Category B sanctions")}</h3>
+        <ul>
+          <li>${_("a written reprimand recorded in the student's personal file;")}</li>
+          <li>${_("a lower or failing grade for the assignment or examination; a failing grade is the minimum sanction for any violation involving substantial plagiarism or cheating;")}</li>
+          <li>${_("removal of the student from an unfinished course;")}</li>
+          <li>${_("a disciplinary warning or probation for a set period;")}</li>
+          <li>${_("any lighter sanction listed under category A.")}</li>
+        </ul>
+
+        <h3 class="ektu-doc__h3">${_("Category C sanctions")}</h3>
+        <ul>
+          <li>${_("expulsion from the university or college, with no refund of tuition;")}</li>
+          <li>${_("removal from all current courses, with no refund.")}</li>
+        </ul>
+
+        <h2 class="ektu-static__h2">${_("7. How sanctions are applied")}</h2>
+        <p>${_("Category A sanctions may be applied at the teacher's discretion. The teacher must meet the student to discuss the grounds for suspecting a violation and must send a written report to the deputy dean of the school or the head of academic affairs of the college. After a category A sanction the student has the right to submit a written complaint to that deputy dean or head, who may call a meeting with the student and the teacher and take whatever further action they consider fair. Documentation of all disciplinary action must be kept.")}</p>
+        <p>${_("More serious cases follow the procedures for category B and category C sanctions set out in the Code, including meetings and hearings.")}</p>
+
+        <h2 class="ektu-static__h2">${_("8. Guidance for students")}</h2>
+        <ul>
+          <li>${_("Be honest in all circumstances.")}</li>
+          <li>${_("Do not seek an unfair advantage over other students by cheating or by any other means.")}</li>
+          <li>${_("Act with dignity, resist any form of academic violation, and report violations you have witnessed.")}</li>
+          <li>${_("Know what plagiarism is and take steps to avoid it. Cite the source whenever you use another person's words or ideas, even in your own paraphrase. If you are unsure whether you have used someone else's thoughts, consult the teacher who set the assignment.")}</li>
+          <li>${_("Follow the university rules on academic violations and accept disciplinary responsibility, up to suspension or expulsion.")}</li>
+          <li>${_("Resist any form of corruption: do not offer or give money, gifts or hospitality, and do not use family or professional connections to obtain a higher grade.")}</li>
+          <li>${_("Do not miss classes, examinations or other academic activities, and do not arrive late, without good reason.")}</li>
+        </ul>
+
+        <h2 class="ektu-static__h2">${_("9. Anti-corruption compliance service")}</h2>
+        <p>${_("The anti-corruption compliance service receives and reviews reports from students and staff about academic violations and corruption, operates anonymous reporting channels, monitors academic integrity, runs training seminars and consultations, carries out preventive work, conducts internal checks and investigations, and refers confirmed cases of corruption to the competent law enforcement authorities. The service guarantees the confidentiality of those who report and protects them from retaliation.")}</p>
+
+        <h2 class="ektu-static__h2">${_("10. Awareness and final provisions")}</h2>
+        <p>${_("Every student is required to read this Code on admission to the university and to sign the corresponding acknowledgement. The basics of academic ethics and integrity are also covered in the course \"Fundamentals of Law and Anti-Corruption Culture\".")}</p>
+        <p>${_("The Code is binding on all students and teaching staff. Compliance is overseen by the Department of Academic Affairs, the Department of Social and Youth Policy and Inclusive Development, the deans' offices, teachers and the anti-corruption compliance service.")}</p>
+
+        <div class="ektu-note">
+          <span class="ektu-note__icon fa fa-info-circle" aria-hidden="true"></span>
+          <div>
+            ${Text(_("This page summarises the university regulation for learners. In case of any discrepancy the approved original document prevails. Questions about academic integrity can be sent to the {link_start}support desk{link_end}.")).format(
+              link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+              link_end=HTML('</a>'),
+            )}
+          </div>
+        </div>
+
+      </div>
     </section>
+
+  </section>
 </main>
