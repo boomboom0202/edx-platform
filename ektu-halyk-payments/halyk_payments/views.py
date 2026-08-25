@@ -30,7 +30,13 @@ from .client import (
     truncate_description,
 )
 from .models import Payment, PaymentStatus
-from .services import CheckoutError, mark_failed, mark_paid_and_enroll, start_checkout
+from .services import (
+    CheckoutError,
+    confirm_with_bank,
+    mark_failed,
+    mark_paid_and_enroll,
+    start_checkout,
+)
 
 log = logging.getLogger(__name__)
 
@@ -251,7 +257,7 @@ def postlink(request):
         return JsonResponse({"status": "rejected"}, status=400)
 
     if getattr(settings, "HALYK_VERIFY_WITH_STATUS_API", True) and not _fake_gateway():
-        confirmed = _confirm_with_bank(payment)
+        confirmed = confirm_with_bank(payment)
         if confirmed is None:
             # Not decided, or the bank could not be reached. Leaving a real
             # payment pending for a human is always safer than opening a course
@@ -324,56 +330,6 @@ def _payload_mismatch(payment, payload):
         return "a different terminal"
 
     return ""
-
-
-def _confirm_with_bank(payment):
-    """
-    Ask the bank directly, so a forged callback cannot enroll anybody.
-
-    Returns True when the money is confirmed, False when the bank says the
-    payment did not happen, and None when there is no answer yet — a
-    transaction still in flight, or a bank we could not reach. None must not be
-    recorded as a failure: the payment may still succeed.
-    """
-    client = HalykClient()
-    accepted = {
-        str(name).upper()
-        for name in getattr(settings, "HALYK_ACCEPTED_STATUSES", ["CHARGE"])
-    }
-
-    try:
-        token = client.get_api_token()
-        status = client.get_payment_status(payment.invoice_id, token["access_token"])
-    except (HalykError, KeyError) as exc:
-        log.error("Could not reach the bank about invoice %s: %s",
-                  payment.invoice_id, exc)
-        return None
-
-    if status.in_progress:
-        log.info("Halyk invoice %s still in progress (%s)", payment.invoice_id, status)
-        return None
-
-    if not status.ok:
-        log.warning("Halyk status check for invoice %s: %s (%s)",
-                    payment.invoice_id, status, status.result_message)
-        return False
-
-    if status.amount is not None and status.amount != Decimal(payment.amount):
-        log.error("Invoice %s was paid for %s instead of %s",
-                  payment.invoice_id, status.amount, payment.amount)
-        return False
-
-    expected_terminal = getattr(settings, "HALYK_TERMINAL_ID", "")
-    if status.terminal and expected_terminal and status.terminal != expected_terminal:
-        log.error("Invoice %s belongs to another terminal", payment.invoice_id)
-        return False
-
-    if status.status_name not in accepted:
-        log.warning("Invoice %s is %s, which does not grant access",
-                    payment.invoice_id, status.status_name)
-        return False
-
-    return True
 
 
 @login_required

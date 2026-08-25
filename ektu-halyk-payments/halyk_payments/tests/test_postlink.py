@@ -173,14 +173,16 @@ def test_a_repeated_callback_does_not_enroll_twice(payment):
 # -- the status API as the second opinion ------------------------------------
 
 def _with_status(status_body=None, raises=None):
-    """Patch the client so postlink's verification step sees a chosen answer."""
+    """Patch the client so the verification step sees a chosen answer."""
+    from halyk_payments import services
+
     client = mock.Mock()
     client.get_api_token.return_value = {"access_token": "t"}
     if raises is not None:
         client.get_payment_status.side_effect = raises
     else:
         client.get_payment_status.return_value = TransactionStatus(status_body)
-    return mock.patch.object(views, "HalykClient", return_value=client)
+    return mock.patch.object(services, "HalykClient", return_value=client)
 
 
 def _transaction(status_name="CHARGE", amount=50000, result_code="100"):

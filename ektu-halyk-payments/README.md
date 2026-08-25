@@ -90,11 +90,26 @@ The documentation's test cards pay successfully (`4405639704015096` 01/27 CVC
 The sandbox secret is public, but it is still a credential and still belongs in
 Tutor config rather than in this repository.
 
+**The bank has to be able to call back.** `postLink` is built from the host the
+learner is on, so on a local `tutor dev` the bank cannot reach it and the
+payment stays pending forever — the money moves, the course does not open. Test
+the sandbox on the public host, or pay locally and then settle it by hand:
+
+```bash
+tutor dev run lms ./manage.py lms halyk_reconcile
+```
+
 ## Trying it with no bank at all
 
 `HALYK_FAKE_GATEWAY` runs the whole flow offline: the checkout page posts a
-callback shaped exactly like the bank's, and the learner is really enrolled. It
-refuses to start when `DEBUG` is off, so it cannot reach production.
+callback shaped exactly like the bank's, and the learner is really enrolled.
+The credentials are not used at all, so this is an alternative to the sandbox
+rather than something to combine with it.
+
+It refuses to start when `DEBUG` is off — leaving it on and running
+`tutor local start` gets an `ImproperlyConfigured` at boot rather than a
+platform that gives courses away. That is deliberate. Switch it back off
+(`--set HALYK_FAKE_GATEWAY=false`) before going anywhere near production.
 
 ```bash
 tutor config save --set HALYK_ENABLED=true --set HALYK_FAKE_GATEWAY=true
@@ -123,13 +138,31 @@ charging the number in tenge.
 
 ## Installation
 
+The Tutor plugin has to be a Python package Tutor can see, so it is installed on
+the host first; the LMS app is installed into the image separately, from
+`HALYK_APP_SOURCE`.
+
 ```bash
+# 1. the Tutor plugin, on the host
+pip install -e /path/to/edx-platform/ektu-halyk-payments
 tutor plugins enable ektu-halyk
-tutor config save --set HALYK_ENABLED=true --set HALYK_TEST_MODE=true ...
+
+# 2. configuration
+tutor config save \
+  --set HALYK_ENABLED=true \
+  --set HALYK_TEST_MODE=true \
+  --set HALYK_CLIENT_ID=... \
+  --set HALYK_CLIENT_SECRET=... \
+  --set HALYK_TERMINAL_ID=...
+
+# 3. the app, into the image
 tutor images build openedx
 tutor local start -d
 tutor local run lms ./manage.py lms migrate halyk_payments
 ```
+
+`tutor plugins list` should show `ektu-halyk` as enabled before the build; if it
+does not, the config above went nowhere.
 
 Going live: `--set HALYK_TEST_MODE=false` with the production credentials, then
 rebuild.
@@ -160,11 +193,23 @@ Payments are visible in Django admin under *Halyk payments*, searchable by
 invoice, reference, username and email; the record is read-only because rows are
 only ever created by the checkout flow.
 
-A payment stuck in **pending** means the bank never confirmed it. Nobody was
-enrolled. Look it up by invoice number in the ePay merchant portal: if the money
-was taken, the callback or the status check did not get through, and the
-learner can be enrolled by hand; if it was not, nothing is owed. The plugin
-never issues refunds by itself — use the portal, or the bank's refund API.
+A payment stuck in **pending** means the callback never resolved it — the bank
+could not reach us, the server was restarting, or the transaction had not
+finished when the callback arrived. The money may well have been taken, so
+these have to be settled:
+
+```bash
+tutor local run lms ./manage.py lms halyk_reconcile
+tutor local run lms ./manage.py lms halyk_reconcile --invoice 1000001
+tutor local run lms ./manage.py lms halyk_reconcile --dry-run
+```
+
+It asks the bank about each pending payment and enrols the ones it confirms,
+through exactly the same check the callback uses — so it cannot open a course
+that was not paid for, and it is safe to run from cron.
+
+The plugin never issues refunds by itself: use the merchant portal at
+<https://epay.homebank.kz/>, or the bank's refund API.
 
 ## Tests
 
