@@ -107,6 +107,35 @@ def test_a_callback_for_a_smaller_amount_does_not_open_the_course(payment):
     assert payment.enrolled is False
 
 
+def test_an_order_settled_partly_with_bonuses_is_fully_paid(payment):
+    """
+    Halyk lets a cardholder cover part of an order with loyalty bonuses and
+    pays the merchant the whole of it. Reading `amount` alone would refuse a
+    50 tenge course settled as 15 in cash and 35 in bonuses.
+    """
+    response, enroll = post(callback(payment, amount=15000, amount_bonus=35000))
+
+    assert response.status_code == 200
+    assert enroll.call_count == 1
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PAID
+
+
+def test_bonuses_do_not_cover_a_short_payment(payment):
+    response, enroll = post(callback(payment, amount=15000, amount_bonus=5000))
+
+    assert response.status_code == 400
+    assert enroll.call_count == 0
+
+
+def test_an_overpayment_still_opens_the_course(payment):
+    """Withholding a course from someone who paid too much helps nobody."""
+    response, enroll = post(callback(payment, amount=60000))
+
+    assert response.status_code == 200
+    assert enroll.call_count == 1
+
+
 def test_a_callback_from_another_terminal_does_not_open_the_course(payment):
     response, enroll = post(callback(payment, terminal="someone-elses-terminal"))
 

@@ -92,6 +92,35 @@ def new_secret_hash():
     return secrets.token_hex(16)
 
 
+def _decimal(value):
+    """A JSON number as a Decimal, or None if it is not one."""
+    if value is None:
+        return None
+    try:
+        return Decimal(str(value))
+    except (TypeError, InvalidOperation):
+        return None
+
+
+def total_paid(payload):
+    """
+    What an order was actually settled with, or None if the bank did not say.
+
+    A Halyk cardholder can pay part of an order with loyalty bonuses. The bank
+    then reports the card part as ``amount`` and the rest as ``amount_bonus``
+    (``amountBonus`` in the status API), and pays the merchant the whole of it.
+    Reading ``amount`` alone rejects a fully paid order — a 50 tenge course
+    settled as 15 in cash and 35 in bonuses looks like an underpayment of 35.
+    """
+    amount = _decimal(payload.get("amount"))
+    if amount is None:
+        return None
+    bonus = _decimal(payload.get("amount_bonus"))
+    if bonus is None:
+        bonus = _decimal(payload.get("amountBonus"))
+    return amount + (bonus or Decimal(0))
+
+
 def truncate_description(text):
     """Cut a description down to what the bank will accept."""
     encoded = text.encode("utf-8")
@@ -133,11 +162,22 @@ class TransactionStatus:
 
     @property
     def amount(self):
-        """The amount as a Decimal — the bank returns it as a JSON number."""
-        try:
-            return Decimal(str(self.transaction["amount"]))
-        except (KeyError, TypeError, InvalidOperation):
-            return None
+        """The part of the order settled with the card, as a Decimal."""
+        return _decimal(self.transaction.get("amount"))
+
+    @property
+    def amount_bonus(self):
+        """The part settled with Halyk loyalty bonuses."""
+        return _decimal(self.transaction.get("amountBonus")) or Decimal(0)
+
+    @property
+    def total(self):
+        """
+        What the order was actually settled with, or None if the bank did not
+        say. Card and bonuses both count: the merchant is paid the whole of it.
+        """
+        amount = self.amount
+        return None if amount is None else amount + self.amount_bonus
 
     @property
     def terminal(self):

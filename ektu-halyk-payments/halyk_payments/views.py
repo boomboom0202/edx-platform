@@ -11,7 +11,7 @@ reports what the server already recorded.
 import json
 import logging
 import secrets
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -27,6 +27,7 @@ from .client import (
     RETRYABLE_REASON_CODES,
     HalykClient,
     HalykError,
+    total_paid,
     truncate_description,
 )
 from .models import Payment, PaymentStatus
@@ -311,14 +312,18 @@ def _secret_hash_ok(payment, payload):
 
 def _payload_mismatch(payment, payload):
     """Return a description of the first thing that does not match, or ''."""
-    amount = payload.get("amount")
-    if amount is not None:
-        try:
-            paid = Decimal(str(amount))
-        except InvalidOperation:
-            return f"an unreadable amount {amount!r}"
-        if paid != Decimal(payment.amount):
-            return f"amount {amount} instead of {payment.amount}"
+    expected = Decimal(payment.amount)
+    paid = total_paid(payload)
+    if payload.get("amount") is not None and paid is None:
+        return f"an unreadable amount {payload.get('amount')!r}"
+    if paid is not None:
+        if paid < expected:
+            return f"only {paid} of {expected} was settled"
+        if paid > expected:
+            # Not a reason to withhold a course from someone who overpaid, but
+            # somebody should look at why.
+            log.warning("Invoice %s was settled with %s, more than the %s asked",
+                        payment.invoice_id, paid, expected)
 
     currency = str(payload.get("currency", "")).upper()
     if currency and currency != payment.currency.upper():

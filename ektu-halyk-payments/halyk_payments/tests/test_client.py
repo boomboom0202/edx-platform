@@ -62,13 +62,14 @@ def test_a_short_description_is_left_alone():
 
 # -- the status API ----------------------------------------------------------
 
-def _status(result_code="100", status_name="CHARGE", amount=50000):
+def _status(result_code="100", status_name="CHARGE", amount=50000, amount_bonus=0):
     return TransactionStatus({
         "resultCode": result_code,
         "resultMessage": "SUCCESS",
         "transaction": {
             "invoiceID": "1000001",
             "amount": amount,
+            "amountBonus": amount_bonus,
             "statusName": status_name,
             "terminalID": "67e34d63-102f-4bd1-898e-370781d0074d",
             "reference": "411111111117",
@@ -114,3 +115,35 @@ def test_a_fractional_amount_survives_as_a_decimal():
     """The bank returns amounts as JSON numbers, so float rounding must not creep in."""
     from decimal import Decimal
     assert _status(amount=12.22).amount == Decimal("12.22")
+
+
+# -- loyalty bonuses ---------------------------------------------------------
+
+def test_bonuses_count_towards_what_was_settled():
+    """
+    A cardholder can cover part of an order with Halyk bonuses; the merchant is
+    paid the whole of it. Reading only the card part refuses a paid order.
+    """
+    from decimal import Decimal
+    from halyk_payments.client import total_paid
+
+    # The callback that was refused in production: 50 tenge as 15 + 35 bonuses.
+    assert total_paid({"amount": 15, "amount_bonus": 35}) == Decimal(50)
+    # The status API spells the same field differently.
+    assert total_paid({"amount": 12.22, "amountBonus": 10}) == Decimal("22.22")
+    assert _status(amount=15, amount_bonus=35).total == Decimal(50)
+
+
+def test_a_short_payment_is_still_short():
+    from decimal import Decimal
+    from halyk_payments.client import total_paid
+
+    assert total_paid({"amount": 15, "amount_bonus": 5}) == Decimal(20)
+
+
+def test_an_amount_the_bank_did_not_send_reads_as_unknown():
+    """Absent is not zero: nothing to compare is different from nothing paid."""
+    from halyk_payments.client import total_paid
+
+    assert total_paid({}) is None
+    assert total_paid({"amount": "nonsense"}) is None

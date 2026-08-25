@@ -70,8 +70,10 @@ def confirm_with_bank(payment):
         log.warning("Halyk status check for invoice %s: %s", payment.invoice_id, detail)
         return False, detail, status
 
-    if status.amount is not None and status.amount != Decimal(payment.amount):
-        detail = f"the bank recorded {status.amount}, not {payment.amount}"
+    # Card and bonuses both count: a course settled partly with Halyk loyalty
+    # bonuses is still paid for in full as far as the merchant is concerned.
+    if status.total is not None and status.total < Decimal(payment.amount):
+        detail = f"the bank recorded {status.total} settled, not {payment.amount}"
         log.error("Invoice %s: %s", payment.invoice_id, detail)
         return False, detail, status
 
