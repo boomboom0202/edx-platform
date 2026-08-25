@@ -9,7 +9,10 @@ setup(
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     package_data={"halyk_payments": ["templates/halyk_payments/*.html"]},
-    python_requires=">=3.11",
+    # The LMS half of this package runs on the container's Python, but the Tutor
+    # half runs on the host's, which is commonly older -- so the floor is what
+    # the code actually needs, not what Open edX happens to ship.
+    python_requires=">=3.8",
     install_requires=["requests"],
     entry_points={
         # Discovered by the LMS: registers the URLs and settings declared in
