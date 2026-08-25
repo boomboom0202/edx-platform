@@ -148,8 +148,14 @@ repository. One package, holding two things that run in two different places:
 
 Both are discovered through entry points, so each has to be pip-installed into
 the Python environment it runs in. The image build does the second one for you
-from `HALYK_APP_SOURCE`, which by default is the copy already sitting inside the
-image at `/openedx/edx-platform/ektu-halyk-payments`. Only the first is manual.
+from `HALYK_APP_SOURCE`. Only the first is manual.
+
+`HALYK_APP_SOURCE` is a git URL rather than a path into the image, even though
+the image is built from the very repository this directory lives in. The
+install runs in Tutor's `python-requirements` build stage, and that stage has no
+working tree — it binds the individual requirements files it needs and nothing
+else — so `/openedx/edx-platform` does not exist there and a local path fails
+the build with *"File ... does not exist"*.
 
 ## Installation
 
@@ -203,7 +209,7 @@ rebuild.
 | `HALYK_INVOICE_BASE` | `1000000` | Added to the row id to form the invoice number. |
 | `HALYK_COURSE_MODE` | `verified` | The mode a payment grants. |
 | `HALYK_CURRENCY` | `KZT` | The only currency accepted. |
-| `HALYK_APP_SOURCE` | the copy inside the image | What pip installs during the build. |
+| `HALYK_APP_SOURCE` | this directory, from git | What pip installs during the build. |
 
 Endpoint addresses and the OAuth scope are settings too, so they can be
 corrected from Tutor config if the documentation changes.

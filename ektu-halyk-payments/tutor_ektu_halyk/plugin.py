@@ -26,21 +26,20 @@ __version__ = "0.1.0"
 
 # Where pip should get the app from, inside the image.
 #
-# The app lives in a subdirectory of the platform repository, and the image is
-# built from that repository, so by the time this runs the code is already
-# there. Installing from the local path costs nothing and cannot drift from the
-# edx-platform the image was built from.
-#
-# If your image is *not* built from the fork -- EDX_PLATFORM_REPOSITORY still
-# points at openedx/edx-platform -- the path will not exist and pip will say so
-# during the build. Fetch it from git instead:
-#
-#   tutor config save --set HALYK_APP_SOURCE='git+https://github.com/\
-#     boomboom0202/edx-platform@release/teak#subdirectory=ektu-halyk-payments'
+# It has to come over the network even though the app lives in a subdirectory of
+# the platform repository the image is built from. The patch below runs in
+# Tutor's "python-requirements" build stage, and that stage has no working tree:
+# it binds the individual requirements files it needs and nothing else, so
+# /openedx/edx-platform does not exist there. Pointing at a local path fails the
+# build with "File ... does not exist".
 #
 # Note that pip caches by URL, so rebuilding after a push to the same branch
-# needs `tutor images build --no-cache openedx`.
-PACKAGE_DEFAULT = "/openedx/edx-platform/ektu-halyk-payments"
+# needs `tutor images build --no-cache openedx`. Pin a commit instead of a
+# branch when a rebuild has to reproduce the same image exactly.
+PACKAGE_DEFAULT = (
+    "git+https://github.com/boomboom0202/edx-platform@release/teak"
+    "#subdirectory=ektu-halyk-payments"
+)
 
 
 ########################################
