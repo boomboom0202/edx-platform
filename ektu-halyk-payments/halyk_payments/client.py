@@ -1,17 +1,15 @@
 """
 Every call to Halyk lives in this module.
 
-The rest of the app talks to :class:`HalykClient` and never builds a request of
-its own, so when the bank's documentation is available the whole integration is
-corrected in one file.
-
-Each method marked "CONTRACT" carries an assumption about the bank's API that
-must be checked against the official documentation at https://epayment.kz/docs
-before going live. They are deliberately collected here rather than scattered
-through the views.
+Written against the ePay 2.0 documentation at https://epayment.kz/docs —
+sections "Платежный виджет" (token request and payment object), "Статус
+транзакции" (status API, resultCode and statusName) and "Коды ошибок"
+(reasonCode). The rest of the app talks to :class:`HalykClient` and never
+builds a request of its own.
 """
 import logging
-import uuid
+import secrets
+from decimal import Decimal, InvalidOperation
 
 import requests
 from django.conf import settings
@@ -23,14 +21,138 @@ class HalykError(Exception):
     """Any failure while talking to the bank."""
 
 
-def new_invoice_id():
-    """
-    A fresh invoice number.
+# -- what the bank calls things ------------------------------------------------
 
-    Epay invoice numbers are short and numeric-ish; a random 12 digit value is
-    unique enough in practice and carries no information about the buyer.
+#: ``resultCode`` of the status API when the request itself succeeded. It says
+#: nothing about the payment — that is ``statusName``.
+RESULT_OK = "100"
+#: ``resultCode`` meaning the operation has not finished yet; ask again later.
+RESULT_IN_PROGRESS = "107"
+#: ``resultCode`` meaning the invoice is not known to ePay yet.
+RESULT_NOT_FOUND = "102"
+#: ``resultCode`` meaning "repeat the request or contact support".
+RESULT_RETRY = "103"
+
+#: Money has actually left the card. This is the outcome of a one-step (SMS)
+#: payment, which is how a terminal is set up by default.
+STATUS_CHARGED = "CHARGE"
+#: Money is only blocked on the card, awaiting a capture. A two-step (DMS)
+#: terminal ends here, and this plugin does not issue captures — see the README.
+STATUS_AUTHORISED = "AUTH"
+#: Outcomes that are not final: the transaction is still moving.
+STATUS_IN_PROGRESS = frozenset({"NEW", "FINGERPRINT"})
+
+#: ``reasonCode`` values documented as "не финальный, необходимо запросить
+#: статус оплаты" — the payment may still succeed, so a callback carrying one of
+#: these must not be recorded as a failure. Transfer-only codes are left out;
+#: this plugin never makes transfers.
+RETRYABLE_REASON_CODES = frozenset({
+    -31, 100, 293, 454, 690, 1267, 1268, 1269,
+    1563, 1564, 2358, 2656, 3014, 3225, 3240,
+})
+
+#: The bank requires 6 to 15 digits.
+INVOICE_MIN_DIGITS = 6
+INVOICE_MAX_DIGITS = 15
+
+#: "description" is capped at 125 bytes, and the bank counts a Cyrillic
+#: character as two (reasonCode 3298 is "too long").
+DESCRIPTION_MAX_BYTES = 125
+
+
+def invoice_number(sequence):
     """
-    return str(uuid.uuid4().int)[:12]
+    Turn a payment's primary key into an invoice number the bank will accept.
+
+    ePay wants the number unique per order *and* unique across its last six
+    digits. A random number cannot promise the second part — twelve random
+    digits start colliding on their last six after a few thousand orders — so
+    the number is derived from the payment row's own primary key, which is
+    monotonic and never reused.
+    """
+    base = int(getattr(settings, "HALYK_INVOICE_BASE", 1_000_000))
+    number = str(base + int(sequence))
+    if not INVOICE_MIN_DIGITS <= len(number) <= INVOICE_MAX_DIGITS:
+        raise HalykError(
+            f"Invoice number {number} is not between {INVOICE_MIN_DIGITS} and "
+            f"{INVOICE_MAX_DIGITS} digits; check HALYK_INVOICE_BASE."
+        )
+    return number
+
+
+def new_secret_hash():
+    """
+    The per-payment secret that ties a callback to a checkout we started.
+
+    ePay takes ``secret_hash`` in the token request and returns it on postLink,
+    so a callback that carries the right value can only have come from a payment
+    this server opened. It is generated here, stored on the payment row and
+    never sent to the browser.
+    """
+    return secrets.token_hex(16)
+
+
+def truncate_description(text):
+    """Cut a description down to what the bank will accept."""
+    encoded = text.encode("utf-8")
+    if len(encoded) <= DESCRIPTION_MAX_BYTES:
+        return text
+    # Cut on a character boundary, not in the middle of a multi-byte one.
+    return encoded[:DESCRIPTION_MAX_BYTES].decode("utf-8", "ignore")
+
+
+class TransactionStatus:
+    """
+    The status API's answer, read the way the documentation describes it.
+
+    Three questions matter and each has its own property: did the request work
+    (``ok``), is the transaction still moving (``in_progress``), and what
+    happened to the money (``status_name``).
+    """
+
+    def __init__(self, body):
+        self.body = body or {}
+        self.result_code = str(self.body.get("resultCode", ""))
+        self.result_message = str(self.body.get("resultMessage", ""))
+        self.transaction = self.body.get("transaction") or {}
+
+    @property
+    def ok(self):
+        return self.result_code == RESULT_OK
+
+    @property
+    def in_progress(self):
+        """The bank has not decided yet, so neither should we."""
+        if self.result_code in (RESULT_IN_PROGRESS, RESULT_NOT_FOUND, RESULT_RETRY):
+            return True
+        return self.status_name in STATUS_IN_PROGRESS
+
+    @property
+    def status_name(self):
+        return str(self.transaction.get("statusName", "")).upper()
+
+    @property
+    def amount(self):
+        """The amount as a Decimal — the bank returns it as a JSON number."""
+        try:
+            return Decimal(str(self.transaction["amount"]))
+        except (KeyError, TypeError, InvalidOperation):
+            return None
+
+    @property
+    def terminal(self):
+        return str(self.transaction.get("terminalID", ""))
+
+    @property
+    def reference(self):
+        return str(self.transaction.get("reference", ""))
+
+    @property
+    def card_mask(self):
+        return str(self.transaction.get("cardMask", ""))
+
+    def __str__(self):
+        return f"resultCode={self.result_code} statusName={self.status_name}"
 
 
 class HalykClient:
@@ -65,42 +187,40 @@ class HalykClient:
 
     # -- calls ------------------------------------------------------------
 
-    def get_payment_token(self, invoice_id, amount, currency, account_id=""):
+    def get_payment_token(self, invoice_id, amount, currency, secret_hash):
         """
-        Obtain the token the payment widget needs.
+        The token the payment widget needs.
 
-        CONTRACT: Epay 2.0 scopes its token to a single invoice, so the amount
-        and invoice number are part of the token request rather than of a later
-        call. Confirm the exact field names before going live — if they differ,
-        this dict is the only thing that changes.
+        The documentation is explicit that a token is per-operation: "для каждой
+        операции необходимо получать и использовать оригинальный токен". So
+        nothing here is cached, and the token is scoped to this invoice and this
+        amount — which is also why a learner cannot replay someone else's.
+
+        The whole response is returned, not just ``access_token``: the widget
+        wants the entire object as its ``auth`` field.
         """
-        payload = {
-            "grant_type": "client_credentials",
-            "scope": getattr(settings, "HALYK_OAUTH_SCOPE", "webpay"),
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
+        return self._token({
             "invoiceID": str(invoice_id),
+            "secret_hash": secret_hash,
             "amount": int(amount),
             "currency": currency,
-            "terminal": self.terminal,
-        }
-        if account_id:
-            payload["accountId"] = str(account_id)
+        })
 
-        data = self._post(self.oauth_url, payload, what="token request")
-        token = data.get("access_token")
-        if not token:
-            raise HalykError("The token response did not contain an access_token")
-        return data
+    def get_api_token(self):
+        """
+        A token for the status API, which is not tied to an invoice.
+
+        The status-check section documents the token request without
+        ``invoiceID``/``amount``, so those are deliberately absent.
+        """
+        return self._token()
 
     def get_payment_status(self, invoice_id, access_token):
         """
         Ask the bank what actually happened to an invoice.
 
-        This is what decides whether access is granted, so that a forged
-        callback cannot enroll anybody.
-
-        CONTRACT: verify the path and the shape of the response.
+        This is what decides whether access is granted, so a forged callback
+        cannot enroll anybody.
         """
         url = f"{self.api_url}/check-status/payment/transaction/{invoice_id}"
         try:
@@ -110,7 +230,7 @@ class HalykClient:
                 timeout=self.timeout,
             )
             response.raise_for_status()
-            return response.json()
+            return TransactionStatus(response.json())
         except requests.RequestException as exc:
             raise HalykError(f"Status check failed: {exc}") from exc
         except ValueError as exc:
@@ -118,8 +238,24 @@ class HalykClient:
 
     # -- plumbing ---------------------------------------------------------
 
+    def _token(self, extra=None):
+        payload = {
+            "grant_type": "client_credentials",
+            "scope": getattr(settings, "HALYK_OAUTH_SCOPE", ""),
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "terminal": self.terminal,
+        }
+        payload.update(extra or {})
+
+        data = self._post(self.oauth_url, payload, what="token request")
+        if not data.get("access_token"):
+            raise HalykError("The token response did not contain an access_token")
+        return data
+
     def _post(self, url, payload, what):
         try:
+            # form-data, as the documentation specifies for the token endpoint.
             response = requests.post(url, data=payload, timeout=self.timeout)
             response.raise_for_status()
             return response.json()

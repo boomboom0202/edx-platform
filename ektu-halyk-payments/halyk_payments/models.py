@@ -27,7 +27,19 @@ class Payment(models.Model):
 
     # Our own identifier, sent to the bank as invoiceId and echoed back in the
     # callback. Generated server side; never accepted from a request.
-    invoice_id = models.CharField(max_length=64, unique=True, db_index=True)
+    #
+    # The bank wants 6 to 15 digits, unique per order and unique again across
+    # the last six of them, so the number is derived from this row's primary
+    # key. That is only known after the insert, which is why the column is
+    # nullable: it is filled in the same transaction, immediately afterwards.
+    invoice_id = models.CharField(
+        max_length=15, unique=True, db_index=True, null=True, blank=True,
+    )
+
+    # Sent to the bank with the token request and returned to us on postLink.
+    # A callback carrying the right value can only belong to a checkout this
+    # server opened, which is what makes the callback trustworthy.
+    secret_hash = models.CharField(max_length=64, blank=True, default="")
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="halyk_payments",

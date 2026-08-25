@@ -18,41 +18,56 @@ def plugin_settings(settings):
     # Point at the bank's test environment.
     settings.HALYK_TEST_MODE = True
     # Run the whole flow without contacting the bank at all. Intended for local
-    # testing before the credentials arrive; refuses to start when DEBUG is off
-    # (see apps.py) so it can never be switched on in production by accident.
+    # testing; refuses to start when DEBUG is off (see apps.py) so it can never
+    # be switched on in production by accident.
     settings.HALYK_FAKE_GATEWAY = False
 
     # -- credentials (set these from Tutor config) ------------------------
+    # The bank's public sandbox values are ClientID "test", TerminalID
+    # 67e34d63-102f-4bd1-898e-370781d0074d and the secret published in the
+    # documentation. They belong in Tutor config like any other credential.
     settings.HALYK_CLIENT_ID = ""
     settings.HALYK_CLIENT_SECRET = ""
     settings.HALYK_TERMINAL_ID = ""
 
     # -- endpoints --------------------------------------------------------
-    # NOTE: these are the addresses published for Epay 2.0. They are kept in
-    # settings precisely so they can be corrected from Tutor config without a
-    # code change if the bank's documentation says otherwise.
-    settings.HALYK_OAUTH_URL_TEST = "https://testoauth.homebank.kz/epay2/oauth2/token"
+    # From https://epayment.kz/docs. Kept in settings so they can be corrected
+    # from Tutor config without a code change.
+    settings.HALYK_OAUTH_URL_TEST = "https://test-epay-oauth.epayment.kz/oauth2/token"
     settings.HALYK_OAUTH_URL_PROD = "https://epay-oauth.homebank.kz/oauth2/token"
-    settings.HALYK_API_URL_TEST = "https://testepay.homebank.kz/api"
+    settings.HALYK_API_URL_TEST = "https://test-epay-api.epayment.kz"
     settings.HALYK_API_URL_PROD = "https://epay-api.homebank.kz"
-    settings.HALYK_WIDGET_JS_TEST = "https://test-epay.homebank.kz/payform/payment-api.js"
+    settings.HALYK_WIDGET_JS_TEST = "https://test-epay.epayment.kz/payform/payment-api.js"
     settings.HALYK_WIDGET_JS_PROD = "https://epay.homebank.kz/payform/payment-api.js"
 
     # -- behaviour --------------------------------------------------------
     settings.HALYK_CURRENCY = "KZT"
-    settings.HALYK_OAUTH_SCOPE = "webpay usermanagement transfer"
+    # The exact scope string from the documentation. A shorter one is rejected.
+    settings.HALYK_OAUTH_SCOPE = (
+        "webapi usermanagement email_send verification statement statistics payment"
+    )
     settings.HALYK_REQUEST_TIMEOUT = 20
+
+    # Invoice numbers are this base plus the payment's primary key, which keeps
+    # them inside the bank's 6-to-15 digit range and unique on their last six
+    # digits. Raise it if invoice numbers must not collide with an older system.
+    settings.HALYK_INVOICE_BASE = 1_000_000
+
+    # Transaction outcomes that mean the learner has paid. Only CHARGE — money
+    # off the card — counts by default. AUTH is a two-step (DMS) terminal
+    # holding the money pending a capture this plugin does not issue, so
+    # accepting it would open a course against money that may never arrive.
+    settings.HALYK_ACCEPTED_STATUSES = ["CHARGE"]
 
     # Course mode that a successful payment grants. Must exist on the course
     # with a price, otherwise checkout refuses to start.
     settings.HALYK_COURSE_MODE = "verified"
 
-    # Optional hardening for the server-to-server callback. If the bank cannot
-    # sign its callbacks, restrict them by source address instead: an empty list
-    # means "accept from anywhere", which is only safe behind a trusted proxy.
+    # Optional hardening for the server-to-server callback. Authenticity is
+    # already carried by the per-payment secret_hash the bank echoes back; this
+    # narrows the callback to the bank's own addresses as well. Empty means
+    # "accept from anywhere".
     settings.HALYK_POSTLINK_IP_ALLOWLIST = []
-    # If a shared secret is agreed with the bank, the callback must carry it.
-    settings.HALYK_POSTLINK_SECRET = ""
 
     # Always re-check the amount and status against the bank's status API
     # before granting access, instead of trusting the callback body alone.

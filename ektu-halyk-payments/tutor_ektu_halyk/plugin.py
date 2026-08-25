@@ -11,11 +11,14 @@ change plus an image rebuild — no code edits.
     tutor config save \
       --set HALYK_ENABLED=true \
       --set HALYK_TEST_MODE=true \
-      --set HALYK_CLIENT_ID=... \
-      --set HALYK_CLIENT_SECRET=... \
-      --set HALYK_TERMINAL_ID=...
+      --set HALYK_CLIENT_ID=test \
+      --set HALYK_CLIENT_SECRET=<the sandbox secret from epayment.kz/docs> \
+      --set HALYK_TERMINAL_ID=67e34d63-102f-4bd1-898e-370781d0074d
     tutor images build openedx
     tutor local start -d
+
+The values above are the bank's published sandbox terminal. Replace all three
+with the university's own when they arrive and set HALYK_TEST_MODE=false.
 """
 from tutor import hooks
 
@@ -47,11 +50,12 @@ hooks.Filters.CONFIG_DEFAULTS.add_items([
 ])
 
 # Written into the Tutor config once and never committed to the repository.
+# The bank's sandbox credentials go here too — they are public, but they are
+# still credentials and still belong in config rather than in the code.
 hooks.Filters.CONFIG_UNIQUE.add_items([
     ("HALYK_CLIENT_ID", ""),
     ("HALYK_CLIENT_SECRET", ""),
     ("HALYK_TERMINAL_ID", ""),
-    ("HALYK_POSTLINK_SECRET", ""),
 ])
 
 
@@ -80,7 +84,6 @@ HALYK_VERIFY_WITH_STATUS_API = {{ "True" if HALYK_VERIFY_WITH_STATUS_API else "F
 HALYK_CLIENT_ID = "{{ HALYK_CLIENT_ID }}"
 HALYK_CLIENT_SECRET = "{{ HALYK_CLIENT_SECRET }}"
 HALYK_TERMINAL_ID = "{{ HALYK_TERMINAL_ID }}"
-HALYK_POSTLINK_SECRET = "{{ HALYK_POSTLINK_SECRET }}"
 HALYK_CURRENCY = "{{ HALYK_CURRENCY }}"
 HALYK_COURSE_MODE = "{{ HALYK_COURSE_MODE }}"
 HALYK_POSTLINK_IP_ALLOWLIST = {{ HALYK_POSTLINK_IP_ALLOWLIST }}

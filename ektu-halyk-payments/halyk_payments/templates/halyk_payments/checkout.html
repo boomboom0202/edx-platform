@@ -68,14 +68,24 @@
 (function () {
   // Post a simulated callback to our own endpoint, then go to the result page.
   document.getElementById('fake-pay').addEventListener('click', function () {
+    // Shaped like the bank's real success callback, so the same code path runs.
     fetch("{{ postlink_url }}", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         invoiceId: "{{ payment.invoice_id }}",
+        amount: {{ payment.amount }},
+        currency: "{{ payment.currency }}",
+        terminal: "{{ terminal|escapejs }}",
+        accountId: "{{ payment.user_id }}",
         code: "ok",
+        reason: "success",
+        reasonCode: 0,
+        approvalCode: "157911",
         reference: "TEST-{{ payment.invoice_id }}",
-        cardMask: "440043...0037"
+        cardMask: "440043...0037",
+        cardType: "VISA",
+        secret_hash: "{{ payment.secret_hash|escapejs }}"
       })
     }).then(function () {
       window.location.href = "{{ return_url }}";
@@ -95,10 +105,13 @@
       window.alert("{% trans 'The payment service could not be loaded. Please try again later.' %}");
       return;
     }
+    // The second argument is the widget's callback: { success: true | false }.
+    // Its answer only decides which page the learner lands on. Access is
+    // granted by the server-to-server callback, never here.
     halyk.showPaymentWidget(paymentObject, function (result) {
-      // The widget's answer is only a hint for the learner; access is granted
-      // by the server-to-server callback, never here.
-      window.location.href = paymentObject.backLink;
+      var ok = result && result.success;
+      window.location.href = ok ? paymentObject.backLink
+                                : paymentObject.failureBackLink;
     });
   });
 })();

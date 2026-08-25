@@ -49,6 +49,51 @@ def test_price_comes_from_the_course_not_the_request(db, learner, settings):
     assert created.enrolled is False
 
 
+def test_checkout_assigns_an_invoice_number_and_a_secret(db, learner, settings):
+    """
+    Both are needed before the bank can be called: the number identifies the
+    order, and the secret is what makes the callback verifiable.
+    """
+    settings.HALYK_COURSE_MODE = "verified"
+    settings.HALYK_CURRENCY = "KZT"
+    mode = mock.Mock(mode_slug="verified", min_price=50000, currency="kzt")
+
+    with mock.patch.object(services, "get_paid_mode", return_value=mode), \
+            mock.patch.object(services, "already_enrolled_in_paid_mode", return_value=False):
+        created = services.start_checkout(learner, COURSE)
+
+    assert created.invoice_id and created.invoice_id.isdigit()
+    assert 6 <= len(created.invoice_id) <= 15
+    assert len(created.secret_hash) >= 16
+
+
+def test_reloading_checkout_does_not_open_a_second_invoice(db, learner, settings):
+    """Otherwise every page refresh would leave another order at the bank."""
+    settings.HALYK_COURSE_MODE = "verified"
+    settings.HALYK_CURRENCY = "KZT"
+    mode = mock.Mock(mode_slug="verified", min_price=50000, currency="kzt")
+
+    with mock.patch.object(services, "get_paid_mode", return_value=mode), \
+            mock.patch.object(services, "already_enrolled_in_paid_mode", return_value=False):
+        first = services.start_checkout(learner, COURSE)
+        second = services.start_checkout(learner, COURSE)
+
+    assert first.pk == second.pk
+    assert Payment.objects.count() == 1
+
+
+def test_a_course_priced_in_another_currency_is_refused(db, learner, settings):
+    """Charging a dollar price as tenge would undercharge by a factor of 500."""
+    settings.HALYK_COURSE_MODE = "verified"
+    settings.HALYK_CURRENCY = "KZT"
+    mode = mock.Mock(mode_slug="verified", min_price=100, currency="usd")
+
+    with mock.patch.object(services, "get_paid_mode", return_value=mode), \
+            mock.patch.object(services, "already_enrolled_in_paid_mode", return_value=False):
+        with pytest.raises(services.CheckoutError):
+            services.start_checkout(learner, COURSE)
+
+
 def test_a_course_without_a_price_cannot_be_bought(db, learner):
     with mock.patch.object(services, "get_paid_mode", return_value=None):
         with pytest.raises(services.CheckoutError):

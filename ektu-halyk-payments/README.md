@@ -3,22 +3,15 @@
 Paid access to Open edX courses through Halyk Bank's ePay gateway.
 
 The bank's own API surface is confined to `halyk_payments/client.py`. Everything
-else — pricing, enrolment, the pages the learner sees — is finished and does not
-change when the credentials arrive.
+else — pricing, enrolment, the pages the learner sees — does not change when the
+production credentials arrive.
 
 ## Status
 
-Ready to run against the bank as soon as the terminal credentials exist. Four
-assumptions about the bank's API are marked `CONTRACT` in `client.py` and
-`views.py` and must be checked against <https://epayment.kz/docs> before taking
-real money:
-
-1. the fields of the token request,
-2. the fields of the payment object handed to the widget,
-3. the body of the `postLink` callback and the field carrying the outcome,
-4. the path and shape of the status-check response.
-
-If any of them differ, only those two files change.
+Written against the published contract at <https://epayment.kz/docs>: the token
+request, the payment object, the postLink body, the status API and the response
+codes are all taken from the documentation rather than guessed. Moving to the
+university's own terminal is a config change and an image rebuild.
 
 ## How a purchase works
 
@@ -29,23 +22,79 @@ bank    → /halyk/postlink/               server to server: confirms, then enro
 learner → /halyk/result/<invoice_id>/    only reports what the server recorded
 ```
 
-Two rules are deliberate:
+Four rules are deliberate:
 
 - **Only the callback grants access.** The browser coming back from the bank
   never enrols anybody, so a learner cannot open a paid course by visiting a
-  URL. Before enrolling, the callback is re-checked against the bank's status
-  API (`HALYK_VERIFY_WITH_STATUS_API`), and a mismatched amount is refused.
+  URL.
 - **The price is read from the course.** `start_checkout` takes the amount and
   the mode from `CourseMode`; nothing about the price comes from the request.
+- **Every callback is checked twice.** Its `secret_hash`, amount, currency and
+  terminal must match the payment, and then the bank's status API is asked
+  again (`HALYK_VERIFY_WITH_STATUS_API`) before anyone is enrolled.
+- **Uncertainty never becomes a failure.** A transaction still in progress, a
+  non-final `reasonCode` or an unreachable bank leaves the payment pending for a
+  human, because none of those are evidence that the learner did not pay.
 
 Re-delivery of the same callback is harmless: the payment row is locked and the
 enrolment happens only on the transition into the paid state.
 
-## Trying it before the credentials arrive
+## What the documentation pins down
 
-`HALYK_FAKE_GATEWAY` runs the whole flow with no bank involved: the checkout page
-shows a button that posts a simulated callback, and the learner is really
-enrolled. It refuses to start when `DEBUG` is off, so it cannot reach production.
+| Thing | Where it lives |
+| --- | --- |
+| Token per operation, never cached, `secret_hash` returned on postLink | `client.get_payment_token` |
+| Status-API token, which takes no `invoiceID`/`amount` | `client.get_api_token` |
+| Payment object for `halyk.showPaymentWidget()`, `auth` = the whole token response | `views.checkout` |
+| `code: "ok"` and `reasonCode: 0` on success | `views.postlink` |
+| Non-final `reasonCode`s (454, 690, 3240 …) → ask again, do not fail | `client.RETRYABLE_REASON_CODES` |
+| `resultCode` 100 means the *request* worked; `statusName` says what happened to the money | `client.TransactionStatus` |
+| Invoice numbers: 6–15 digits, unique also on the last six | `client.invoice_number` |
+| `description` ≤ 125 bytes (exceeding it is `reasonCode` 3298) | `client.truncate_description` |
+| `language` is `RUS`/`KAZ`/`ENG` | `views.LANGUAGES` |
+
+### One-step terminals only
+
+A terminal is set up for one-step (SMS) payments by default, and the money is
+charged straight away — `statusName` becomes `CHARGE`, which is the only status
+that grants access here. On a two-step (DMS) terminal the payment stops at
+`AUTH`, money merely blocked on the card, and this plugin issues no capture, so
+it deliberately refuses to open the course. Do not switch the terminal to
+two-step without adding capture support.
+
+## Invoice numbers
+
+ePay wants the number unique per order *and* unique across its last six digits.
+Random numbers cannot promise that — twelve random digits start colliding on
+their last six after a few thousand orders — so the number is
+`HALYK_INVOICE_BASE + payment.pk`, which is monotonic. Raise the base if these
+numbers must not collide with an older system's.
+
+## Trying it against the bank's sandbox
+
+The published sandbox terminal works today:
+
+```bash
+tutor config save \
+  --set HALYK_ENABLED=true \
+  --set HALYK_TEST_MODE=true \
+  --set HALYK_CLIENT_ID=test \
+  --set HALYK_CLIENT_SECRET=<the sandbox secret from epayment.kz/docs> \
+  --set HALYK_TERMINAL_ID=67e34d63-102f-4bd1-898e-370781d0074d
+```
+
+The documentation's test cards pay successfully (`4405639704015096` 01/27 CVC
+321, 3DS password `unlock`) or fail on purpose (`4003032704547597` 09/20 CVC
+170), which is how the failure paths get exercised.
+
+The sandbox secret is public, but it is still a credential and still belongs in
+Tutor config rather than in this repository.
+
+## Trying it with no bank at all
+
+`HALYK_FAKE_GATEWAY` runs the whole flow offline: the checkout page posts a
+callback shaped exactly like the bank's, and the learner is really enrolled. It
+refuses to start when `DEBUG` is off, so it cannot reach production.
 
 ```bash
 tutor config save --set HALYK_ENABLED=true --set HALYK_FAKE_GATEWAY=true
@@ -76,12 +125,7 @@ charging the number in tenge.
 
 ```bash
 tutor plugins enable ektu-halyk
-tutor config save \
-  --set HALYK_ENABLED=true \
-  --set HALYK_TEST_MODE=true \
-  --set HALYK_CLIENT_ID=... \
-  --set HALYK_CLIENT_SECRET=... \
-  --set HALYK_TERMINAL_ID=...
+tutor config save --set HALYK_ENABLED=true --set HALYK_TEST_MODE=true ...
 tutor images build openedx
 tutor local start -d
 tutor local run lms ./manage.py lms migrate halyk_payments
@@ -100,14 +144,15 @@ rebuild.
 | `HALYK_CLIENT_ID` | — | From the bank. |
 | `HALYK_CLIENT_SECRET` | — | From the bank. Never commit it. |
 | `HALYK_TERMINAL_ID` | — | From the bank. |
-| `HALYK_POSTLINK_SECRET` | — | Shared secret on the callback, if the bank supports one. |
 | `HALYK_POSTLINK_IP_ALLOWLIST` | `[]` | Restrict the callback by source address. Empty means any. |
 | `HALYK_VERIFY_WITH_STATUS_API` | `true` | Re-check with the bank before enrolling. Leave on. |
+| `HALYK_ACCEPTED_STATUSES` | `["CHARGE"]` | Outcomes that grant access. |
+| `HALYK_INVOICE_BASE` | `1000000` | Added to the row id to form the invoice number. |
 | `HALYK_COURSE_MODE` | `verified` | The mode a payment grants. |
 | `HALYK_CURRENCY` | `KZT` | The only currency accepted. |
 
-Endpoint addresses are settings too, so they can be corrected from Tutor config
-if the documentation says otherwise.
+Endpoint addresses and the OAuth scope are settings too, so they can be
+corrected from Tutor config if the documentation changes.
 
 ## Operations
 
@@ -116,21 +161,25 @@ invoice, reference, username and email; the record is read-only because rows are
 only ever created by the checkout flow.
 
 A payment stuck in **pending** means the bank never confirmed it. Nobody was
-enrolled and, if money was actually taken, it needs a refund on the bank's side —
-the plugin never issues refunds by itself.
+enrolled. Look it up by invoice number in the ePay merchant portal: if the money
+was taken, the callback or the status check did not get through, and the
+learner can be enrolled by hand; if it was not, nothing is owed. The plugin
+never issues refunds by itself — use the portal, or the bank's refund API.
 
 ## Tests
 
 ```bash
-pytest halyk_payments/tests/test_services.py
+pytest halyk_payments/tests/
 ```
 
-They cover the parts that would cost money if they broke: the price comes from
-the course, a repeated callback enrols once, and a late failure notice does not
-revoke access that was already granted.
+They cover the things that would cost money if they broke: the price comes from
+the course, a forged or mismatched callback enrols nobody, a repeated callback
+enrols once, `AUTH` does not open a course, a non-final error code leaves the
+payment pending, and a late failure notice does not revoke access already
+granted.
 
 ## Not built yet
 
-Refunds, saved cards, recurring payments and receipts. The `Payment` model
-records the bank's reference so refunds can be issued from the bank's portal in
-the meantime.
+Refunds, captures for two-step terminals, saved cards, recurring payments and
+receipts. The `Payment` model records the bank's reference so refunds can be
+issued from the portal in the meantime.

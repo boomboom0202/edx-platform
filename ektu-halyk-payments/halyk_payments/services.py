@@ -14,7 +14,7 @@ import logging
 from django.db import transaction
 from django.utils import timezone
 
-from .client import new_invoice_id
+from .client import invoice_number, new_secret_hash
 from .models import Payment, PaymentStatus
 
 log = logging.getLogger(__name__)
@@ -83,18 +83,26 @@ def start_checkout(user, course_key):
     existing = Payment.objects.filter(
         user=user, course_id=course_key, status=PaymentStatus.PENDING,
         course_mode=mode.mode_slug, amount=amount, currency=currency,
-    ).order_by("-created").first()
+    ).exclude(invoice_id=None).order_by("-created").first()
     if existing is not None:
         return existing
 
-    return Payment.objects.create(
-        invoice_id=new_invoice_id(),
-        user=user,
-        course_id=course_key,
-        course_mode=mode.mode_slug,
-        amount=amount,
-        currency=currency,
-    )
+    with transaction.atomic():
+        payment = Payment.objects.create(
+            user=user,
+            course_id=course_key,
+            course_mode=mode.mode_slug,
+            amount=amount,
+            currency=currency,
+            secret_hash=new_secret_hash(),
+        )
+        # The bank's invoice number has to be unique on its last six digits, so
+        # it comes from the primary key rather than from randomness. The key
+        # only exists after the insert, hence the second write.
+        payment.invoice_id = invoice_number(payment.pk)
+        payment.save(update_fields=["invoice_id", "modified"])
+
+    return payment
 
 
 @transaction.atomic
