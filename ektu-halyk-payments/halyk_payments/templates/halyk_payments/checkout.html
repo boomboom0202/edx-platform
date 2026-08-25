@@ -1,0 +1,108 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'ru' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% trans "Payment" %}</title>
+<style>
+  :root { --g:#006D5B; --d:#013A3A; --ink:#0d2b27; --muted:#5b726c;
+          --surface:#f4f8f6; --border:#d9e6e1; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--surface); color:var(--ink); line-height:1.6;
+         font-family:'Manrope','Helvetica Neue',Arial,sans-serif; }
+  .bar { background:var(--d); border-top:4px solid var(--g); color:#fff;
+         padding:16px 24px; font-weight:700; }
+  .wrap { max-width:560px; margin:40px auto; padding:0 20px; }
+  .card { background:#fff; border:1px solid var(--border); border-radius:18px;
+          padding:28px; box-shadow:0 2px 10px rgba(1,58,58,.05); }
+  h1 { font-size:22px; line-height:1.3; margin:0 0 18px; color:var(--ink); }
+  dl { display:grid; grid-template-columns:auto 1fr; gap:8px 18px; margin:0 0 24px; }
+  dt { color:var(--muted); font-size:14px; }
+  dd { margin:0; font-weight:600; text-align:right; }
+  .total { font-size:20px; color:var(--g); }
+  .btn { display:block; width:100%; border:0; border-radius:999px; cursor:pointer;
+         background:var(--g); color:#fff; font-weight:700; font-size:16px;
+         padding:15px 24px; font-family:inherit; }
+  .btn:hover { background:var(--d); }
+  .note { color:var(--muted); font-size:13px; margin-top:16px; }
+  .warn { background:#fff8e6; border:1px solid #f0d999; border-radius:12px;
+          padding:14px 16px; color:#7a5b12; font-size:14px; margin-bottom:20px; }
+</style>
+</head>
+<body>
+<div class="bar">EKTU</div>
+<div class="wrap">
+  <div class="card">
+
+    {% if fake %}
+    <div class="warn">
+      <strong>{% trans "Test mode." %}</strong>
+      {% trans "No money is taken and no request reaches the bank. This button simulates the bank's callback so the whole flow can be checked end to end." %}
+    </div>
+    {% endif %}
+
+    <h1>{% trans "Payment for course access" %}</h1>
+
+    <dl>
+      <dt>{% trans "Course" %}</dt><dd>{{ payment.course_id }}</dd>
+      <dt>{% trans "Invoice" %}</dt><dd>{{ payment.invoice_id }}</dd>
+      <dt>{% trans "Amount" %}</dt>
+      <dd class="total">{{ payment.amount }} {{ payment.currency }}</dd>
+    </dl>
+
+    {% if fake %}
+      <form method="post" action="{{ postlink_url }}" id="fake-form">
+        <button type="button" class="btn" id="fake-pay">{% trans "Simulate a successful payment" %}</button>
+      </form>
+      <p class="note">{% trans "You will be taken to the result page, exactly as after a real payment." %}</p>
+    {% else %}
+      <button type="button" class="btn" id="pay">{% trans "Pay" %}</button>
+      <p class="note">{% trans "You will be redirected to the secure payment page of Halyk Bank. The university never sees your card details." %}</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{% if fake %}
+<script>
+(function () {
+  // Post a simulated callback to our own endpoint, then go to the result page.
+  document.getElementById('fake-pay').addEventListener('click', function () {
+    fetch("{{ postlink_url }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        invoiceId: "{{ payment.invoice_id }}",
+        code: "ok",
+        reference: "TEST-{{ payment.invoice_id }}",
+        cardMask: "440043...0037"
+      })
+    }).then(function () {
+      window.location.href = "{{ return_url }}";
+    });
+  });
+})();
+</script>
+{% else %}
+<script src="{{ widget_js_url }}"></script>
+<script>
+(function () {
+  // The payment object is built entirely on the server; nothing here decides
+  // the amount or which course is being bought.
+  var paymentObject = {{ payment_object_json|safe }};
+  document.getElementById('pay').addEventListener('click', function () {
+    if (typeof halyk === "undefined" || !halyk.showPaymentWidget) {
+      window.alert("{% trans 'The payment service could not be loaded. Please try again later.' %}");
+      return;
+    }
+    halyk.showPaymentWidget(paymentObject, function (result) {
+      // The widget's answer is only a hint for the learner; access is granted
+      // by the server-to-server callback, never here.
+      window.location.href = paymentObject.backLink;
+    });
+  });
+})();
+</script>
+{% endif %}
+</body>
+</html>
