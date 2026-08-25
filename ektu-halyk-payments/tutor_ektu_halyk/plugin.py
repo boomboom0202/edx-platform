@@ -60,6 +60,12 @@ hooks.Filters.CONFIG_DEFAULTS.add_items([
     ("HALYK_COURSE_MODE", "verified"),
     ("HALYK_VERIFY_WITH_STATUS_API", True),
     ("HALYK_POSTLINK_IP_ALLOWLIST", []),
+
+    # Transaction outcomes that open a course. CHARGE means the money left the
+    # card. AUTH means it is only blocked, awaiting a capture this plugin does
+    # not issue -- adding it opens courses against money that may never arrive,
+    # which is only reasonable against the bank's test terminal.
+    ("HALYK_ACCEPTED_STATUSES", ["CHARGE"]),
 ])
 
 # Written into the Tutor config once and never committed to the repository.
@@ -100,6 +106,7 @@ HALYK_TERMINAL_ID = "{{ HALYK_TERMINAL_ID }}"
 HALYK_CURRENCY = "{{ HALYK_CURRENCY }}"
 HALYK_COURSE_MODE = "{{ HALYK_COURSE_MODE }}"
 HALYK_POSTLINK_IP_ALLOWLIST = {{ HALYK_POSTLINK_IP_ALLOWLIST }}
+HALYK_ACCEPTED_STATUSES = {{ HALYK_ACCEPTED_STATUSES }}
 """
 
 hooks.Filters.ENV_PATCHES.add_item(("openedx-lms-production-settings", _SETTINGS))

@@ -59,8 +59,20 @@ A terminal is set up for one-step (SMS) payments by default, and the money is
 charged straight away — `statusName` becomes `CHARGE`, which is the only status
 that grants access here. On a two-step (DMS) terminal the payment stops at
 `AUTH`, money merely blocked on the card, and this plugin issues no capture, so
-it deliberately refuses to open the course. Do not switch the terminal to
-two-step without adding capture support.
+it deliberately refuses to open the course. Ask the bank which scheme the
+terminal uses before going live.
+
+**The bank's own sandbox terminal is two-step.** A test payment there ends at
+`AUTH` with `payoutAmount: 0`, so nothing is enrolled — correctly. To exercise
+the rest of the flow against it:
+
+```bash
+tutor config save --set HALYK_ACCEPTED_STATUSES='["CHARGE","AUTH"]'
+```
+
+Never do this against a real terminal: it opens courses for money that is only
+blocked and may never be captured. The app logs an error at startup if it finds
+AUTH accepted while `HALYK_TEST_MODE` is off.
 
 ## Invoice numbers
 
