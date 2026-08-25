@@ -136,6 +136,27 @@ start. Note that Open edX defaults `currency` to `usd`; checkout refuses a
 course priced in anything other than `HALYK_CURRENCY` rather than quietly
 charging the number in tenge.
 
+### Delete the free mode, or the price is decoration
+
+Adding a price does not put a course behind a paywall. Open edX auto-enrols
+anyone the moment a free `audit` or `honor` mode exists on the course, and it
+does so *before* the learner ever sees a price — so a course with both modes is
+free to anyone who clicks "Enroll now". Paid-only means `verified` is the only
+mode on the course.
+
+```bash
+tutor local run lms ./manage.py lms halyk_courses
+```
+
+reports every course being sold and flags the ones still reachable for free or
+priced in the wrong currency. It changes nothing; deleting a free mode is a
+decision about what the university sells.
+
+Open edX's own track-selection page is handled for you: `PaidCourseCheckoutMiddleware`
+redirects it to this checkout for courses that are for sale. Left alone, that
+page walks the learner through identity verification and never asks for money,
+because upstream expects the ecommerce service to take the payment.
+
 ## Where this code lives, and why it is installed twice
 
 This directory is a subdirectory of the edx-platform fork — it is not a separate

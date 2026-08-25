@@ -72,3 +72,16 @@ def plugin_settings(settings):
     # Always re-check the amount and status against the bank's status API
     # before granting access, instead of trusting the callback body alone.
     settings.HALYK_VERIFY_WITH_STATUS_API = True
+
+    # -- wiring -----------------------------------------------------------
+    # Open edX's track-selection page ends at identity verification, because
+    # payment is meant to be the ecommerce service's job — and there is no
+    # ecommerce service here. Without this, a learner clicking "Enroll now" on a
+    # course we sell is walked through verification and never asked to pay.
+    #
+    # Appended, so it runs after authentication middleware and can read
+    # request.user. Guarded because plugin settings are applied once per
+    # settings module (common, production, test).
+    middleware = "halyk_payments.middleware.PaidCourseCheckoutMiddleware"
+    if middleware not in settings.MIDDLEWARE:
+        settings.MIDDLEWARE = list(settings.MIDDLEWARE) + [middleware]
