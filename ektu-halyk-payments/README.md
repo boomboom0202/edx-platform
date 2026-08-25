@@ -136,15 +136,26 @@ start. Note that Open edX defaults `currency` to `usd`; checkout refuses a
 course priced in anything other than `HALYK_CURRENCY` rather than quietly
 charging the number in tenge.
 
+## Where this code lives, and why it is installed twice
+
+This directory is a subdirectory of the edx-platform fork — it is not a separate
+repository. One package, holding two things that run in two different places:
+
+| Package | Entry point | Runs | Installed by |
+| --- | --- | --- | --- |
+| `tutor_ektu_halyk` | `tutor.plugin.v1` | on the host, next to `tutor` | you, once |
+| `halyk_payments` | `lms.djangoapp` | inside the LMS container | the image build |
+
+Both are discovered through entry points, so each has to be pip-installed into
+the Python environment it runs in. The image build does the second one for you
+from `HALYK_APP_SOURCE`, which by default is the copy already sitting inside the
+image at `/openedx/edx-platform/ektu-halyk-payments`. Only the first is manual.
+
 ## Installation
 
-The Tutor plugin has to be a Python package Tutor can see, so it is installed on
-the host first; the LMS app is installed into the image separately, from
-`HALYK_APP_SOURCE`.
-
 ```bash
-# 1. the Tutor plugin, on the host
-pip install -e /path/to/edx-platform/ektu-halyk-payments
+# 1. the Tutor plugin, on the host, into the same environment as tutor itself
+pip install "git+https://github.com/boomboom0202/edx-platform@release/teak#subdirectory=ektu-halyk-payments"
 tutor plugins enable ektu-halyk
 
 # 2. configuration
@@ -162,7 +173,16 @@ tutor local run lms ./manage.py lms migrate halyk_payments
 ```
 
 `tutor plugins list` should show `ektu-halyk` as enabled before the build; if it
-does not, the config above went nowhere.
+does not, the plugin landed in a different Python environment than `tutor` — the
+usual cause — and the config above went nowhere. Compare `which tutor` with
+`which pip`, or install with `$(dirname $(which tutor))/pip`.
+
+That pip line clones the platform repository, which is large. If it is already
+on the server, install from disk instead:
+
+```bash
+pip install -e /path/to/edx-platform/ektu-halyk-payments
+```
 
 Going live: `--set HALYK_TEST_MODE=false` with the production credentials, then
 rebuild.
@@ -183,6 +203,7 @@ rebuild.
 | `HALYK_INVOICE_BASE` | `1000000` | Added to the row id to form the invoice number. |
 | `HALYK_COURSE_MODE` | `verified` | The mode a payment grants. |
 | `HALYK_CURRENCY` | `KZT` | The only currency accepted. |
+| `HALYK_APP_SOURCE` | the copy inside the image | What pip installs during the build. |
 
 Endpoint addresses and the OAuth scope are settings too, so they can be
 corrected from Tutor config if the documentation changes.
