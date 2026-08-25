@@ -31,11 +31,16 @@ def confirm_with_bank(payment):
     Ask the bank what happened to an invoice, and answer one question: may this
     learner be enrolled?
 
-    Returns the transaction when the money is confirmed (truthy, and it carries
-    the reference and card mask worth recording), False when the bank says the
-    payment did not happen, and None when there is no answer yet — a
-    transaction still in flight, or a bank we could not reach. None must never
-    be recorded as a failure: the payment may still succeed.
+    Returns ``(verdict, detail, transaction)``:
+
+    - ``True``  — the money is confirmed; the transaction carries the reference
+      and card mask worth recording.
+    - ``False`` — the bank says this did not happen. ``detail`` says what the
+      bank actually reported, because "not confirmed" on its own is useless
+      when someone is looking at a learner who insists they paid.
+    - ``None``  — no answer yet: a transaction still in flight, or a bank we
+      could not reach. Never record this as a failure; the payment may still
+      succeed.
 
     This is the only thing that can turn a pending payment into access, whether
     it is called from the bank's callback or from the reconcile command.
@@ -54,33 +59,35 @@ def confirm_with_bank(payment):
     except (HalykError, KeyError) as exc:
         log.error("Could not reach the bank about invoice %s: %s",
                   payment.invoice_id, exc)
-        return None
+        return None, f"the bank could not be reached ({exc})", None
 
     if status.in_progress:
         log.info("Halyk invoice %s still in progress (%s)", payment.invoice_id, status)
-        return None
+        return None, f"still in progress ({status})", status
 
     if not status.ok:
-        log.warning("Halyk status check for invoice %s: %s (%s)",
-                    payment.invoice_id, status, status.result_message)
-        return False
+        detail = f"resultCode {status.result_code} — {status.result_message}"
+        log.warning("Halyk status check for invoice %s: %s", payment.invoice_id, detail)
+        return False, detail, status
 
     if status.amount is not None and status.amount != Decimal(payment.amount):
-        log.error("Invoice %s was paid for %s instead of %s",
-                  payment.invoice_id, status.amount, payment.amount)
-        return False
+        detail = f"the bank recorded {status.amount}, not {payment.amount}"
+        log.error("Invoice %s: %s", payment.invoice_id, detail)
+        return False, detail, status
 
     expected_terminal = getattr(settings, "HALYK_TERMINAL_ID", "")
     if status.terminal and expected_terminal and status.terminal != expected_terminal:
-        log.error("Invoice %s belongs to another terminal", payment.invoice_id)
-        return False
+        detail = f"terminal {status.terminal} is not ours"
+        log.error("Invoice %s: %s", payment.invoice_id, detail)
+        return False, detail, status
 
     if status.status_name not in accepted:
-        log.warning("Invoice %s is %s, which does not grant access",
-                    payment.invoice_id, status.status_name)
-        return False
+        detail = (f"statusName {status.status_name or '(none)'} does not grant "
+                  f"access; accepted: {', '.join(sorted(accepted))}")
+        log.warning("Invoice %s: %s", payment.invoice_id, detail)
+        return False, detail, status
 
-    return status
+    return True, "", status
 
 
 def get_paid_mode(course_key):

@@ -25,6 +25,7 @@
                 border:1.5px solid var(--g); }
   .btn--ghost:hover { background:var(--g); color:#fff; }
   .dot { font-size:34px; line-height:1; margin-bottom:12px; }
+  .ref { font-size:13px; margin:18px 0 0; }
 </style>
 {% if state == "pending" %}<meta http-equiv="refresh" content="5">{% endif %}
 </head>
@@ -42,8 +43,9 @@
     {% elif state == "failed" or state == "cancelled" %}
       <div class="dot">⚠️</div>
       <h1>{% trans "The payment did not go through" %}</h1>
-      <p>{% trans "No money has been taken. You can try again." %}</p>
-      <a class="btn" href="/courses/{{ course_id }}/about">{% trans "Back to the course" %}</a>
+      <p>{% trans "Access was not opened. If your bank shows the money as taken, quote the invoice number below to support and it will be sorted out." %}</p>
+      <a class="btn" href="/halyk/checkout/{{ course_id }}/">{% trans "Try again" %}</a>
+      <p class="ref">{% trans "Invoice" %} {{ payment.invoice_id }}</p>
 
     {% elif state == "error" %}
       <div class="dot">⚠️</div>

@@ -257,15 +257,15 @@ def postlink(request):
         return JsonResponse({"status": "rejected"}, status=400)
 
     if getattr(settings, "HALYK_VERIFY_WITH_STATUS_API", True) and not _fake_gateway():
-        confirmed = confirm_with_bank(payment)
-        if confirmed is None:
+        verdict, detail, _ = confirm_with_bank(payment)
+        if verdict is None:
             # Not decided, or the bank could not be reached. Leaving a real
             # payment pending for a human is always safer than opening a course
             # on an unverified message.
+            log.info("Halyk invoice %s left pending: %s", invoice_id, detail)
             return JsonResponse({"status": "pending"})
-        if not confirmed:
-            mark_failed(payment.pk, reason="Not confirmed by the status API",
-                        payload=payload)
+        if verdict is False:
+            mark_failed(payment.pk, reason=f"Bank says: {detail}", payload=payload)
             return JsonResponse({"status": "recorded as failed"})
 
     mark_paid_and_enroll(
@@ -334,22 +334,68 @@ def _payload_mismatch(payment, payload):
 
 @login_required
 def result(request, invoice_id):
-    """What the learner sees after the bank sends the browser back."""
-    if not _enabled():
-        raise Http404
+    """
+    What the learner sees after the bank sends the browser back.
 
-    payment = Payment.objects.filter(
-        invoice_id=invoice_id, user=request.user,
-    ).first()
-    if payment is None:
-        raise Http404
+    A paid invoice lands on its receipt rather than being bounced straight into
+    the course: the moment after paying is exactly when someone wants proof
+    that the money went somewhere, and a silent redirect gives them none.
+    """
+    payment = _own_payment(request, invoice_id)
 
     if payment.is_paid and payment.enrolled:
-        return redirect(f"/courses/{payment.course_id}/course/")
+        return _receipt(request, payment)
 
     state = "pending" if payment.status == PaymentStatus.PENDING else payment.status
     return render(request, "halyk_payments/result.html", {
         "state": state,
         "payment": payment,
         "course_id": str(payment.course_id),
+    })
+
+
+@login_required
+def receipt(request, invoice_id):
+    """
+    The receipt for a payment, at an address the learner can come back to.
+
+    Everything on it was recorded when the bank confirmed the payment, so it
+    reflects what actually happened rather than what the browser was told.
+    """
+    payment = _own_payment(request, invoice_id)
+    if not payment.is_paid:
+        # Nothing was paid, so there is nothing to show a receipt for.
+        return redirect(reverse("halyk_payments:result", args=[payment.invoice_id]))
+    return _receipt(request, payment)
+
+
+def _own_payment(request, invoice_id):
+    """This learner's payment, or 404 — never anybody else's."""
+    if not _enabled():
+        raise Http404
+    payment = Payment.objects.filter(
+        invoice_id=invoice_id, user=request.user,
+    ).first()
+    if payment is None:
+        raise Http404
+    return payment
+
+
+def _receipt(request, payment):
+    course_id = str(payment.course_id)
+    course_name = course_id
+    try:
+        from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+        overview = CourseOverview.get_from_id(payment.course_id)
+        if overview and overview.display_name:
+            course_name = overview.display_name
+    except Exception:  # pylint: disable=broad-except
+        pass
+
+    return render(request, "halyk_payments/receipt.html", {
+        "payment": payment,
+        "course_id": course_id,
+        "course_name": course_name,
+        "test_mode": bool(getattr(settings, "HALYK_TEST_MODE", True))
+                     or _fake_gateway(),
     })

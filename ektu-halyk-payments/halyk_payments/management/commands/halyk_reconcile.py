@@ -55,19 +55,19 @@ class Command(BaseCommand):
         settled = refused = unknown = 0
 
         for payment in payments.order_by("created"):
-            outcome = confirm_with_bank(payment)
+            verdict, detail, transaction = confirm_with_bank(payment)
 
-            if outcome is None:
+            if verdict is None:
                 # Still in flight, or the bank did not answer. Leave it alone.
                 unknown += 1
-                self.stdout.write(f"{payment.invoice_id}: no answer yet")
+                self.stdout.write(f"{payment.invoice_id}: no answer yet — {detail}")
                 continue
 
-            if outcome is False:
+            if verdict is False:
                 refused += 1
-                self.stdout.write(f"{payment.invoice_id}: the bank says it was not paid")
+                self.stdout.write(f"{payment.invoice_id}: not paid — {detail}")
                 if not options["dry_run"]:
-                    mark_failed(payment.pk, reason="Settled by halyk_reconcile")
+                    mark_failed(payment.pk, reason=f"Bank says: {detail}")
                 continue
 
             settled += 1
@@ -78,9 +78,9 @@ class Command(BaseCommand):
             if not options["dry_run"]:
                 mark_paid_and_enroll(
                     payment.pk,
-                    reference=outcome.reference[:128],
-                    card_mask=outcome.card_mask[:32],
-                    payload=outcome.body,
+                    reference=transaction.reference[:128],
+                    card_mask=transaction.card_mask[:32],
+                    payload=transaction.body,
                 )
 
         summary = f"{settled} settled, {refused} refused, {unknown} still open"
