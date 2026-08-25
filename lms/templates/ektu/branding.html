@@ -1542,92 +1542,15 @@ body.ektu-page .content-wrapper {
   margin: 12px 2px 0;
 }
 
-/* Collapsible plain-text version, kept for accessibility and small screens */
-.ektu-doc__details {
-  background: #fff;
-  border: 1px solid var(--ektu-border);
-  border-radius: 16px;
-  overflow: hidden;
-}
-.ektu-doc__details[open] { border-color: var(--ektu-primary); }
-.ektu-doc__summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  cursor: pointer;
-  list-style: none;
-  padding: 18px 22px;
-  color: var(--ektu-ink);
-  font-family: var(--ektu-font-display);
-  font-weight: 600;
-  font-size: 16px;
-  line-height: 1.45;
-}
-.ektu-doc__summary::-webkit-details-marker { display: none; }
-.ektu-doc__summary::after {
-  content: "+";
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: rgba(var(--ektu-primary-rgb), 0.1);
-  color: var(--ektu-primary);
-  font-size: 17px;
-  line-height: 1;
-}
-.ektu-doc__details[open] .ektu-doc__summary { color: var(--ektu-primary); }
-.ektu-doc__details[open] .ektu-doc__summary::after { content: "\2212"; }
-.ektu-doc__summary:hover { background: rgba(var(--ektu-primary-rgb), 0.04); }
-.ektu-doc__body { padding: 0 22px 24px; }
-
 @media (max-width: 600px) {
   .ektu-pdf__bar { flex-direction: column; align-items: stretch; }
   .ektu-pdf__frame { height: 62vh; min-height: 360px; }
 }
 
 /* ----------------------------------------------------------------------- */
-/*  Long-form legal pages (/honor, /privacy) — built on .ektu-static        */
+/*  Document pages (/honor, /privacy) — the PDF viewer is the content      */
 /* ----------------------------------------------------------------------- */
-.ektu-doc .ektu-wrap--narrow { max-width: 780px; }
-.ektu-doc__meta {
-  color: var(--ektu-muted);
-  font-size: 14px;
-  line-height: 1.6;
-  padding: 14px 18px;
-  margin: 0 0 8px;
-  background: #fff;
-  border: 1px solid var(--ektu-border);
-  border-radius: 12px;
-}
-/* Numbered top-level sections read better with a little more air above. */
-.ektu-doc .ektu-static__h2 { margin-top: 44px; }
-.ektu-doc__h3 {
-  color: var(--ektu-ink);
-  font-family: var(--ektu-font-display);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.35;
-  text-align: start;
-  margin: 26px 0 8px;
-}
-.ektu-doc p {
-  color: var(--ektu-muted);
-  font-size: 16px;
-  line-height: 1.75;
-}
-.ektu-doc ul {
-  margin: 0 0 18px;
-  padding: 0 0 0 22px;
-  list-style: disc;
-  color: var(--ektu-muted);
-  font-size: 16px;
-  line-height: 1.75;
-}
-.ektu-doc li { margin: 0 0 8px; }
-.ektu-doc .ektu-note { margin-top: 36px; }
+.ektu-doc .ektu-wrap--narrow { max-width: 880px; }
 
 /* ----------------------------------------------------------------------- */
 /*  Static support pages (/help, /faq, /contact)                            */

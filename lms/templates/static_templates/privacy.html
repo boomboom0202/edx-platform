@@ -1,23 +1,24 @@
 <%page expression_filter="h"/>
 <%!
 from django.utils.translation import gettext as _
-
-from openedx.core.djangolib.markup import HTML, Text
 %>
 <%inherit file="../main.html" />
 <%namespace name="static" file="../static_content.html"/>
-<%namespace name="ektu" file="/ektu/links.html"/>
-<% links = ektu.attr.EKTU_LINKS %>
+<%
+  ## Official university documents, served from lms/static/ektu/docs/.
+  ## To add a language, drop the file in that folder and add a row here.
+  documents = [
+      ('en', 'English',  'ektu/docs/privacy-en.pdf'),
+      ('ru', 'Русский',  'ektu/docs/privacy-ru.pdf'),
+      ('kk', 'Қазақша',  'ektu/docs/privacy-kk.pdf'),
+  ]
+%>
 
 <%block name="pagetitle">${_("Privacy Policy")}</%block>
 
 ## Full-bleed layout: see the "ektu-page" reset in ektu/branding.html.
 <%block name="bodyclass">ektu-page ektu-page-doc</%block>
 
-## Content is based on the university regulation "Information Privacy Policy",
-## P NAO «EKTU» 183-I-2026, approved by the Rector on 10 March 2026. The source
-## document is written for the university mobile application; the scope wording
-## here also covers this learning platform and needs the university's sign-off.
 <main id="main" aria-label="Content" tabindex="-1">
   <section class="ektu-static ektu-doc">
 
@@ -36,146 +37,24 @@ from openedx.core.djangolib.markup import HTML, Text
         <div class="ektu-pdf" id="ektu-pdf">
           <div class="ektu-pdf__bar">
             <div class="ektu-pdf__langs" role="group" aria-label="${_('Document language')}">
-              <button type="button" class="ektu-pdf__lang is-active" lang="en"
-                      data-src="${static.url('ektu/docs/privacy-en.pdf')}">English</button>
-              <button type="button" class="ektu-pdf__lang" lang="ru"
-                      data-src="${static.url('ektu/docs/privacy-ru.pdf')}">Русский</button>
-              <button type="button" class="ektu-pdf__lang" lang="kk"
-                      data-src="${static.url('ektu/docs/privacy-kk.pdf')}">Қазақша</button>
+              % for code, label, path in documents:
+              <button type="button" class="ektu-pdf__lang${' is-active' if loop.first else ''}"
+                      lang="${code}" data-src="${static.url(path)}">${label}</button>
+              % endfor
             </div>
             <div class="ektu-pdf__actions">
               <a class="ektu-pdf__action" id="ektu-pdf-open" target="_blank" rel="noopener"
-                 href="${static.url('ektu/docs/privacy-en.pdf')}">${_("Open in a new tab")}</a>
+                 href="${static.url(documents[0][2])}">${_("Open in a new tab")}</a>
               <a class="ektu-pdf__action ektu-pdf__action--primary" id="ektu-pdf-download" download
-                 href="${static.url('ektu/docs/privacy-en.pdf')}">${_("Download PDF")}</a>
+                 href="${static.url(documents[0][2])}">${_("Download PDF")}</a>
             </div>
           </div>
-          <iframe class="ektu-pdf__frame" id="ektu-pdf-frame" title="${_('Document')}"
-                  src="${static.url('ektu/docs/privacy-en.pdf')}"></iframe>
+          <iframe class="ektu-pdf__frame" id="ektu-pdf-frame" title="${_('Privacy Policy')}"
+                  src="${static.url(documents[0][2])}"></iframe>
         </div>
         <p class="ektu-pdf__hint">
           ${_("If the document does not open above, use \"Download PDF\" — some mobile browsers cannot display PDF files inside a page.")}
         </p>
-      </div>
-    </section>
-
-    <section class="ektu-section ektu-doc__text">
-      <div class="ektu-wrap ektu-wrap--narrow">
-        <details class="ektu-doc__details">
-          <summary class="ektu-doc__summary">${_("Read the full text on this page")}</summary>
-          <div class="ektu-doc__body">
-
-        <p class="ektu-doc__meta">
-          ${_("Information Privacy Policy, P NAO \"EKTU\" 183-I-2026. Approved by the Chairman of the Board and Rector on 10 March 2026.")}
-        </p>
-
-        <h2 class="ektu-static__h2">${_("1. Scope")}</h2>
-        <p>${_("This Policy is an official document of D. Serikbayev East Kazakhstan Technical University. It governs how personal data and other information received from users of the university's digital services is collected, processed, stored and protected.")}</p>
-        <p>${_("Using the university's digital services means that you accept this Policy. If you do not accept it, you must stop using the services.")}</p>
-        <p>${_("The Policy covers personal data received both directly through the services and through their interaction with the university's information systems, including over the internet and other telecommunication networks. It takes effect on the date of its approval and applies to all information the university may obtain about you while you use the services.")}</p>
-        <p>${_("The Policy was developed under the Law of the Republic of Kazakhstan \"On Personal Data and their Protection\", the laws \"On Informatisation\" and \"On the Electronic Document and Electronic Digital Signature\", the government rules on personal data protection measures, the ISO 37001:2016 standard, and the Standards and Guidelines for Quality Assurance in the European Higher Education Area (ESG).")}</p>
-
-        <h2 class="ektu-static__h2">${_("2. What data we collect")}</h2>
-        <p>${_("Depending on the purpose of processing, the university may collect the following categories of personal data:")}</p>
-        <ul>
-          <li>${_("surname, first name and patronymic;")}</li>
-          <li>${_("date and place of birth;")}</li>
-          <li>${_("gender and citizenship;")}</li>
-          <li>${_("individual identification number, where required;")}</li>
-          <li>${_("identity document details, in the cases provided for by law;")}</li>
-          <li>${_("contact telephone number and email address;")}</li>
-          <li>${_("information about education and qualifications;")}</li>
-          <li>${_("bank details, where payments are made;")}</li>
-          <li>${_("other data needed to meet the contractual and legal obligations of the university.")}</li>
-        </ul>
-        <p>${_("The university may request additional information where this is needed to identify you, to enter into a contract, to provide a service, or to meet legal requirements. Data is collected only to the extent needed to run the services, to carry out the educational and administrative work of the university, and to comply with the legislation of the Republic of Kazakhstan.")}</p>
-
-        <h2 class="ektu-static__h2">${_("3. Why we process your data")}</h2>
-        <ul>
-          <li>${_("to identify you and register your account;")}</li>
-          <li>${_("to give you access to the university's information systems and services;")}</li>
-          <li>${_("to organise the educational process;")}</li>
-          <li>${_("to send you notifications and official information;")}</li>
-          <li>${_("to handle your requests, applications and enquiries;")}</li>
-          <li>${_("to maintain information security and prevent fraud and other unlawful acts;")}</li>
-          <li>${_("to provide technical support;")}</li>
-          <li>${_("to send newsletters and information updates, where you have consented;")}</li>
-          <li>${_("to analyse depersonalised, aggregated and anonymised information in order to improve the quality of educational, administrative and information services.")}</li>
-        </ul>
-        <p>${_("Processing follows the principles of lawfulness, good faith and transparency, matches the purposes declared when the data was collected, and keeps the amount of data processed to the minimum needed for those purposes. Processing is carried out with your consent, except in the cases provided for by the legislation of the Republic of Kazakhstan.")}</p>
-
-        <h2 class="ektu-static__h2">${_("4. When data is collected")}</h2>
-        <ul>
-          <li>${_("when you register and create an account;")}</li>
-          <li>${_("when you use the services, including access to learning materials, your personal account, the timetable, learning results, and the submission of applications and requests;")}</li>
-          <li>${_("when you communicate with the university through the services, including enquiries, applications, messages and official notifications;")}</li>
-          <li>${_("when payments are made, in respect of the fact and status of the payment;")}</li>
-          <li>${_("automatically, as technical data collected while you use the services, including information about the device, the operating system, the time of access and other technical parameters needed for correct operation and information security.")}</li>
-        </ul>
-
-        <h2 class="ektu-static__h2">${_("5. Storage and use")}</h2>
-        <p>${_("Personal data is stored on electronic and paper media and in the university's information systems, which operate in accordance with the personal data and information security legislation of the Republic of Kazakhstan. Data is kept for as long as is needed to achieve the purposes set out in this Policy, the terms of the contracts concluded, the internal regulations of the university and the requirements of the law.")}</p>
-        <p>${_("Once the purposes of processing have been achieved, or the need for them has ceased, or the relevant relationship has ended, personal data is destroyed or depersonalised in the manner established by law and by the university's internal documents, except where further storage is needed to comply with the law, maintain information security, prevent fraud or protect the legitimate interests of the university.")}</p>
-
-        <h2 class="ektu-static__h2">${_("6. Sharing with third parties")}</h2>
-        <p>${_("The university discloses and transfers personal data to third parties only where this is needed to achieve the purposes set out in this Policy or to meet the requirements of the legislation of the Republic of Kazakhstan. Your data may be passed to:")}</p>
-        <ul>
-          <li>${_("partners and contracted organisations that keep the services and information systems running, such as technical support, software maintenance, hosting, database administration and information security; the transfer is limited to what those services require, and the recipients undertake to keep the data confidential and secure;")}</li>
-          <li>${_("telecommunication operators and organisations that deliver notifications and messages to you;")}</li>
-          <li>${_("payment service providers and banks, where a payment is made; card and other payment details are handled by the payment system or bank under their own rules and privacy policies;")}</li>
-          <li>${_("state authorities of the Republic of Kazakhstan, on the basis of a properly issued and justified request, in the cases and manner provided for by law;")}</li>
-          <li>${_("the university's professional advisers, such as auditors and lawyers, for legal, financial and other review, audit and compliance purposes;")}</li>
-          <li>${_("other parties, only with your consent or in the cases expressly provided for by this Policy or by law.")}</li>
-        </ul>
-        <p>${_("Only the minimum amount of data needed for the particular purpose is transferred. The university does not sell, exchange or transfer personal data to third parties for advertising or marketing purposes.")}</p>
-        <p>${_("Disclosure is also allowed in order to protect the rights and legitimate interests of the university, its users or third parties, and to maintain information security and prevent fraud. If the university is reorganised, merged or otherwise changes its legal form, personal data may be passed to its legal successor, provided the successor meets the requirements of the personal data protection legislation of the Republic of Kazakhstan.")}</p>
-
-        <h2 class="ektu-static__h2">${_("7. Your rights")}</h2>
-        <ul>
-          <li>${_("to be informed about the processing of your personal data, including the purposes and grounds for processing, the methods used, and who has access to the data or may receive it;")}</li>
-          <li>${_("to be informed about how long your data is kept;")}</li>
-          <li>${_("to require your data to be corrected, updated, blocked or destroyed if it is incomplete, out of date, inaccurate, unlawfully obtained or no longer needed for the declared purposes;")}</li>
-          <li>${_("to withdraw your consent to processing in the manner provided for by the legislation of the Republic of Kazakhstan and by this Policy;")}</li>
-          <li>${_("to stop using the services, including by deleting your account;")}</li>
-          <li>${_("to appeal against the acts or omissions of the university to the authorised personal data protection body or in court;")}</li>
-          <li>${_("to contact the university on any matter relating to the processing of personal data and the application of this Policy;")}</li>
-          <li>${_("to exercise any other right provided for by the personal data protection legislation of the Republic of Kazakhstan.")}</li>
-        </ul>
-
-        <h2 class="ektu-static__h2">${_("8. Your obligations")}</h2>
-        <ul>
-          <li>${_("to provide accurate, correct and current personal data and to update it promptly when it changes;")}</li>
-          <li>${_("not to collect, organise, store, process or distribute the personal data of other users unlawfully;")}</li>
-          <li>${_("not to attempt to gain unauthorised access to the accounts or personal data of other users;")}</li>
-          <li>${_("to follow this Policy, the user agreement and the legislation of the Republic of Kazakhstan when using the services;")}</li>
-          <li>${_("not to publish or distribute information that breaks the law of the Republic of Kazakhstan, infringes the rights of others, or offends against morality and public order.")}</li>
-        </ul>
-
-        <h2 class="ektu-static__h2">${_("9. Consent")}</h2>
-        <p>${_("By using the university's digital services you give your full, free, specific, informed and conscious consent to the processing of your personal data in accordance with the Law of the Republic of Kazakhstan \"On Personal Data and their Protection\" and this Policy, and you confirm that you are aware of the purposes, scope and methods of processing and of your rights under that legislation.")}</p>
-        <p>${_("Personal data may be processed and stored on the university's servers located in the Republic of Kazakhstan and transferred to third parties in the cases and manner set out in this Policy and in law. Processing for purposes not provided for by this Policy is not permitted.")}</p>
-        <p>${_("You may withdraw your consent at any time by deleting your account or by sending a written or electronic request to the university. Withdrawal does not affect the lawfulness of processing carried out before it.")}</p>
-
-        <h2 class="ektu-static__h2">${_("10. Changes to this Policy")}</h2>
-        <p>${_("The university may amend and supplement this Policy at any time without obtaining the prior consent of users. If particular provisions are found to be invalid, the remaining provisions stay in force.")}</p>
-        <p>${_("The updated version is published in the university's services or on its official website with the date of the last update. Changes take effect when they are published, unless the new version provides otherwise, and apply to all personal data processed by the university. Please check this section from time to time; continuing to use the services after changes are published means that you accept the new version.")}</p>
-
-        <h2 class="ektu-static__h2">${_("11. Staff duties and responsibility")}</h2>
-        <p>${_("Staff with access to user data may not use their access for personal gain or to give an advantage to third parties, disclose or provide access to data without lawful grounds and proper authority, alter or delete records in someone's interest, accept rewards, gifts, services or other benefits in connection with data processing, or use the data to exert pressure, discriminate or otherwise act unlawfully.")}</p>
-        <p>${_("Anyone who breaches this Policy bears responsibility in accordance with the legislation of the Republic of Kazakhstan and the internal regulations of the university.")}</p>
-
-        <div class="ektu-note">
-          <span class="ektu-note__icon fa fa-info-circle" aria-hidden="true"></span>
-          <div>
-            ${Text(_("This page presents the university regulation for learners. In case of any discrepancy the approved original document prevails. To ask about your personal data or to exercise the rights above, write to the {link_start}support desk{link_end}.")).format(
-              link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
-              link_end=HTML('</a>'),
-            )}
-          </div>
-        </div>
-
-          </div>
-        </details>
       </div>
     </section>
 
