@@ -12,8 +12,15 @@ writes the real value and refreshes that cache afterwards.
     ./manage.py cms set_certificates_display_behavior --behavior end
     ./manage.py cms set_certificates_display_behavior --courses course-v1:ENV+HYD_01+2022
 
-Only existing courses are touched. What new courses start with is the field's
-default in ``xmodule/course_block.py``.
+Only existing courses are touched, and only the value Studio would have written
+— nothing about the platform's behaviour changes. New courses keep the
+platform's own default of "end"; change it per course in Studio under
+Schedule & Details.
+
+Note that on a self-paced course the setting has no effect at all:
+``should_certificate_be_visible`` returns True on ``self_paced`` alone, so the
+certificate is shown as soon as it exists. Studio hides the dropdown there for
+the same reason.
 """
 import logging
 

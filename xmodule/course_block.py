@@ -589,13 +589,7 @@ class CourseFields:  # lint-amnesty, pylint: disable=missing-class-docstring
             "user can see their certificate for the course"
         ),
         scope=Scope.settings,
-        # EKTU: upstream defaults to "end", which holds a learner's certificate
-        # back until the course closes. Our courses hand it over as soon as it
-        # is earned, so that is what a new course starts with. Authors can still
-        # change it per course in Studio's advanced settings, and existing
-        # courses are moved over by the "set_certificates_display_behavior"
-        # management command.
-        default=CertificatesDisplayBehaviors.EARLY_NO_INFO.value,
+        default=CertificatesDisplayBehaviors.END.value,
     )
     course_image = String(
         display_name=_("Course About Page Image"),
