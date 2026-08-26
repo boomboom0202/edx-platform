@@ -252,6 +252,11 @@ Payments are visible in Django admin under *Halyk payments*, searchable by
 invoice, reference, username and email; the record is read-only because rows are
 only ever created by the checkout flow.
 
+Learners see their own at `/halyk/orders/`, which is where the "Order History"
+entry in the user menu points. Upstream points that entry at an order-history
+microfrontend belonging to the ecommerce service, which is not running here, so
+the link was empty before.
+
 A payment stuck in **pending** means the callback never resolved it — the bank
 could not reach us, the server was restarting, or the transaction had not
 finished when the callback arrived. The money may well have been taken, so

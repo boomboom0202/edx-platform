@@ -379,6 +379,51 @@ def receipt(request, invoice_id):
     return _receipt(request, payment)
 
 
+@login_required
+def orders(request):
+    """
+    Everything this learner has bought, and what became of it.
+
+    Abandoned checkouts are left out — opening the payment page and closing it
+    is not an order, and a list full of them would bury the real ones. A
+    pending payment the bank did tell us about stays, because money may have
+    moved and the learner needs to see that it is being sorted out.
+    """
+    if not _enabled():
+        raise Http404
+
+    payments = list(
+        Payment.objects
+        .filter(user=request.user)
+        .exclude(invoice_id=None)
+        .exclude(status=PaymentStatus.PENDING, callback_payload__isnull=True)
+        .order_by("-created")
+    )
+
+    names = _course_names({payment.course_id for payment in payments})
+
+    return render(request, "halyk_payments/orders.html", {
+        "orders": [(payment, names.get(payment.course_id, str(payment.course_id)))
+                   for payment in payments],
+    })
+
+
+def _course_names(course_keys):
+    """Display names for a set of courses, in one query."""
+    if not course_keys:
+        return {}
+    try:
+        from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+        return {
+            overview.id: overview.display_name
+            for overview in CourseOverview.objects.filter(id__in=list(course_keys))
+            if overview.display_name
+        }
+    except Exception:  # pylint: disable=broad-except
+        log.debug("Could not read course names for the order list")
+        return {}
+
+
 def _own_payment(request, invoice_id):
     """This learner's payment, or 404 — never anybody else's."""
     if not _enabled():

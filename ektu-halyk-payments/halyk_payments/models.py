@@ -12,6 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from opaque_keys.edx.django.models import CourseKeyField
 
 
+#: What to print after an amount. Anything not listed falls back to the
+#: currency code, which is ugly but never wrong.
+CURRENCY_SYMBOLS = {"KZT": "₸", "USD": "$", "EUR": "€", "RUB": "₽"}
+
+
 class PaymentStatus(models.TextChoices):
     """Lifecycle of a single checkout attempt."""
 
@@ -97,3 +102,21 @@ class Payment(models.Model):
     @property
     def is_paid(self):
         return self.status == PaymentStatus.PAID
+
+    @property
+    def is_refunded(self):
+        return self.refunded_amount > 0
+
+    @property
+    def display_amount(self):
+        return self._money(self.amount)
+
+    @property
+    def display_refunded(self):
+        return self._money(self.refunded_amount)
+
+    def _money(self, value):
+        """`50000` -> `50 000 ₸`, grouped so a price cannot wrap mid-number."""
+        grouped = f"{int(value):,}".replace(",", " ")
+        symbol = CURRENCY_SYMBOLS.get((self.currency or "").upper())
+        return f"{grouped} {symbol or (self.currency or '').upper()}".strip()

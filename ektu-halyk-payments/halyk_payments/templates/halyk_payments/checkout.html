@@ -54,7 +54,7 @@
       <dt>{% trans "Course" %}</dt><dd>{{ payment.course_id }}</dd>
       <dt>{% trans "Invoice" %}</dt><dd>{{ payment.invoice_id }}</dd>
       <dt>{% trans "Amount" %}</dt>
-      <dd class="total">{{ payment.amount }} {{ payment.currency }}</dd>
+      <dd class="total">{{ payment.display_amount }}</dd>
     </dl>
 
     {% if fake %}

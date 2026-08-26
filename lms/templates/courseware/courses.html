@@ -41,7 +41,7 @@
           % for course in courses:
           <li class="courses-listing-item"
               data-search="${course.display_name_with_default} ${course.display_org_with_default} ${course.display_number_with_default}">
-            <%include file="../course.html" args="course=course" />
+            <%include file="../course.html" args="course=course, price=catalog_prices.get(str(course.id))" />
           </li>
           % endfor
         </ul>

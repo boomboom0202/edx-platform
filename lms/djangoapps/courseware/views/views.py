@@ -311,8 +311,52 @@ def courses(request):
         {
             'courses': courses_list,
             'programs_list': programs_list,
+            'catalog_prices': catalog_prices(courses_list),
         }
     )
+
+
+#: What to print in front of a price. Anything not listed falls back to the
+#: currency code, which is ugly but never wrong.
+CURRENCY_SYMBOLS = {'kzt': '₸', 'usd': '$', 'eur': '€', 'rub': '₽'}
+
+
+def catalog_prices(courses_list):
+    """
+    What each course in the catalog costs, keyed by course id, in one query.
+
+    A course is for sale when it has a course mode with a price; where there is
+    more than one, the cheapest is what the catalog advertises. Free courses are
+    absent from the result rather than priced at zero, so the template shows
+    nothing at all for them instead of a badge saying "0".
+    """
+    if not courses_list:
+        return {}
+
+    # Keyed by the course id as a string: a values_list() on the foreign key
+    # gives back whatever the column holds, and the template has a CourseKey,
+    # so normalising both ends is the only way the lookup reliably matches.
+    cheapest = {}
+    modes = CourseMode.objects.filter(
+        course_id__in=[course.id for course in courses_list], min_price__gt=0,
+    ).values_list('course_id', 'min_price', 'currency')
+    for course_id, min_price, currency in modes:
+        key = str(course_id)
+        current = cheapest.get(key)
+        if current is None or min_price < current[0]:
+            cheapest[key] = (min_price, currency)
+
+    return {
+        course_id: _format_price(min_price, currency)
+        for course_id, (min_price, currency) in cheapest.items()
+    }
+
+
+def _format_price(amount, currency):
+    """`50000`, `kzt` -> `50 000 ₸`, grouped so it cannot wrap mid-number."""
+    grouped = f'{int(amount):,}'.replace(',', ' ')
+    symbol = CURRENCY_SYMBOLS.get((currency or '').lower())
+    return f'{grouped} {symbol or (currency or "").upper()}'.strip()
 
 
 class PerUserVideoMetadataThrottle(UserRateThrottle):

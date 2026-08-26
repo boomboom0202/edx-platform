@@ -785,6 +785,25 @@ header.global-header .ektu-lang-control .language-selector:focus {
 .courses-listing-item .course .learn-more {
   display: none !important;
 }
+/* Price tag on the cover. Only paid courses carry one, so a card with no
+   badge means the course is free — quieter than labelling every one of them. */
+.courses-listing-item .course .cover-image { position: relative; }
+.courses-listing-item .course .course-price {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--ektu-primary-dark);
+  color: #fff;
+  font-family: var(--ektu-font-body);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  padding: 8px 13px;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(1, 58, 58, 0.3);
+}
 /* flex column so the date row pins to the card bottom across the whole grid */
 .courses-listing-item .course > a {
   display: flex;

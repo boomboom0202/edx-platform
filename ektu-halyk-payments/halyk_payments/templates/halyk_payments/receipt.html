@@ -63,7 +63,7 @@
     <dl>
       <dt>{% trans "Course" %}</dt><dd>{{ course_name }}</dd>
       <dt>{% trans "Amount" %}</dt>
-      <dd class="total">{{ payment.amount }} {{ payment.currency }}</dd>
+      <dd class="total">{{ payment.display_amount }}</dd>
       <dt>{% trans "Invoice" %}</dt><dd>{{ payment.invoice_id }}</dd>
       {% if payment.paid_at %}
       <dt>{% trans "Paid" %}</dt><dd>{{ payment.paid_at }}</dd>
