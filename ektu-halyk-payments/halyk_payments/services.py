@@ -10,19 +10,28 @@ Two invariants are enforced here and nowhere else:
    callback does not enroll twice.
 """
 import logging
+from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
 
-from decimal import Decimal
-
-from .client import HalykClient, HalykError, invoice_number, new_secret_hash
+from .client import (
+    MIN_REFUND,
+    HalykClient,
+    HalykError,
+    invoice_number,
+    new_secret_hash,
+)
 from .models import Payment, PaymentStatus
 
 log = logging.getLogger(__name__)
 
 
-class CheckoutError(Exception):
+class PaymentError(Exception):
+    """This operation on a payment is not allowed."""
+
+
+class CheckoutError(PaymentError):
     """The learner cannot start this checkout."""
 
 
@@ -174,7 +183,8 @@ def start_checkout(user, course_key):
 
 
 @transaction.atomic
-def mark_paid_and_enroll(payment_id, payload=None, reference="", card_mask=""):
+def mark_paid_and_enroll(payment_id, payload=None, reference="", card_mask="",
+                         transaction_id=""):
     """
     Record a confirmed payment and give the learner access.
 
@@ -197,6 +207,8 @@ def mark_paid_and_enroll(payment_id, payload=None, reference="", card_mask=""):
         payment.reference = reference
     if card_mask:
         payment.card_mask = card_mask
+    if transaction_id:
+        payment.transaction_id = transaction_id
 
     CourseEnrollment.enroll(payment.user, payment.course_id, mode=payment.course_mode)
     payment.enrolled = True
@@ -209,10 +221,125 @@ def mark_paid_and_enroll(payment_id, payload=None, reference="", card_mask=""):
     return payment
 
 
+def transaction_id_for(payment):
+    """
+    The bank's id for this transaction, which every money operation needs.
+
+    Recorded from the postLink where possible. Payments taken before that was
+    stored keep it inside the saved callback, and failing both it can still be
+    asked for — so an old payment is never unrefundable just because the column
+    is empty.
+    """
+    if payment.transaction_id:
+        return payment.transaction_id
+
+    stored = (payment.callback_payload or {}).get("id")
+    if stored:
+        return str(stored)
+
+    client = HalykClient()
+    token = client.get_api_token()
+    status = client.get_payment_status(payment.invoice_id, token["access_token"])
+    return status.transaction_id
+
+
 @transaction.atomic
-def mark_failed(payment_id, reason="", payload=None):
+def cancel_payment(payment_id):
+    """
+    Release money the bank is only holding on the card.
+
+    Valid solely while the transaction is in AUTH — once it has been charged,
+    the way back is a refund. Nobody is unenrolled here, because a payment that
+    was only ever held never opened a course.
+    """
+    payment = Payment.objects.select_for_update().get(pk=payment_id)
+
+    if payment.enrolled:
+        raise PaymentError(
+            f"Invoice {payment.invoice_id} opened a course; cancelling a hold "
+            f"is not the way to undo that — refund it instead."
+        )
+
+    client = HalykClient()
+    token = client.get_api_token()
+    client.cancel_operation(transaction_id_for(payment), token["access_token"])
+
+    payment.status = PaymentStatus.CANCELLED
+    payment.failure_reason = "Hold released"
+    payment.save()
+    log.info("Halyk invoice %s: hold released", payment.invoice_id)
+    return payment
+
+
+@transaction.atomic
+def refund_payment(payment_id, amount=None, external_id=None, unenroll=None):
+    """
+    Give money back on a payment that was actually charged.
+
+    ``amount`` refunds part of it; left out, everything still outstanding. A
+    full refund takes the course away again, because otherwise the learner
+    keeps what they were given and the money too; a partial one leaves the
+    enrolment alone. Pass ``unenroll`` to overrule either.
+    """
+    from common.djangoapps.student.models import CourseEnrollment
+
+    payment = Payment.objects.select_for_update().get(pk=payment_id)
+
+    if not payment.is_paid:
+        raise PaymentError(
+            f"Invoice {payment.invoice_id} is {payment.status}; only a paid "
+            f"one can be refunded."
+        )
+
+    outstanding = payment.amount - payment.refunded_amount
+    if outstanding <= 0:
+        raise PaymentError(f"Invoice {payment.invoice_id} is already fully refunded.")
+
+    amount = outstanding if amount is None else int(amount)
+    if amount > outstanding:
+        raise PaymentError(
+            f"Only {outstanding} {payment.currency} of invoice "
+            f"{payment.invoice_id} is left to refund."
+        )
+    if amount < MIN_REFUND:
+        raise PaymentError(
+            f"The bank refuses refunds below {MIN_REFUND} {payment.currency}."
+        )
+
+    client = HalykClient()
+    token = client.get_api_token()
+    client.refund_operation(
+        transaction_id_for(payment), token["access_token"],
+        # A full refund is sent without an amount, as the bank documents it.
+        amount=None if amount == payment.amount else amount,
+        external_id=external_id or f"ektu-{payment.invoice_id}",
+    )
+
+    payment.refunded_amount += amount
+    fully_refunded = payment.refunded_amount >= payment.amount
+    if fully_refunded:
+        payment.status = PaymentStatus.REFUNDED
+
+    if unenroll is None:
+        unenroll = fully_refunded
+    if unenroll and payment.enrolled:
+        CourseEnrollment.unenroll(payment.user, payment.course_id)
+        payment.enrolled = False
+
+    payment.save()
+    log.info("Halyk invoice %s: refunded %s of %s%s", payment.invoice_id,
+             amount, payment.amount, ", access withdrawn" if unenroll else "")
+    return payment
+
+
+@transaction.atomic
+def mark_failed(payment_id, reason="", payload=None, transaction_id=""):
     """Record that an invoice did not result in a payment."""
     payment = Payment.objects.select_for_update().get(pk=payment_id)
+    if transaction_id:
+        # Worth keeping even on a refusal: money held on the card still has to
+        # be released, and cancelling it needs this id.
+        payment.transaction_id = transaction_id
     if payment.enrolled:
         # A late failure notice must never revoke access that was already
         # granted against a confirmed payment; that is a refund, handled by hand.

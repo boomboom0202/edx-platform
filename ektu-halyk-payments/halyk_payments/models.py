@@ -60,6 +60,17 @@ class Payment(models.Model):
         default=PaymentStatus.PENDING, db_index=True,
     )
 
+    # The bank's own identifier for the transaction, from the postLink. Every
+    # operation on the money afterwards — cancelling a hold, refunding a
+    # charge — is addressed by this, not by our invoice number.
+    transaction_id = models.CharField(
+        max_length=64, blank=True, default="", db_index=True,
+    )
+
+    # How much has been given back, so a second refund cannot exceed what is
+    # left. Whole tenge, like the amount.
+    refunded_amount = models.PositiveIntegerField(default=0)
+
     # Whatever the bank gives us back, kept for support and reconciliation.
     reference = models.CharField(max_length=128, blank=True, default="")
     card_mask = models.CharField(max_length=32, blank=True, default="")

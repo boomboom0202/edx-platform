@@ -246,6 +246,7 @@ def postlink(request):
             payment.pk,
             reason=str(payload.get("reason", code))[:255],
             payload=payload,
+            transaction_id=str(payload.get("id", ""))[:64],
         )
         return JsonResponse({"status": "recorded as failed"})
 
@@ -255,7 +256,8 @@ def postlink(request):
     if mismatch:
         log.error("Halyk callback for invoice %s does not match: %s",
                   invoice_id, mismatch)
-        mark_failed(payment.pk, reason=mismatch, payload=payload)
+        mark_failed(payment.pk, reason=mismatch, payload=payload,
+                    transaction_id=str(payload.get("id", ""))[:64])
         return JsonResponse({"status": "rejected"}, status=400)
 
     if getattr(settings, "HALYK_VERIFY_WITH_STATUS_API", True) and not _fake_gateway():
@@ -267,7 +269,8 @@ def postlink(request):
             log.info("Halyk invoice %s left pending: %s", invoice_id, detail)
             return JsonResponse({"status": "pending"})
         if verdict is False:
-            mark_failed(payment.pk, reason=f"Bank says: {detail}", payload=payload)
+            mark_failed(payment.pk, reason=f"Bank says: {detail}", payload=payload,
+                        transaction_id=str(payload.get("id", ""))[:64])
             return JsonResponse({"status": "recorded as failed"})
 
     mark_paid_and_enroll(
@@ -275,6 +278,7 @@ def postlink(request):
         payload=payload,
         reference=str(payload.get("reference", ""))[:128],
         card_mask=str(payload.get("cardMask", ""))[:32],
+        transaction_id=str(payload.get("id", ""))[:64],
     )
     return JsonResponse({"status": "ok"})
 

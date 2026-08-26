@@ -268,8 +268,32 @@ It asks the bank about each pending payment and enrols the ones it confirms,
 through exactly the same check the callback uses — so it cannot open a course
 that was not paid for, and it is safe to run from cron.
 
-The plugin never issues refunds by itself: use the merchant portal at
-<https://epay.homebank.kz/>, or the bank's refund API.
+### Refunds and released holds
+
+Refunding through the merchant portal moves the money but leaves the learner
+enrolled and the payment recorded as paid, so the platform and the bank stop
+agreeing with each other. Do it here instead:
+
+```bash
+tutor local run lms ./manage.py lms halyk_refund --invoice 1000004        # shows what it would do
+tutor local run lms ./manage.py lms halyk_refund --invoice 1000004 --yes
+tutor local run lms ./manage.py lms halyk_refund --invoice 1000004 --amount 20 --yes
+```
+
+A full refund withdraws access, because otherwise the learner keeps the course
+and the money; a partial one leaves the enrolment alone. `--keep-access` and
+`--withdraw-access` overrule that. The bank refuses refunds under ten tenge,
+and only a charged transaction can be refunded at all.
+
+On a two-step terminal a payment that was authorised but not accepted leaves
+the learner's money blocked on their card, earning nobody anything. Release it:
+
+```bash
+tutor local run lms ./manage.py lms halyk_cancel --invoice 1000006 --yes
+```
+
+Both refuse to act without `--yes`, and both address the bank by its own
+transaction id, which is recorded from the callback.
 
 ## Tests
 
@@ -285,6 +309,13 @@ granted.
 
 ## Not built yet
 
-Refunds, captures for two-step terminals, saved cards, recurring payments and
-receipts. The `Payment` model records the bank's reference so refunds can be
-issued from the portal in the meantime.
+**Capture.** On a two-step terminal a payment stops at `AUTH` and has to be
+charged explicitly. The bank's own sandbox terminal works this way, so this is
+the one gap that matters: until it is filled, only a one-step terminal can take
+money end to end. Everything needed is in place — the transaction id is
+recorded and `HalykClient._operation` already speaks to `/operation/:id/…` —
+so it is one client method and one call site once the charge endpoint's
+contract is to hand.
+
+Saved cards, recurring payments and emailed receipts are not built either, and
+nothing depends on them.

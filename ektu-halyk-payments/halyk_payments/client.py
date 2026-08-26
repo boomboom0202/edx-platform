@@ -60,6 +60,9 @@ INVOICE_MAX_DIGITS = 15
 #: character as two (reasonCode 3298 is "too long").
 DESCRIPTION_MAX_BYTES = 125
 
+#: The bank refuses a refund smaller than this.
+MIN_REFUND = Decimal(10)
+
 
 def invoice_number(sequence):
     """
@@ -185,6 +188,11 @@ class TransactionStatus:
         return str(self.transaction.get("terminalID", ""))
 
     @property
+    def transaction_id(self):
+        """The bank's id for this transaction — what cancel and refund need."""
+        return str(self.transaction.get("id", ""))
+
+    @property
     def reference(self):
         return str(self.transaction.get("reference", ""))
 
@@ -289,6 +297,30 @@ class HalykClient:
         except ValueError as exc:
             raise HalykError("Status check returned a non-JSON body") from exc
 
+    def cancel_operation(self, transaction_id, access_token):
+        """
+        Release money that is only blocked on the card.
+
+        Works solely on a transaction still in ``AUTH``; once it is charged the
+        way back is a refund, not a cancellation.
+        """
+        return self._operation(transaction_id, "cancel", access_token)
+
+    def refund_operation(self, transaction_id, access_token,
+                         amount=None, external_id=None):
+        """
+        Give money back on a transaction that was actually charged.
+
+        ``amount`` refunds part of it; left out, the whole of it. The bank
+        refuses anything under ten tenge.
+        """
+        params = {}
+        if amount is not None:
+            params["amount"] = int(amount)
+        if external_id:
+            params["externalID"] = str(external_id)
+        return self._operation(transaction_id, "refund", access_token, params)
+
     # -- plumbing ---------------------------------------------------------
 
     def _token(self, extra=None):
@@ -305,6 +337,42 @@ class HalykClient:
         if not data.get("access_token"):
             raise HalykError("The token response did not contain an access_token")
         return data
+
+    def _operation(self, transaction_id, action, access_token, params=None):
+        """
+        One of the bank's operations on an existing transaction.
+
+        These are addressed by the bank's own transaction id — the ``id`` field
+        of the postLink, not our invoice number. Success is an empty HTTP 200;
+        a refusal is a 400 carrying a code and a message, and that message is
+        the only explanation anyone will get, so it is preserved.
+        """
+        if not transaction_id:
+            raise HalykError(f"Cannot {action}: the bank's transaction id is unknown")
+
+        url = f"{self.api_url}/operation/{transaction_id}/{action}"
+        try:
+            response = requests.post(
+                url,
+                params=params or {},
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=self.timeout,
+            )
+        except requests.RequestException as exc:
+            log.error("Halyk %s of %s failed: %s", action, transaction_id, exc)
+            raise HalykError(f"{action} failed: {exc}") from exc
+
+        if response.status_code == 200:
+            log.info("Halyk %s of %s accepted", action, transaction_id)
+            return True
+
+        try:
+            body = response.json()
+            detail = f"code {body.get('code')} — {body.get('message') or '(no message)'}"
+        except ValueError:
+            detail = f"HTTP {response.status_code}"
+        log.error("Halyk %s of %s refused: %s", action, transaction_id, detail)
+        raise HalykError(f"{action} refused: {detail}")
 
     def _post(self, url, payload, what):
         try:
