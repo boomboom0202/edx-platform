@@ -261,6 +261,7 @@ these have to be settled:
 tutor local run lms ./manage.py lms halyk_reconcile
 tutor local run lms ./manage.py lms halyk_reconcile --invoice 1000001
 tutor local run lms ./manage.py lms halyk_reconcile --dry-run
+tutor local run lms ./manage.py lms halyk_reconcile --include-failed
 ```
 
 It asks the bank about each pending payment and enrols the ones it confirms,

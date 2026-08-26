@@ -10,6 +10,7 @@ finishes the ones it confirms.
     ./manage.py lms halyk_reconcile
     ./manage.py lms halyk_reconcile --invoice 1000001
     ./manage.py lms halyk_reconcile --dry-run
+    ./manage.py lms halyk_reconcile --include-failed
 
 Nothing here trusts anything but the bank: it grants access through exactly the
 same check the callback uses, so running it cannot open a course that was not
@@ -37,13 +38,27 @@ class Command(BaseCommand):
             help="Ignore payments older than this. Default: 72.",
         )
         parser.add_argument(
+            "--include-failed", action="store_true",
+            help=(
+                "Also re-check payments already written off. Use after fixing a "
+                "bug that refused good payments; the bank still decides."
+            ),
+        )
+        parser.add_argument(
             "--dry-run", action="store_true",
             help="Report what would happen without enrolling anybody.",
         )
 
     def handle(self, *args, **options):
+        # A written-off payment is not normally re-examined — the bank has said
+        # no. But "failed" can also be our own mistake, and then a learner is
+        # out of pocket with nothing to show, so it has to be recoverable.
+        wanted = [PaymentStatus.PENDING]
+        if options["include_failed"]:
+            wanted.append(PaymentStatus.FAILED)
+
         payments = Payment.objects.filter(
-            status=PaymentStatus.PENDING, enrolled=False,
+            status__in=wanted, enrolled=False,
         ).exclude(invoice_id=None)
 
         if options["invoice"]:
