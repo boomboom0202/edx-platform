@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% trans "Payment" %}</title>
+{% if widget_origin %}
+{# The card form is an iframe from the bank, requested only once the learner
+   clicks. Opening the connection now moves the handshake off their wait. #}
+<link rel="preconnect" href="{{ widget_origin }}" crossorigin>
+<link rel="dns-prefetch" href="{{ widget_origin }}">
+{% endif %}
 <style>
   :root { --g:#006D5B; --d:#013A3A; --ink:#0d2b27; --muted:#5b726c;
           --surface:#f4f8f6; --border:#d9e6e1; }
@@ -24,6 +30,7 @@
          background:var(--g); color:#fff; font-weight:700; font-size:16px;
          padding:15px 24px; font-family:inherit; }
   .btn:hover { background:var(--d); }
+  .btn[disabled] { background:var(--muted); cursor:progress; }
   .note { color:var(--muted); font-size:13px; margin-top:16px; }
   .warn { background:#fff8e6; border:1px solid #f0d999; border-radius:12px;
           padding:14px 16px; color:#7a5b12; font-size:14px; margin-bottom:20px; }
@@ -100,11 +107,18 @@
   // The payment object is built entirely on the server; nothing here decides
   // the amount or which course is being bought.
   var paymentObject = {{ payment_object_json|safe }};
-  document.getElementById('pay').addEventListener('click', function () {
+  var button = document.getElementById('pay');
+
+  button.addEventListener('click', function () {
     if (typeof halyk === "undefined" || !halyk.showPaymentWidget) {
       window.alert("{% trans 'The payment service could not be loaded. Please try again later.' %}");
       return;
     }
+
+    // The bank's card form takes a moment to appear. Without this the page
+    // looks like it ignored the click, and people click again.
+    button.disabled = true;
+    button.textContent = "{% trans 'Opening the secure payment page…' %}";
     // The second argument is the widget's callback: { success: true | false }.
     // Its answer only decides which page the learner lands on. Access is
     // granted by the server-to-server callback, never here.

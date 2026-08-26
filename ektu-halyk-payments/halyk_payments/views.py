@@ -182,6 +182,7 @@ def checkout(request, course_id):
         "payment": payment,
         "fake": False,
         "widget_js_url": client.widget_js_url,
+        "widget_origin": client.widget_origin,
         "payment_object_json": json.dumps(payment_object),
     })
 

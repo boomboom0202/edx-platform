@@ -10,6 +10,7 @@ builds a request of its own.
 import logging
 import secrets
 from decimal import Decimal, InvalidOperation
+from urllib.parse import urlsplit
 
 import requests
 from django.conf import settings
@@ -221,6 +222,18 @@ class HalykClient:
     def widget_js_url(self):
         return (settings.HALYK_WIDGET_JS_TEST if self.test_mode
                 else settings.HALYK_WIDGET_JS_PROD)
+
+    @property
+    def widget_origin(self):
+        """
+        Where the widget and its payment form come from.
+
+        Worth knowing so the checkout page can open the connection early: the
+        card form is an iframe from this host, and it is only requested once the
+        learner clicks, so the whole handshake happens while they wait.
+        """
+        parts = urlsplit(self.widget_js_url)
+        return f"{parts.scheme}://{parts.netloc}" if parts.netloc else ""
 
     def is_configured(self):
         return all([self.client_id, self.client_secret, self.terminal])
