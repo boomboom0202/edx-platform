@@ -62,10 +62,15 @@ hooks.Filters.CONFIG_DEFAULTS.add_items([
     ("HALYK_POSTLINK_IP_ALLOWLIST", []),
 
     # Transaction outcomes that open a course. CHARGE means the money left the
-    # card. AUTH means it is only blocked, awaiting a capture this plugin does
-    # not issue -- adding it opens courses against money that may never arrive,
-    # which is only reasonable against the bank's test terminal.
+    # card; AUTH means it is only blocked, which is not the same as paid. There
+    # is no longer any reason to add AUTH here: a hold is charged automatically
+    # (below), so a two-step terminal reaches CHARGE on its own.
     ("HALYK_ACCEPTED_STATUSES", ["CHARGE"]),
+
+    # On a two-step terminal, take the blocked money as soon as the
+    # transaction is verified. Off means capturing by hand in the portal,
+    # and no course opens until someone does.
+    ("HALYK_AUTO_CAPTURE", True),
 ])
 
 # Written into the Tutor config once and never committed to the repository.
@@ -107,6 +112,7 @@ HALYK_CURRENCY = "{{ HALYK_CURRENCY }}"
 HALYK_COURSE_MODE = "{{ HALYK_COURSE_MODE }}"
 HALYK_POSTLINK_IP_ALLOWLIST = {{ HALYK_POSTLINK_IP_ALLOWLIST }}
 HALYK_ACCEPTED_STATUSES = {{ HALYK_ACCEPTED_STATUSES }}
+HALYK_AUTO_CAPTURE = {{ "True" if HALYK_AUTO_CAPTURE else "False" }}
 """
 
 hooks.Filters.ENV_PATCHES.add_item(("openedx-lms-production-settings", _SETTINGS))

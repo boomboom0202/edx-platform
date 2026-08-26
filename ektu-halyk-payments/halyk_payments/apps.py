@@ -55,17 +55,17 @@ class HalykPaymentsConfig(AppConfig):
                 "secret is configured; checkout will fail."
             )
 
-        # AUTH means the money is blocked on the card, not taken. Accepting it
-        # against a real terminal opens courses for money that may never be
-        # captured — reasonable against the bank's test terminal, a slow leak
-        # anywhere else.
+        # AUTH means the money is blocked on the card, not taken. A hold is
+        # charged automatically, so a two-step terminal gets to CHARGE by
+        # itself and there is no longer a reason to accept AUTH — doing so now
+        # only opens courses for money nobody ever collected.
         accepted = {
             str(name).upper()
             for name in getattr(settings, "HALYK_ACCEPTED_STATUSES", ["CHARGE"])
         }
-        if "AUTH" in accepted and not getattr(settings, "HALYK_TEST_MODE", True):
+        if "AUTH" in accepted:
             log.error(
-                "HALYK_ACCEPTED_STATUSES includes AUTH on a production "
-                "terminal. Courses will open against money that is only "
-                "blocked on the card and never captured."
+                "HALYK_ACCEPTED_STATUSES includes AUTH. Courses will open "
+                "against money that is only blocked on the card. This is no "
+                "longer needed: holds are charged automatically."
             )

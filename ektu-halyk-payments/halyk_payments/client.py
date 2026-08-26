@@ -297,6 +297,19 @@ class HalykClient:
         except ValueError as exc:
             raise HalykError("Status check returned a non-JSON body") from exc
 
+    def charge_operation(self, transaction_id, access_token, amount=None):
+        """
+        Take money that is currently only blocked on the card.
+
+        Works solely on a transaction in ``AUTH``. Left without an amount the
+        whole authorised sum is taken, which is what selling a course calls
+        for — the learner gets all of it, so all of it is charged.
+        """
+        params = {}
+        if amount is not None:
+            params["amount"] = int(amount)
+        return self._operation(transaction_id, "charge", access_token, params)
+
     def cancel_operation(self, transaction_id, access_token):
         """
         Release money that is only blocked on the card.

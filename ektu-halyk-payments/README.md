@@ -48,31 +48,29 @@ enrolment happens only on the transition into the paid state.
 | Payment object for `halyk.showPaymentWidget()`, `auth` = the whole token response | `views.checkout` |
 | `code: "ok"` and `reasonCode: 0` on success | `views.postlink` |
 | Non-final `reasonCode`s (454, 690, 3240 …) → ask again, do not fail | `client.RETRYABLE_REASON_CODES` |
+| Loyalty bonuses settle part of an order (`amount_bonus`) | `client.total_paid` |
+| `POST /operation/:id/charge`, `/cancel`, `/refund`, valid only from the right status | `client.charge_operation` and friends |
 | `resultCode` 100 means the *request* worked; `statusName` says what happened to the money | `client.TransactionStatus` |
 | Invoice numbers: 6–15 digits, unique also on the last six | `client.invoice_number` |
 | `description` ≤ 125 bytes (exceeding it is `reasonCode` 3298) | `client.truncate_description` |
 | `language` is `RUS`/`KAZ`/`ENG` | `views.LANGUAGES` |
 
-### One-step terminals only
+### Either terminal scheme works
 
-A terminal is set up for one-step (SMS) payments by default, and the money is
-charged straight away — `statusName` becomes `CHARGE`, which is the only status
-that grants access here. On a two-step (DMS) terminal the payment stops at
-`AUTH`, money merely blocked on the card, and this plugin issues no capture, so
-it deliberately refuses to open the course. Ask the bank which scheme the
-terminal uses before going live.
+On a one-step (SMS) terminal — the default — the money is charged straight
+away and `statusName` becomes `CHARGE`. On a two-step (DMS) terminal it stops
+at `AUTH`, merely blocked on the card, which is not the same as being paid.
+The bank's own sandbox terminal is two-step.
 
-**The bank's own sandbox terminal is two-step.** A test payment there ends at
-`AUTH` with `payoutAmount: 0`, so nothing is enrolled — correctly. To exercise
-the rest of the flow against it:
+A hold is charged as soon as the transaction has been verified, so a two-step
+terminal reaches `CHARGE` by itself and nothing needs configuring either way.
+Order matters and is deliberate: the amount, currency and terminal are checked
+*before* any money is taken, never after.
 
-```bash
-tutor config save --set HALYK_ACCEPTED_STATUSES='["CHARGE","AUTH"]'
-```
-
-Never do this against a real terminal: it opens courses for money that is only
-blocked and may never be captured. The app logs an error at startup if it finds
-AUTH accepted while `HALYK_TEST_MODE` is off.
+Setting `HALYK_AUTO_CAPTURE=false` leaves holds alone, and then no course opens
+until someone captures them in the merchant portal. There is no reason to add
+`AUTH` to `HALYK_ACCEPTED_STATUSES` any more; the app logs an error at startup
+if it finds it there, because that opens courses for money nobody collected.
 
 ## Invoice numbers
 
@@ -239,6 +237,7 @@ rebuild.
 | `HALYK_POSTLINK_IP_ALLOWLIST` | `[]` | Restrict the callback by source address. Empty means any. |
 | `HALYK_VERIFY_WITH_STATUS_API` | `true` | Re-check with the bank before enrolling. Leave on. |
 | `HALYK_ACCEPTED_STATUSES` | `["CHARGE"]` | Outcomes that grant access. |
+| `HALYK_AUTO_CAPTURE` | `true` | Charge a hold on a two-step terminal instead of leaving it blocked. |
 | `HALYK_INVOICE_BASE` | `1000000` | Added to the row id to form the invoice number. |
 | `HALYK_COURSE_MODE` | `verified` | The mode a payment grants. |
 | `HALYK_CURRENCY` | `KZT` | The only currency accepted. |
@@ -309,13 +308,4 @@ granted.
 
 ## Not built yet
 
-**Capture.** On a two-step terminal a payment stops at `AUTH` and has to be
-charged explicitly. The bank's own sandbox terminal works this way, so this is
-the one gap that matters: until it is filled, only a one-step terminal can take
-money end to end. Everything needed is in place — the transaction id is
-recorded and `HalykClient._operation` already speaks to `/operation/:id/…` —
-so it is one client method and one call site once the charge endpoint's
-contract is to hand.
-
-Saved cards, recurring payments and emailed receipts are not built either, and
-nothing depends on them.
+Saved cards, recurring payments and emailed receipts. Nothing depends on them.

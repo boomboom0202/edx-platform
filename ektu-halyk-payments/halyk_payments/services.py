@@ -17,8 +17,11 @@ from django.utils import timezone
 
 from .client import (
     MIN_REFUND,
+    RESULT_IN_PROGRESS,
+    STATUS_AUTHORISED,
     HalykClient,
     HalykError,
+    TransactionStatus,
     invoice_number,
     new_secret_hash,
 )
@@ -92,6 +95,17 @@ def confirm_with_bank(payment):
         log.error("Invoice %s: %s", payment.invoice_id, detail)
         return False, detail, status
 
+    # Everything about this transaction checks out, so money merely blocked on
+    # the card can now be taken. A course opens the instant it is paid for,
+    # which leaves no reason to hold the money and charge it later.
+    if status.status_name == STATUS_AUTHORISED \
+            and getattr(settings, "HALYK_AUTO_CAPTURE", True):
+        status = capture_hold(payment, status)
+        if status.in_progress:
+            # The charge was asked for but the outcome is not readable yet.
+            # The money may well have moved, so this is not a failure.
+            return None, f"charged, awaiting the bank ({status})", status
+
     if status.status_name not in accepted:
         detail = (f"statusName {status.status_name or '(none)'} does not grant "
                   f"access; accepted: {', '.join(sorted(accepted))}")
@@ -99,6 +113,40 @@ def confirm_with_bank(payment):
         return False, detail, status
 
     return True, "", status
+
+
+def capture_hold(payment, status):
+    """
+    Turn money blocked on a card into money taken, and report what the bank
+    then says the transaction is.
+
+    The charge is asked for and the status re-read separately, because the
+    request can fail for a reason that does not mean the money stayed put —
+    a callback delivered twice charges on the first pass and is refused on the
+    second, the transaction having left ``AUTH``. Only the bank's own answer
+    afterwards settles it, so that is what comes back either way.
+    """
+    client = HalykClient()
+    transaction_id = status.transaction_id or payment.transaction_id
+
+    try:
+        # Every operation wants its own token, as the documentation insists.
+        token = client.get_api_token()
+        client.charge_operation(transaction_id, token["access_token"])
+        log.info("Halyk invoice %s: hold charged", payment.invoice_id)
+    except (HalykError, KeyError) as exc:
+        log.warning("Halyk invoice %s: charge did not go through (%s); "
+                    "asking what the transaction is now", payment.invoice_id, exc)
+
+    try:
+        token = client.get_api_token()
+        return client.get_payment_status(payment.invoice_id, token["access_token"])
+    except (HalykError, KeyError) as exc:
+        log.error("Halyk invoice %s: could not re-read the status after "
+                  "charging (%s)", payment.invoice_id, exc)
+        # Report it as unfinished rather than as the AUTH we started from: the
+        # money may well have moved, and calling that a failure would be wrong.
+        return TransactionStatus({"resultCode": RESULT_IN_PROGRESS})
 
 
 def get_paid_mode(course_key):

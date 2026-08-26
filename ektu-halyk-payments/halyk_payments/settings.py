@@ -54,10 +54,15 @@ def plugin_settings(settings):
     settings.HALYK_INVOICE_BASE = 1_000_000
 
     # Transaction outcomes that mean the learner has paid. Only CHARGE — money
-    # off the card — counts by default. AUTH is a two-step (DMS) terminal
-    # holding the money pending a capture this plugin does not issue, so
-    # accepting it would open a course against money that may never arrive.
+    # off the card — counts. AUTH means a two-step (DMS) terminal is merely
+    # holding the money, which is not the same as having been paid.
     settings.HALYK_ACCEPTED_STATUSES = ["CHARGE"]
+
+    # On a two-step terminal, take the money as soon as the transaction is
+    # verified instead of leaving it blocked. A course opens the instant it is
+    # paid for, so there is nothing to wait for. Switching this off means
+    # capturing by hand in the merchant portal, and no course opens until then.
+    settings.HALYK_AUTO_CAPTURE = True
 
     # Course mode that a successful payment grants. Must exist on the course
     # with a price, otherwise checkout refuses to start.
