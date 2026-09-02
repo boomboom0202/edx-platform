@@ -23,6 +23,8 @@ urlpatterns = [
     # public offer and from the footer. Declared here rather than through
     # MKTG_URL_LINK_MAP, whose keys become the URL and would give an underscore.
     path('data-consent', views.render, {'template': 'data-consent.html'}, name="data_consent"),
+    # EKTU: the Center for Educational Technologies team, linked from the header.
+    path('team', views.render, {'template': 'team.html'}, name="team"),
 
     # Press releases
     re_path(r'^press/([_a-zA-Z0-9-]+)$', views.render_press_release, name='press_release'),

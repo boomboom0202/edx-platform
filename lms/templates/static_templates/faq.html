@@ -56,8 +56,8 @@ from openedx.core.djangolib.markup import HTML, Text
                 ${_("This usually happens when two accounts exist for the same address: one created through Google and another created by regular registration with a password. Such accounts conflict with each other.")}
               </p>
               <p>
-                ${Text(_("You cannot fix this yourself, the engineers have to do it. {link_start}Submit a ticket to the support desk{link_end} and include the email address you are trying to sign in with.")).format(
-                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+                ${Text(_("You cannot fix this yourself, the engineers have to do it. {link_start}Write to us by email{link_end} and include the email address you are trying to sign in with.")).format(
+                  link_start=HTML('<a href="mailto:{}">').format(links['support_email']),
                   link_end=HTML('</a>'),
                 )}
               </p>
@@ -100,8 +100,8 @@ from openedx.core.djangolib.markup import HTML, Text
                 )}
               </p>
               <p>
-                ${Text(_("If the course has finished and you reached the passing grade but there is still no certificate, {link_start}contact the support desk{link_end}.")).format(
-                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+                ${Text(_("If the course has finished and you reached the passing grade but there is still no certificate, {link_start}write to us by email{link_end}.")).format(
+                  link_start=HTML('<a href="mailto:{}">').format(links['support_email']),
                   link_end=HTML('</a>'),
                 )}
               </p>
@@ -112,8 +112,8 @@ from openedx.core.djangolib.markup import HTML, Text
             <summary class="ektu-faq__q">${_("Something went wrong during the exam and my attempt was lost")}</summary>
             <div class="ektu-faq__a">
               <p>
-                ${Text(_("Tell the course teacher: an attempt can be reset, but only with their approval. If the problem is technical and keeps happening, also report it to the {link_start}support desk{link_end}.")).format(
-                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+                ${Text(_("Tell the course teacher: an attempt can be reset, but only with their approval. If the problem is technical and keeps happening, also {link_start}report it by email{link_end}.")).format(
+                  link_start=HTML('<a href="mailto:{}">').format(links['support_email']),
                   link_end=HTML('</a>'),
                 )}
               </p>
@@ -142,8 +142,8 @@ from openedx.core.djangolib.markup import HTML, Text
             <summary class="ektu-faq__q">${_("Where do I report a technical problem?")}</summary>
             <div class="ektu-faq__a">
               <p>
-                ${Text(_("To the {link_start}support desk{link_end}. To get your ticket resolved faster, include your email address, the course name, what exactly you were doing, and a screenshot of the error.")).format(
-                  link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(links['helpdesk']),
+                ${Text(_("{link_start}Write to us by email{link_end}. To get an answer faster, include your email address, the course name, what exactly you were doing, and a screenshot of the error.")).format(
+                  link_start=HTML('<a href="mailto:{}">').format(links['support_email']),
                   link_end=HTML('</a>'),
                 )}
               </p>
@@ -158,9 +158,9 @@ from openedx.core.djangolib.markup import HTML, Text
     <section class="ektu-section ektu-cta-band">
       <div class="ektu-wrap">
         <h2>${_("Did not find your question?")}</h2>
-        <p>${_("Describe the problem in the support desk and the engineers of the center will help you sort it out.")}</p>
-        <a class="ektu-btn ektu-btn--light" href="${links['helpdesk']}" target="_blank" rel="noopener">
-          ${_("Contact the support desk")}
+        <p>${_("Describe the problem in an email and the engineers of the center will help you sort it out.")}</p>
+        <a class="ektu-btn ektu-btn--light" href="mailto:${links['support_email']}">
+          ${_("Write to us by email")}
         </a>
       </div>
     </section>

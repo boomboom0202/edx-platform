@@ -1,0 +1,80 @@
+<%page expression_filter="h"/>
+<%!
+from django.utils.translation import gettext as _
+%>
+<%inherit file="../main.html" />
+<%namespace name="ektu" file="/ektu/links.html"/>
+<% links = ektu.attr.EKTU_LINKS %>
+
+## ============================================================================
+##  О команде Центра образовательных технологий.
+##
+##  Имена сотрудников — казахские, как в кадровых документах, и не переводятся.
+##  Должности переводятся: в шаблоне английский msgid, русский и казахский
+##  приходят из .po. Порядок в списке — по должности, от руководителя.
+##
+##  Когда состав меняется, правится только TEAM ниже.
+## ============================================================================
+
+<%
+team = [
+    ('Манар Айдана Ержанқызы',
+     _("Head of the Center for Educational Technologies")),
+    ('Түсіпбекова Айзат Ержанқызы',
+     _("Senior Specialist at the Center for Educational Technologies")),
+    ('Жұмажанова Бекзат Ахметкәрімқызы',
+     _("Chief Specialist of the Center for Educational Technologies")),
+    ('Еренғаип Қобланды Ақпанұлы',
+     _("First-Category Specialist at the Center for Educational Technologies")),
+    ('Суев Абылайхан Қайратұлы',
+     _("First Category Engineer at the Center for Educational Technologies")),
+]
+
+def initials(full_name):
+    """Первые буквы фамилии и имени — для аватара-заглушки."""
+    parts = full_name.split()
+    return ''.join(part[0] for part in parts[:2]).upper()
+%>
+
+<%block name="pagetitle">${_("Our Team")}</%block>
+<%block name="bodyclass">ektu-page ektu-page-team</%block>
+
+<main id="main" aria-label="Content" tabindex="-1">
+  <section class="ektu-static ektu-team">
+
+    <header class="ektu-page-hero">
+      <div class="ektu-wrap">
+        <span class="ektu-eyebrow">${_("Center for Educational Technologies")}</span>
+        <h1><%block name="pageheader">${_("Our Team")}</%block></h1>
+        <p>${_("The people who build and support the university's online learning platform.")}</p>
+      </div>
+    </header>
+
+    <section class="ektu-section">
+      <div class="ektu-wrap">
+        <ul class="ektu-team__grid">
+          % for name, role in team:
+          <li class="ektu-team__card">
+            <span class="ektu-team__avatar" aria-hidden="true">${initials(name)}</span>
+            <p class="ektu-team__name">${name}</p>
+            <p class="ektu-team__role">${role}</p>
+          </li>
+          % endfor
+        </ul>
+      </div>
+    </section>
+
+    <section class="ektu-section ektu-cta-band">
+      <div class="ektu-wrap">
+        <h2>${_("More about the center")}</h2>
+        <p>${_("What the Center for Educational Technologies does at the university, and the projects it runs.")}</p>
+        <a class="ektu-btn ektu-btn--light"
+           href="https://www.ektu.kz/divisions/academdep/cdo.aspx"
+           target="_blank" rel="noopener">
+          ${_("Go to the center's page")}
+        </a>
+      </div>
+    </section>
+
+  </section>
+</main>

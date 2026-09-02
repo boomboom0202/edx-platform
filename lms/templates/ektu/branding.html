@@ -1642,6 +1642,64 @@ body.ektu-page .content-wrapper {
 .ektu-static a { color: var(--ektu-primary); font-weight: 600; }
 
 /* ----------------------------------------------------------------------- */
+/*  Team page                                                               */
+/*  Cards sized by content rather than a fixed column count, so a person    */
+/*  joining or leaving never leaves a gap in the last row.                  */
+/* ----------------------------------------------------------------------- */
+.ektu-team__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
+}
+.ektu-team__card {
+  background: #fff;
+  border: 1px solid var(--ektu-border);
+  border-radius: 18px;
+  padding: 28px 24px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.ektu-team__card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 38px rgba(1, 58, 58, 0.12);
+  border-color: var(--ektu-primary);
+}
+/* Initials rather than a photo: the centre has no portraits to publish, and
+   an empty avatar frame reads worse than a deliberate monogram. */
+.ektu-team__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--ektu-primary);
+  color: #fff;
+  font-family: var(--ektu-font-body);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+.ektu-team .ektu-team__name {
+  font-family: var(--ektu-font-display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.35;
+  color: var(--ektu-ink);
+  margin: 0 0 8px;
+}
+.ektu-team .ektu-team__role {
+  color: var(--ektu-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ----------------------------------------------------------------------- */
 /*  Legal documents (public offer, personal data consent)                   */
 /*  Long numbered text: the clause number carries the meaning, so it needs  */
 /*  to stay readable and quotable rather than disappear into the paragraph. */

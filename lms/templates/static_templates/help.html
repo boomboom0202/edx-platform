@@ -79,11 +79,11 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
 
         <h2 class="ektu-static__h2">${_("Cannot sign in, or something is not working")}</h2>
         <p class="ektu-static__lead">
-          ${_("Describe the problem in the support desk and the engineers of the center will see your ticket. Where possible, include your email address, the course name and a screenshot.")}
+          ${_("Write to the center by email and the engineers will look into it. Where possible, include your email address, the course name and a screenshot.")}
         </p>
         <p>
-          <a class="ektu-btn" href="${links['helpdesk']}" target="_blank" rel="noopener">
-            ${_("Contact the support desk")}
+          <a class="ektu-btn" href="mailto:${links['support_email']}">
+            ${_("Write to us by email")}
           </a>
         </p>
 
@@ -103,11 +103,11 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
               <span>${_("How to build and run courses on the platform")}</span>
             </span>
           </a>
-          <a class="ektu-linkcard" href="${links['helpdesk']}" target="_blank" rel="noopener">
+          <a class="ektu-linkcard" href="mailto:${links['support_email']}">
             <span class="ektu-linkcard__icon fa fa-life-ring" aria-hidden="true"></span>
             <span class="ektu-linkcard__body">
-              <strong>${_("Support desk")}</strong>
-              <span>${_("Tickets for technical problems")}</span>
+              <strong>${_("Email support")}</strong>
+              <span>${_("Write to us about a technical problem")}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${links['center']}" target="_blank" rel="noopener">

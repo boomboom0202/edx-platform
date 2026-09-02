@@ -30,11 +30,11 @@ from django.urls import reverse
 
         <h2 class="ektu-static__h2">${_("Technical questions")}</h2>
         <p class="ektu-static__lead">
-          ${_("Everything to do with how the platform works, such as signing in, course access, grades and certificates, is handled through the support desk. That way your request does not get lost and reaches the engineers directly.")}
+          ${_("Everything to do with how the platform works, such as signing in, course access, grades and certificates, is handled by email. That way your request reaches the engineers of the center directly.")}
         </p>
         <p>
-          <a class="ektu-btn" href="${links['helpdesk']}" target="_blank" rel="noopener">
-            ${_("Submit a ticket")}
+          <a class="ektu-btn" href="mailto:${links['support_email']}">
+            ${_("Write to us by email")}
           </a>
         </p>
 
