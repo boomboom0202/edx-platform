@@ -1641,6 +1641,36 @@ body.ektu-page .content-wrapper {
 }
 .ektu-static a { color: var(--ektu-primary); font-weight: 600; }
 
+/* ----------------------------------------------------------------------- */
+/*  Legal documents (public offer, personal data consent)                   */
+/*  Long numbered text: the clause number carries the meaning, so it needs  */
+/*  to stay readable and quotable rather than disappear into the paragraph. */
+/* ----------------------------------------------------------------------- */
+.ektu-legal .ektu-static__h2 { margin-top: 40px; }
+.ektu-legal p { line-height: 1.7; }
+.ektu-legal__meta {
+  color: var(--ektu-muted);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-bottom: 24px !important;
+}
+/* Enumerations inside a clause: indented so they read as subordinate to the
+   numbered paragraph above them, not as new clauses. */
+.ektu-legal__list {
+  padding-left: 22px;
+  color: var(--ektu-ink);
+}
+.ektu-legal__requisites {
+  margin-top: 32px;
+  padding: 24px 26px;
+  background: var(--ektu-surface);
+  border: 1px solid var(--ektu-border);
+  border-radius: 14px;
+}
+.ektu-legal__requisites p { margin: 0 0 6px; }
+.ektu-legal__requisites p:last-child { margin-bottom: 0; }
+
 /* Two-column card row (sign-in paths) */
 .ektu-two-col {
   display: grid;

@@ -19,6 +19,10 @@ urlpatterns = [
     path('press', views.render, {'template': 'press.html'}, name="press"),
     path('media-kit', views.render, {'template': 'media-kit.html'}, name="media-kit"),
     path('copyright', views.render, {'template': 'copyright.html'}, name="copyright"),
+    # EKTU: consent to the processing of personal data, referenced from the
+    # public offer and from the footer. Declared here rather than through
+    # MKTG_URL_LINK_MAP, whose keys become the URL and would give an underscore.
+    path('data-consent', views.render, {'template': 'data-consent.html'}, name="data_consent"),
 
     # Press releases
     re_path(r'^press/([_a-zA-Z0-9-]+)$', views.render_press_release, name='press_release'),
