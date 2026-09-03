@@ -1700,6 +1700,74 @@ body.ektu-page .content-wrapper {
 }
 
 /* ----------------------------------------------------------------------- */
+/*  Centre description on the team page                                     */
+/*  Alternating bands so three long text sections do not read as one slab.  */
+/* ----------------------------------------------------------------------- */
+.ektu-static .ektu-section--plain { background: #fff; }
+
+.ektu-static__h3 {
+  color: var(--ektu-ink);
+  font-family: var(--ektu-font-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 28px 0 10px;
+}
+
+/* Custom bullets rather than list-style: the marker has to sit on the first
+   line of a wrapped item, which a native disc does not do once the line-height
+   is 1.65. The nested list uses a dash and a rule instead of a second disc, so
+   the two levels stay apart without competing glyphs. */
+.ektu-bullets {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+.ektu-bullets > li {
+  position: relative;
+  padding-left: 26px;
+  margin-bottom: 12px;
+  line-height: 1.65;
+}
+.ektu-bullets > li:last-child { margin-bottom: 0; }
+.ektu-bullets > li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ektu-primary);
+}
+
+.ektu-bullets__sub {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--ektu-border);
+}
+.ektu-bullets__sub--standalone { margin: 0 0 24px; }
+.ektu-bullets__sub > li {
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 8px;
+  color: var(--ektu-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.ektu-bullets__sub > li:last-child { margin-bottom: 0; }
+.ektu-bullets__sub > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 8px;
+  height: 2px;
+  background: var(--ektu-border);
+}
+
+/* ----------------------------------------------------------------------- */
 /*  Legal documents (public offer, personal data consent)                   */
 /*  Long numbered text: the clause number carries the meaning, so it needs  */
 /*  to stay readable and quotable rather than disappear into the paragraph. */
