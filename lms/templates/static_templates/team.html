@@ -1,17 +1,18 @@
 <%page expression_filter="h"/>
+<%!
+from django.utils.translation import gettext as _
+%>
 <%inherit file="../main.html" />
 
 ## ============================================================================
 ##  Центр образовательных технологий: состав и деятельность.
 ##
-##  Текст русский, без gettext — как в /tos и /data-consent. Причина: русский
-##  каталог берётся из openedx-translations и перезаписывается при сборке
-##  образа, поэтому собственные msgid остаются непереведёнными и страница
-##  показывала бы английский. Когда появится свой каталог переводов, страницу
-##  можно будет вернуть на gettext целиком, вместе с казахской версией.
+##  Весь текст страницы переводится: msgid английские, русский и казахский
+##  приходят из каталога переводов. Имена сотрудников — казахские, как в
+##  кадровых документах, и переводу не подлежат.
 ##
-##  Имена сотрудников — казахские, как в кадровых документах. Порядок в списке
-##  — по должности, от руководителя. Когда состав меняется, правится TEAM.
+##  Порядок в списке TEAM — по должности, от руководителя. Когда состав
+##  меняется, правится только он.
 ##
 ##  Содержание разделов ниже предоставлено ЦОТ.
 ## ============================================================================
@@ -19,68 +20,52 @@
 <%
 team = [
     ('Манар Айдана Ержанқызы',
-     'Руководитель Центра образовательных технологий'),
+     _("Head of the Center for Educational Technologies")),
     ('Түсіпбекова Айзат Ержанқызы',
-     'Старший специалист Центра образовательных технологий'),
+     _("Senior Specialist at the Center for Educational Technologies")),
     ('Жұмажанова Бекзат Ахметкәрімқызы',
-     'Главный специалист Центра образовательных технологий'),
+     _("Chief Specialist of the Center for Educational Technologies")),
     ('Еренғаип Қобланды Ақпанұлы',
-     'Специалист первой категории Центра образовательных технологий'),
+     _("First-Category Specialist at the Center for Educational Technologies")),
     ('Суев Абылайхан Қайратұлы',
-     'Инженер первой категории Центра образовательных технологий'),
+     _("First Category Engineer at the Center for Educational Technologies")),
 ]
 
 # Задачи центра. Вложенный список — необязательный второй элемент кортежа.
 objectives = [
-    ('Техническая и методологическая помощь преподавателям при создании '
-     'онлайн- и смешанных курсов.', []),
-    ('Методическое сопровождение модернизации традиционного обучения и '
-     'перехода на онлайн- и смешанное обучение.', []),
-    ('Интеграция внешних ресурсов в систему управления обучением (LMS).', []),
-    ('Монетизация онлайн-курсов ВКТУ.', []),
-    ('Развитие дистанционного обучения в ВКТУ:', [
-        'поиск ресурсов для онлайн-обучения в университетах-партнёрах и на '
-        'платформах онлайн-обучения;',
-        'работа с преподавателями ВКТУ по размещению контента на '
-        'онлайн-платформах в виде открытых или платных курсов.',
+    (_("Technical and methodological support for teachers creating online and blended courses."), []),
+    (_("Methodological support for modernising traditional teaching and moving it to online and blended formats."), []),
+    (_("Integration of external resources into the learning management system (LMS)."), []),
+    (_("Monetisation of the university's online courses."), []),
+    (_("Developing distance learning at the university:"), [
+        _("finding online learning resources at partner universities and on online learning platforms;"),
+        _("working with university teachers to publish content on online platforms as open or paid courses."),
     ]),
-    ('Расширение и внедрение инновационных образовательных технологий.', []),
+    (_("Expanding and introducing innovative educational technologies."), []),
 ]
 
 # Первая функция центра — самая объёмная, поэтому она идёт отдельным блоком
 # с подзаголовком, а не карточкой наравне с остальными.
 training = [
-    'помощь преподавателям в создании онлайн- и смешанных курсов: техническая '
-    'и методическая поддержка, педагогический дизайн;',
-    'обеспечение инструментами для разработки и преподавания курсов в интернете;',
-    'обучение методам электронного обучения;',
-    'стандартизированная структура курса, единый формат и шаблоны;',
-    'тренинги, направленные на освоение практических навыков создания '
-    'онлайн- и смешанных курсов;',
-    'обучение применению основных инструментов для создания онлайн-курсов;',
-    'учебный дизайн с применением методик онлайн- и смешанного обучения для '
-    'создания электронных учебных материалов;',
-    'методика асинхронного онлайн-преподавания.',
+    _("helping teachers build online and blended courses: technical and methodological support, and instructional design;"),
+    _("providing the tools needed to develop and teach courses online;"),
+    _("training in e-learning methods;"),
+    _("a standardised course structure, a single format and templates;"),
+    _("workshops aimed at practical skills in building online and blended courses;"),
+    _("training in the core tools for building online courses;"),
+    _("instructional design using online and blended learning methods to produce electronic teaching materials;"),
+    _("methods of asynchronous online teaching."),
 ]
 
 functions = [
-    ('Руководства и стандарты',
-     'Разработка руководств и стандартов по созданию онлайн- и смешанных '
-     'курсов на основе современных тенденций и лучших практик образовательных '
-     'технологий. Руководство содержит основные принципы, шаблоны и подробную '
-     'информацию об учебном дизайне, педагогике и оценивании.'),
-    ('Методическая поддержка ППС',
-     'Центр помогает профессорско-преподавательскому составу осваивать '
-     'современные инструменты электронного обучения, проводит методические '
-     'тренинги и педагогические семинары.'),
-    ('Инструменты',
-     'Open edX — для видеокурсов и самостоятельного обучения, Moodle — для '
-     'смешанного обучения и статических материалов, Google Classroom — для '
-     'совместной работы.'),
-    ('Подготовка преподавателей',
-     'Обучение полностью ориентировано на создание онлайн- и смешанных курсов: '
-     'семинары и практикумы по разработке курсов и педагогике, учебные пособия '
-     'и отдельный онлайн-курс для ППС, практические руководства и рекомендации.'),
+    (_("Guidelines and standards"),
+     _("Developing guidelines and standards for building online and blended courses, based on current trends and best practice in educational technology. The guide covers core principles, templates and detailed guidance on instructional design, pedagogy and assessment.")),
+    (_("Methodological support for faculty"),
+     _("The center helps teaching staff master modern e-learning tools, and runs methodological workshops and pedagogical seminars.")),
+    (_("Tools"),
+     _("Open edX for video courses and self-paced study, Moodle for blended learning and static materials, and Google Classroom for collaborative work.")),
+    (_("Teacher training"),
+     _("Training is aimed entirely at building online and blended courses: seminars and workshops on course development and pedagogy, teaching aids and a dedicated online course for faculty, plus practical guides and recommendations.")),
 ]
 
 
@@ -90,7 +75,7 @@ def initials(full_name):
     return ''.join(part[0] for part in parts[:2]).upper()
 %>
 
-<%block name="pagetitle">О команде</%block>
+<%block name="pagetitle">${_("Our Team")}</%block>
 <%block name="bodyclass">ektu-page ektu-page-team</%block>
 
 <main id="main" aria-label="Content" tabindex="-1">
@@ -98,9 +83,9 @@ def initials(full_name):
 
     <header class="ektu-page-hero">
       <div class="ektu-wrap">
-        <span class="ektu-eyebrow">Центр образовательных технологий</span>
-        <h1><%block name="pageheader">О команде</%block></h1>
-        <p>Люди, которые создают и поддерживают платформу онлайн-обучения университета.</p>
+        <span class="ektu-eyebrow">${_("Center for Educational Technologies")}</span>
+        <h1><%block name="pageheader">${_("Our Team")}</%block></h1>
+        <p>${_("The people who build and support the university's online learning platform.")}</p>
       </div>
     </header>
 
@@ -121,13 +106,12 @@ def initials(full_name):
     <section class="ektu-section ektu-section--plain">
       <div class="ektu-wrap ektu-wrap--narrow">
 
-        <h2 class="ektu-static__h2">Основная цель</h2>
+        <h2 class="ektu-static__h2">${_("Our goal")}</h2>
         <p class="ektu-static__lead">
-          Внедрение современных цифровых образовательных технологий
-          в образовательный процесс университета.
+          ${_("To bring modern digital educational technologies into the university's teaching process.")}
         </p>
 
-        <h2 class="ektu-static__h2">Задачи</h2>
+        <h2 class="ektu-static__h2">${_("Objectives")}</h2>
         <ul class="ektu-bullets">
           % for objective, details in objectives:
           <li>
@@ -144,9 +128,7 @@ def initials(full_name):
         </ul>
 
         <p>
-          Деятельность центра опирается на отраслевые стандарты, современную
-          практику электронного обучения и образовательные технологии для
-          развития дистанционного обучения в ВКТУ.
+          ${_("The center's work rests on industry standards, current e-learning practice and educational technology, in the service of developing distance learning at the university.")}
         </p>
 
       </div>
@@ -155,13 +137,11 @@ def initials(full_name):
     <section class="ektu-section">
       <div class="ektu-wrap ektu-wrap--narrow">
 
-        <h2 class="ektu-static__h2">Функции центра</h2>
+        <h2 class="ektu-static__h2">${_("What the center does")}</h2>
 
-        <h3 class="ektu-static__h3">Тренинги и помощь преподавателям</h3>
+        <h3 class="ektu-static__h3">${_("Training and support for teaching staff")}</h3>
         <p>
-          Центр оказывает методическую, образовательную и организационную
-          помощь: обучает и консультирует преподавателей, внедряет отраслевые
-          стандарты электронного обучения и развивает онлайн-среду обучения.
+          ${_("The center provides methodological, educational and organisational support: it trains and advises teachers, applies industry e-learning standards and develops the online learning environment.")}
         </p>
         <ul class="ektu-bullets__sub ektu-bullets__sub--standalone">
           % for item in training:
@@ -179,9 +159,7 @@ def initials(full_name):
         </div>
 
         <p>
-          Деятельность центра направлена на создание онлайн-среды обучения,
-          сопоставимой с ведущими университетами мира, — на стандартных
-          отраслевых инструментах и передовом опыте электронного обучения.
+          ${_("The center works towards an online learning environment comparable to that of the world's leading universities, built on standard industry tools and established e-learning practice.")}
         </p>
 
       </div>
@@ -189,12 +167,12 @@ def initials(full_name):
 
     <section class="ektu-section ektu-cta-band">
       <div class="ektu-wrap">
-        <h2>Подробнее о центре</h2>
-        <p>Проекты и направления работы Центра образовательных технологий на сайте университета.</p>
+        <h2>${_("More about the center")}</h2>
+        <p>${_("What the Center for Educational Technologies does at the university, and the projects it runs.")}</p>
         <a class="ektu-btn ektu-btn--light"
            href="https://www.ektu.kz/divisions/academdep/cdo.aspx"
            target="_blank" rel="noopener">
-          Перейти на страницу центра
+          ${_("Go to the center's page")}
         </a>
       </div>
     </section>
