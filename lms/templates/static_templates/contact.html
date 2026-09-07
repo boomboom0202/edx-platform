@@ -5,7 +5,9 @@ from django.urls import reverse
 %>
 <%inherit file="../main.html" />
 <%namespace name="ektu" file="/ektu/links.html"/>
+<%namespace name="legal" file="/ektu/legal.html"/>
 <% links = ektu.attr.EKTU_LINKS %>
+<% L = legal.attr.EKTU_LEGAL %>
 
 <%block name="pagetitle">${_("Contact")}</%block>
 
@@ -44,6 +46,14 @@ from django.urls import reverse
             ${_("Questions about course content, assignments and deadlines are handled by the course teacher, so it is best to ask them inside the course itself.")}
           </div>
         </div>
+
+        <h2 class="ektu-static__h2">${_("By phone")}</h2>
+        <p>
+          ## Часы работы записаны здесь цифрами, а не взяты из legal.html: там
+          ## они хранятся русской фразой для договора оферты, а эта страница
+          ## переводится и должна читаться на любом языке.
+          <a href="tel:${L['phone_tel']}">${L['phone']}</a> — ${_("weekdays")}, 9:00 — 18:00
+        </p>
 
         <h2 class="ektu-static__h2">${_("Useful links")}</h2>
         <div class="ektu-linkcards">
