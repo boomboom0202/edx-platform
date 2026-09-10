@@ -9,8 +9,10 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
 %>
 <%inherit file="../main.html" />
 <%namespace name="ektu" file="/ektu/links.html"/>
+<%namespace name="static" file="../static_content.html"/>
 <%
   links = ektu.attr.EKTU_LINKS
+  docs = ektu.attr.EKTU_DOCS
   ## Sign-in/registration live in the authn MFE when it is enabled, so build the
   ## URL exactly the way header/navbar-not-authenticated.html does rather than
   ## reversing a route name that is not registered in the LMS urlconf.
@@ -54,8 +56,9 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
                 strong_end=HTML('</strong>'),
               )}
             </p>
-            <a class="ektu-btn ektu-btn--ghost" href="${links['login_guide']}" target="_blank" rel="noopener">
-              ${_("Step-by-step sign-in guide")}
+            <a class="ektu-btn ektu-btn--ghost" href="${static.url(docs['login_guide'])}"
+               target="_blank" rel="noopener">
+              ${_("Step-by-step sign-in guide (PDF)")}
             </a>
           </div>
 

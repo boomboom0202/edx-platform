@@ -10,14 +10,19 @@
 ##      <%namespace name="ektu" file="/ektu/links.html"/>
 ##      <a href="mailto:${ektu.attr.EKTU_LINKS['support_email']}">...</a>
 ##
+##  EKTU_DOCS holds paths of documents shipped with the platform itself, under
+##  lms/static/.  They are not URLs: resolve them through static_content.html,
+##  the same way the honor code and privacy policy pages do.
+##
+##      <%namespace name="static" file="../static_content.html"/>
+##      <a href="${static.url(ektu.attr.EKTU_DOCS['login_guide'])}">...</a>
+##
 ##  NOTE: only public, student/teacher facing resources belong here.  Internal
 ##  engineering resources (course development instance, backups, credential
 ##  spreadsheets) must never be linked from the platform UI.
 ## ============================================================================
 <%!
 EKTU_LINKS = {
-    # Step-by-step "how to sign in with the university Google account" guide.
-    'login_guide': 'https://edu.ektu.kz/ru/logging-in/how-to-log-into-google-account',
     # Where students and teachers write about problems with the platform. It
     # is a real mailbox that has to be read: the help, FAQ and contact pages
     # all point at this one address, so nothing sent here may go unanswered.
@@ -33,5 +38,13 @@ EKTU_LINKS = {
     # Learning platforms.
     'platform_students': 'https://edx.ektu.kz',
     'platform_open': 'https://open.ektu.kz',
+}
+
+EKTU_DOCS = {
+    # Step-by-step "how to sign in to the portal with the university Google
+    # account" guide, written by the Center for Educational Technologies.
+    # Russian only for now; add 'ektu/docs/google-login-kk.pdf' next to it and
+    # give the link sites a language switch when the Kazakh version is ready.
+    'login_guide': 'ektu/docs/google-login-ru.pdf',
 }
 %>
