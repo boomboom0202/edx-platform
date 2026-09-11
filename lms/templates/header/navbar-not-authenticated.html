@@ -3,6 +3,7 @@
 <%page expression_filter="h"/>
 
 <%namespace name='static' file='../static_content.html'/>
+<%namespace name='ektu' file='/ektu/links.html'/>
 <%namespace file='../main.html' import="login_query"/>
 
 <%!
@@ -48,6 +49,13 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
         <a href="/courses">${_("Explore courses")}</a>
       </div>
     %endif
+    ## How to sign in with the university Google account. Deliberately only in
+    ## the signed-out header: once you are in, you no longer need it. Sits next
+    ## to the Sign in button, which is where people look when they get stuck.
+    <div class="mobile-nav-item hidden-mobile nav-item">
+      <a href="${static.url(ektu.attr.EKTU_DOCS['login_guide'])}"
+         target="_blank" rel="noopener">${_("Sign-in guide")}</a>
+    </div>
   % endif
   </div>
   <div class="secondary">
