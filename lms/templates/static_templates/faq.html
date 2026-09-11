@@ -40,7 +40,7 @@ from openedx.core.djangolib.markup import HTML, Text
             <summary class="ektu-faq__q">${_("How do I sign in?")}</summary>
             <div class="ektu-faq__a">
               <p>
-                ${Text(_("University students and staff sign in with the {strong_start}Sign in with Google{strong_end} button using their university account; there is no need to create a separate password. There is a {link_start}step-by-step sign-in guide{link_end} (PDF).")).format(
+                ${Text(_("University students and staff sign in with the {strong_start}Sign in with Google{strong_end} button using their university account; there is no need to create a separate password. See the {link_start}Instructions{link_end} (PDF).")).format(
                   strong_start=HTML('<strong>'),
                   strong_end=HTML('</strong>'),
                   link_start=HTML('<a href="{}" target="_blank" rel="noopener">').format(static.url(docs['login_guide'])),
