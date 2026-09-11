@@ -83,6 +83,14 @@ header.global-header .header-logo img.logo {
   max-height: 46px;
   width: auto;
 }
+/* The platform prints "ORG: NUMBER / course name" next to the logo on every
+   page that has a course in context (sass/_header.scss, >= lg only). On the
+   course about page that repeats what the hero underneath already says in
+   full, so the header keeps just the logo there. Courseware pages, where the
+   header is the only place the course is named, are left alone. */
+body.ektu-page-course-about header.global-header .course-header {
+  display: none !important;
+}
 /* Desktop layout: logo left, nav, then language + account/buttons on the right.
    Scoped to >= lg so the mobile hamburger layout is left untouched. */
 @media (min-width: 992px) {
