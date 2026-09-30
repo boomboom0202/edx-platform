@@ -88,28 +88,30 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
                         </select>
                     </label>
                 </form>
-                ## Keep dark-lang / LMS language in sync with the MFEs: also store the
-                ## language-preference cookie on the shared parent domain so MFEs running
-                ## on a sibling subdomain read the same value.
-                <script type="text/javascript">
-                (function() {
-                    var sel = document.getElementById('settings-language-value');
-                    if (!sel) { return; }
-                    var COOKIE_NAME = "${settings.LANGUAGE_COOKIE_NAME | n, js_escaped_string}";
-                    function sharedDomain() {
-                        var host = window.location.hostname;
-                        var parts = host.split('.');
-                        return parts.length > 2 ? '.' + parts.slice(-2).join('.') : host;
-                    }
-                    sel.addEventListener('change', function() {
-                        var lang = sel.value;
-                        document.cookie = COOKIE_NAME + '=' + lang + '; path=/; domain='
-                            + sharedDomain() + '; max-age=31536000';
-                    }, true);
-                })();
-                </script>
             % endif
         % endif
+        ## The language cookie is the platform's to write. lang_edx.js saves the
+        ## choice (pref-lang, or update_language for anonymous visitors) and the
+        ## response sets the cookie on SHARED_COOKIE_DOMAIN, the same domain the
+        ## login cookies use, so every MFE that works at all can already read it.
+        ##
+        ## This page used to also write it from JavaScript on the last two labels
+        ## of the host (.ektu.kz). That made a second cookie with the same name:
+        ## Django reads the last of the two, the MFEs (universal-cookie) the first,
+        ## so the LMS and the MFEs could show different languages, and the choice
+        ## leaked into every other *.ektu.kz site, edx.ektu.kz included. Remove
+        ## that leftover from browsers that still carry it.
+        <script type="text/javascript">
+        (function() {
+            var name = "${settings.LANGUAGE_COOKIE_NAME | n, js_escaped_string}";
+            var shared = "${settings.SHARED_COOKIE_DOMAIN or '' | n, js_escaped_string}".replace(/^\./, '');
+            var parts = window.location.hostname.split('.');
+            if (parts.length < 3) { return; }
+            var legacy = parts.slice(-2).join('.');
+            if (legacy === shared) { return; }
+            document.cookie = name + '=; path=/; domain=.' + legacy + '; max-age=0';
+        })();
+        </script>
     </div>
     <div class="mobile-menu hidden" aria-label=${_("More Options")} role="menu" id="mobile-menu"></div>
 </header>
