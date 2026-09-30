@@ -83,7 +83,10 @@ class Payment(models.Model):
     callback_payload = models.JSONField(blank=True, null=True)
 
     # Set once the learner has actually been given access, so a repeated
-    # callback cannot enroll twice.
+    # callback cannot enroll twice. Cleared only when we take access away — a
+    # refund, or unticked by hand in the admin — and never by the learner
+    # unenrolling themselves: while it is set, the purchase stands and they
+    # can come back to the course without paying again.
     enrolled = models.BooleanField(default=False)
 
     paid_at = models.DateTimeField(null=True, blank=True)

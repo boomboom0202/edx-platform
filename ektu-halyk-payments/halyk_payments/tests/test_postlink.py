@@ -150,17 +150,76 @@ def test_a_callback_for_an_unknown_invoice_is_refused(payment):
     assert enroll.call_count == 0
 
 
-def test_a_missing_secret_hash_is_tolerated(payment):
-    """
-    The documented postLink examples do not show the field, so its absence
-    cannot be treated as forgery; the status API is what catches that case.
-    """
-    body = callback(payment)
+def unsigned(payment, **overrides):
+    body = callback(payment, **overrides)
     del body["secret_hash"]
-    response, enroll = post(body)
+    return body
+
+
+def test_an_unsigned_callback_is_not_rejected_but_the_bank_decides(payment):
+    """
+    The documented postLink examples do not show secret_hash, so its absence is
+    not treated as forgery. Nothing in such a callback is believed, though: the
+    bank is asked even with HALYK_VERIFY_WITH_STATUS_API switched off, which
+    would otherwise open the course on an unverified message.
+    """
+    with _with_status(_transaction()) as bank:
+        response, enroll = post(unsigned(payment))
 
     assert response.status_code == 200
     assert enroll.call_count == 1
+    assert bank.return_value.get_payment_status.call_count == 1
+
+
+def test_an_unsigned_failure_cannot_knock_over_somebody_elses_checkout(payment):
+    """
+    Invoice numbers run in sequence, so anyone can guess one and post "code:
+    error" for it. That used to mark a learner's payment failed while they were
+    in the middle of paying, and send them to pay a second time.
+    """
+    with _with_status(_transaction(result_code="107")):
+        response, enroll = post(unsigned(payment, code="error", reasonCode=484))
+
+    assert response.status_code == 200
+    assert enroll.call_count == 0
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
+    assert payment.transaction_id == ""
+
+
+def test_an_unsigned_failure_does_not_outvote_the_bank(payment):
+    """The callback said "error"; the bank says the money was taken."""
+    with _with_status(_transaction()):
+        _, enroll = post(unsigned(payment, code="error", reasonCode=484))
+
+    assert enroll.call_count == 1
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PAID
+
+
+def test_an_unsigned_callback_leaves_nothing_of_itself_behind(payment):
+    """What gets recorded is the bank's answer, not the stranger's claims."""
+    bank_answer = _transaction(transaction_id="bank-tx-1", reference="REF-BANK",
+                               card_mask="400000...0002")
+    with _with_status(bank_answer):
+        post(unsigned(payment, id="forged-tx", reference="FORGED", cardMask="FORGED"))
+
+    payment.refresh_from_db()
+    assert payment.transaction_id == "bank-tx-1"
+    assert payment.reference == "REF-BANK"
+    assert payment.card_mask == "400000...0002"
+    assert payment.callback_payload == bank_answer
+
+
+def test_an_unsigned_callback_with_the_bank_unreachable_stays_pending(payment):
+    from halyk_payments.client import HalykError
+
+    with _with_status(raises=HalykError("boom")):
+        _, enroll = post(unsigned(payment, code="error", reasonCode=484))
+
+    assert enroll.call_count == 0
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.PENDING
 
 
 # -- failures ----------------------------------------------------------------
@@ -214,13 +273,19 @@ def _with_status(status_body=None, raises=None):
     return mock.patch.object(services, "HalykClient", return_value=client)
 
 
-def _transaction(status_name="CHARGE", amount=50000, result_code="100"):
-    return {
+def _transaction(status_name="CHARGE", amount=50000, result_code="100",
+                 transaction_id="", reference="", card_mask=""):
+    body = {
         "resultCode": result_code,
         "resultMessage": "SUCCESS",
         "transaction": {"statusName": status_name, "amount": amount,
                         "terminalID": TERMINAL},
     }
+    for key, value in (("id", transaction_id), ("reference", reference),
+                       ("cardMask", card_mask)):
+        if value:
+            body["transaction"][key] = value
+    return body
 
 
 def test_the_bank_is_asked_before_access_is_granted(payment, halyk_settings):
@@ -289,7 +354,92 @@ def test_the_status_api_catches_a_forged_amount(payment, halyk_settings):
     assert payment.status == PaymentStatus.FAILED
 
 
+def test_the_banks_transaction_id_is_recorded_not_the_callbacks(payment, halyk_settings):
+    """Every later refund is addressed by this id, so it has to be the bank's."""
+    halyk_settings.HALYK_VERIFY_WITH_STATUS_API = True
+
+    with _with_status(_transaction(transaction_id="bank-tx-9")):
+        post(callback(payment, id="callback-tx"))
+
+    payment.refresh_from_db()
+    assert payment.transaction_id == "bank-tx-9"
+    # A signed callback is still what support gets to read.
+    assert payment.callback_payload["id"] == "callback-tx"
+
+
+# -- a decision already made is not reopened ---------------------------------
+
+def test_a_repeated_success_does_not_hand_back_access_that_was_withdrawn(payment):
+    """
+    Paid, then access taken away by hand (a partial refund with
+    --withdraw-access). The bank re-sending its old success message must not
+    quietly give the course back.
+    """
+    Payment.objects.filter(pk=payment.pk).update(
+        status=PaymentStatus.PAID, enrolled=False)
+
+    _, enroll = post(callback(payment))
+
+    assert enroll.call_count == 0
+    payment.refresh_from_db()
+    assert payment.enrolled is False
+
+
+def test_a_late_failure_does_not_rewrite_a_refund(payment):
+    """A refunded order must stay "Refunded" in the learner's history."""
+    Payment.objects.filter(pk=payment.pk).update(
+        status=PaymentStatus.REFUNDED, enrolled=False, refunded_amount=50000)
+
+    post(callback(payment, code="error", reasonCode=484))
+
+    payment.refresh_from_db()
+    assert payment.status == PaymentStatus.REFUNDED
+
+
 # -- source restriction ------------------------------------------------------
+
+# Public addresses on purpose: the platform's helper skips anything that is
+# not globally routable, documentation ranges (203.0.113.0/24 and friends)
+# included, so those would never exercise the real rule.
+BANK_IP = "95.56.12.34"
+ATTACKER_IP = "37.99.40.2"
+
+
+def test_the_allowlist_reads_the_address_behind_the_proxy(payment, halyk_settings):
+    """
+    Behind Tutor's Caddy the connection comes from the proxy's own private
+    address; the bank's is the one Caddy appended to X-Forwarded-For.
+    """
+    halyk_settings.HALYK_POSTLINK_IP_ALLOWLIST = [BANK_IP]
+    halyk_settings.CLOSEST_CLIENT_IP_FROM_HEADERS = []
+    request = RequestFactory().post(
+        "/halyk/postlink/", data=json.dumps(callback(payment)),
+        content_type="application/json",
+        REMOTE_ADDR="172.18.0.5", HTTP_X_FORWARDED_FOR=BANK_IP,
+    )
+
+    with mock.patch("common.djangoapps.student.models.CourseEnrollment.enroll"):
+        response = views.postlink(request)
+
+    assert response.status_code == 200
+
+
+def test_the_allowlist_cannot_be_fooled_with_a_forged_header(payment, halyk_settings):
+    """A client can put anything at the left of X-Forwarded-For; Caddy then
+    appends the address it really saw, and that is the one that counts."""
+    halyk_settings.HALYK_POSTLINK_IP_ALLOWLIST = [BANK_IP]
+    halyk_settings.CLOSEST_CLIENT_IP_FROM_HEADERS = []
+    request = RequestFactory().post(
+        "/halyk/postlink/", data=json.dumps(callback(payment)),
+        content_type="application/json",
+        REMOTE_ADDR="172.18.0.5",
+        HTTP_X_FORWARDED_FOR=f"{BANK_IP}, {ATTACKER_IP}",
+    )
+
+    response = views.postlink(request)
+
+    assert response.status_code == 403
+
 
 def test_the_ip_allowlist_shuts_out_everyone_else(payment, halyk_settings):
     halyk_settings.HALYK_POSTLINK_IP_ALLOWLIST = ["203.0.113.7"]

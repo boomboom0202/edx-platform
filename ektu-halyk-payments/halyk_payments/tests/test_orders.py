@@ -46,7 +46,7 @@ def test_a_learner_sees_their_own_orders(buyer):
     body = orders_for(buyer).content.decode()
 
     assert "1000001" in body
-    assert "50 000" in body
+    assert "50\u00a0000" in body
 
 
 def test_nobody_sees_anybody_elses(buyer, db):
@@ -97,8 +97,12 @@ def test_an_empty_history_says_so(buyer):
 
 
 def test_amounts_are_grouped_and_carry_the_currency(buyer):
+    """
+    Groups and the currency are joined with no-break spaces (U+00A0), so a
+    narrow column wraps before the price rather than in the middle of it.
+    """
     payment = make(buyer, "1000007", enrolled=True)
 
-    assert payment.display_amount == "50 000 ₸"
-    assert Payment(amount=50, currency="KZT").display_amount == "50 ₸"
-    assert Payment(amount=100, currency="XYZ").display_amount == "100 XYZ"
+    assert payment.display_amount == "50\u00a0000\u00a0₸"
+    assert Payment(amount=50, currency="KZT").display_amount == "50\u00a0₸"
+    assert Payment(amount=100, currency="XYZ").display_amount == "100\u00a0XYZ"

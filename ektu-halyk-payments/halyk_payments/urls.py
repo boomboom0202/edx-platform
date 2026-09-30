@@ -7,6 +7,8 @@ app_name = "halyk_payments"
 
 urlpatterns = [
     re_path(r"^checkout/(?P<course_id>[^/]+)/$", views.checkout, name="checkout"),
+    re_path(r"^payment-object/(?P<invoice_id>[\w-]+)/$", views.payment_object,
+            name="payment_object"),
     path("postlink/", views.postlink, name="postlink"),
     re_path(r"^result/(?P<invoice_id>[\w-]+)/$", views.result, name="result"),
     re_path(r"^receipt/(?P<invoice_id>[\w-]+)/$", views.receipt, name="receipt"),

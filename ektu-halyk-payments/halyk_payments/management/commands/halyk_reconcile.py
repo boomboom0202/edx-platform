@@ -82,7 +82,8 @@ class Command(BaseCommand):
                 refused += 1
                 self.stdout.write(f"{payment.invoice_id}: not paid — {detail}")
                 if not options["dry_run"]:
-                    mark_failed(payment.pk, reason=f"Bank says: {detail}")
+                    mark_failed(payment.pk, reason=f"Bank says: {detail}",
+                                transaction_id=transaction.transaction_id[:64])
                 continue
 
             settled += 1
@@ -95,6 +96,7 @@ class Command(BaseCommand):
                     payment.pk,
                     reference=transaction.reference[:128],
                     card_mask=transaction.card_mask[:32],
+                    transaction_id=transaction.transaction_id[:64],
                     payload=transaction.body,
                 )
 

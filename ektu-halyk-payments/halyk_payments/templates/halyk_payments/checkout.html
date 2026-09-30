@@ -1,135 +1,196 @@
-{% load i18n %}<!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE|default:'ru' }}">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% trans "Payment" %}</title>
+{% extends "main_django.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Payment" %} | {{ block.super }}{% endblock %}
+{% block bodyclass %}ektu-page ektu-page-pay{% endblock %}
+
+{% block headextra %}
+{% include "halyk_payments/_styles.html" %}
 {% if widget_origin %}
-{# The card form is an iframe from the bank, requested only once the learner
-   clicks. Opening the connection now moves the handshake off their wait. #}
+{# The bank's script and its card form both come from this host. Opening the #}
+{# connection now takes the DNS and TLS handshake off the learner's wait.    #}
 <link rel="preconnect" href="{{ widget_origin }}" crossorigin>
 <link rel="dns-prefetch" href="{{ widget_origin }}">
 {% endif %}
-<style>
-  :root { --g:#006D5B; --d:#013A3A; --ink:#0d2b27; --muted:#5b726c;
-          --surface:#f4f8f6; --border:#d9e6e1; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--surface); color:var(--ink); line-height:1.6;
-         font-family:'Manrope','Helvetica Neue',Arial,sans-serif; }
-  .bar { background:var(--d); border-top:4px solid var(--g); color:#fff;
-         padding:16px 24px; font-weight:700; }
-  .wrap { max-width:560px; margin:40px auto; padding:0 20px; }
-  .card { background:#fff; border:1px solid var(--border); border-radius:18px;
-          padding:28px; box-shadow:0 2px 10px rgba(1,58,58,.05); }
-  h1 { font-size:22px; line-height:1.3; margin:0 0 18px; color:var(--ink); }
-  dl { display:grid; grid-template-columns:auto 1fr; gap:8px 18px; margin:0 0 24px; }
-  dt { color:var(--muted); font-size:14px; }
-  dd { margin:0; font-weight:600; text-align:right; }
-  .total { font-size:20px; color:var(--g); }
-  .btn { display:block; width:100%; border:0; border-radius:999px; cursor:pointer;
-         background:var(--g); color:#fff; font-weight:700; font-size:16px;
-         padding:15px 24px; font-family:inherit; }
-  .btn:hover { background:var(--d); }
-  .btn[disabled] { background:var(--muted); cursor:progress; }
-  .note { color:var(--muted); font-size:13px; margin-top:16px; }
-  .warn { background:#fff8e6; border:1px solid #f0d999; border-radius:12px;
-          padding:14px 16px; color:#7a5b12; font-size:14px; margin-bottom:20px; }
-</style>
-</head>
-<body>
-<div class="bar">EKTU</div>
-<div class="wrap">
-  <div class="card">
+{% endblock %}
 
-    {% if fake %}
-    <div class="warn">
-      <strong>{% trans "Test mode." %}</strong>
-      {% trans "No money is taken and no request reaches the bank. This button simulates the bank's callback so the whole flow can be checked end to end." %}
+{% block body %}
+<main id="main" aria-label="Content" tabindex="-1">
+<section class="ektu-static ektu-pay">
+
+  <header class="ektu-page-hero">
+    <div class="ektu-wrap">
+      <span class="ektu-eyebrow">{% trans "Payment" %}</span>
+      <h1>{% trans "Payment for course access" %}</h1>
+      <p>{{ course_name }}</p>
     </div>
-    {% endif %}
+  </header>
 
-    <h1>{% trans "Payment for course access" %}</h1>
+  <section class="ektu-section">
+    <div class="ektu-wrap ektu-wrap--narrow">
+      <div class="ektu-pay__panel">
 
-    <dl>
-      <dt>{% trans "Course" %}</dt><dd>{{ payment.course_id }}</dd>
-      <dt>{% trans "Invoice" %}</dt><dd>{{ payment.invoice_id }}</dd>
-      <dt>{% trans "Amount" %}</dt>
-      <dd class="total">{{ payment.display_amount }}</dd>
-    </dl>
+        {% if fake %}
+        <div class="ektu-pay__warn">
+          <strong>{% trans "Test mode." %}</strong>
+          {% trans "No money is taken and no request reaches the bank. This button simulates the bank's callback so the whole flow can be checked end to end." %}
+        </div>
+        {% endif %}
 
-    {% if fake %}
-      <form method="post" action="{{ postlink_url }}" id="fake-form">
-        <button type="button" class="btn" id="fake-pay">{% trans "Simulate a successful payment" %}</button>
-      </form>
-      <p class="note">{% trans "You will be taken to the result page, exactly as after a real payment." %}</p>
-    {% else %}
-      <button type="button" class="btn" id="pay">{% trans "Pay" %}</button>
-      <p class="note">{% trans "You will be redirected to the secure payment page of Halyk Bank. The university never sees your card details." %}</p>
-    {% endif %}
+        <dl class="ektu-pay__summary">
+          <dt>{% trans "Course" %}</dt><dd>{{ course_name }}</dd>
+          <dt>{% trans "Invoice" %}</dt><dd>{{ payment.invoice_id }}</dd>
+          <dt>{% trans "Amount" %}</dt>
+          <dd class="ektu-pay__total">{{ payment.display_amount }}</dd>
+        </dl>
 
-  </div>
-</div>
+        <div class="ektu-pay__error" id="halyk-pay-error" role="alert" hidden></div>
 
+        <div class="ektu-pay__actions">
+          {% if fake %}
+            <button type="button" class="ektu-btn" id="halyk-fake-pay">{% trans "Simulate a successful payment" %}</button>
+          {% else %}
+            <button type="button" class="ektu-btn" id="halyk-pay"
+                    data-url="{{ payment_object_url }}"
+                    data-csrf="{{ csrf_token }}">{% trans "Pay" %}</button>
+          {% endif %}
+        </div>
+
+        {% if fake %}
+          <p class="ektu-pay__hint">{% trans "You will be taken to the result page, exactly as after a real payment." %}</p>
+        {% else %}
+          <p class="ektu-pay__hint">{% trans "You will be redirected to the secure payment page of Halyk Bank. The university never sees your card details." %}</p>
+        {% endif %}
+
+      </div>
+    </div>
+  </section>
+
+</section>
+</main>
+{% endblock %}
+
+{% block bodyextra %}
 {% if fake %}
 <script>
 (function () {
+  "use strict";
   // Post a simulated callback to our own endpoint, then go to the result page.
-  document.getElementById('fake-pay').addEventListener('click', function () {
+  document.getElementById("halyk-fake-pay").addEventListener("click", function () {
     // Shaped like the bank's real success callback, so the same code path runs.
-    fetch("{{ postlink_url }}", {
+    fetch("{{ postlink_url|escapejs }}", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        invoiceId: "{{ payment.invoice_id }}",
+        invoiceId: "{{ payment.invoice_id|escapejs }}",
         amount: {{ payment.amount }},
-        currency: "{{ payment.currency }}",
+        currency: "{{ payment.currency|escapejs }}",
         terminal: "{{ terminal|escapejs }}",
         accountId: "{{ payment.user_id }}",
         code: "ok",
         reason: "success",
         reasonCode: 0,
         approvalCode: "157911",
-        reference: "TEST-{{ payment.invoice_id }}",
+        reference: "TEST-{{ payment.invoice_id|escapejs }}",
         cardMask: "440043...0037",
         cardType: "VISA",
         secret_hash: "{{ payment.secret_hash|escapejs }}"
       })
     }).then(function () {
-      window.location.href = "{{ return_url }}";
+      window.location.href = "{{ return_url|escapejs }}";
     });
   });
 })();
 </script>
 {% else %}
-<script src="{{ widget_js_url }}"></script>
+{# defer: the bank's script must not hold up the platform's own scripts, #}
+{# which main_django.html loads after this block.                          #}
+<script src="{{ widget_js_url }}" defer></script>
 <script>
 (function () {
-  // The payment object is built entirely on the server; nothing here decides
-  // the amount or which course is being bought.
-  var paymentObject = {{ payment_object_json|safe }};
-  var button = document.getElementById('pay');
+  "use strict";
+  var button = document.getElementById("halyk-pay");
+  var errorBox = document.getElementById("halyk-pay-error");
+  var PAY = button.textContent;
+  var OPENING = "{% trans 'Opening the secure payment page…' as t %}{{ t|escapejs }}";
+  var UNAVAILABLE = "{% trans 'The payment service is unavailable. Please try again later.' as t %}{{ t|escapejs }}";
+  var NOT_LOADED = "{% trans 'The payment service could not be loaded. Please try again later.' as t %}{{ t|escapejs }}";
 
-  button.addEventListener('click', function () {
+  // The payment object is built on the server, token and all; nothing here
+  // decides the amount or which course is being bought. It is requested as
+  // soon as the page opens, so the bank's answer arrives while the learner
+  // is still reading the summary rather than after they click.
+  var request = null;
+  var requestedAt = 0;
+  var lifetimeMs = 0;
+
+  function load() {
+    requestedAt = Date.now();
+    request = fetch(button.getAttribute("data-url"), {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "X-CSRFToken": button.getAttribute("data-csrf"), "Accept": "application/json" }
+    }).then(function (response) {
+      return response.json().then(function (body) {
+        if (!response.ok) {
+          var error = new Error(body.error || UNAVAILABLE);
+          error.result = body.result;
+          throw error;
+        }
+        lifetimeMs = ((body.auth && Number(body.auth.expires_in)) || 0) * 1000;
+        return body;
+      });
+    });
+    request.catch(function () { /* reported when the learner clicks */ });
+    return request;
+  }
+
+  function current() {
+    // The bank's token expires. A page left open for a long time asks again
+    // rather than handing the widget a token it will refuse.
+    var stale = lifetimeMs && (Date.now() - requestedAt) > lifetimeMs - 60000;
+    return (!request || stale) ? load() : request;
+  }
+
+  function fail(message) {
+    button.disabled = false;
+    button.textContent = PAY;
+    errorBox.textContent = message;
+    errorBox.hidden = false;
+    request = null;  // the next click asks the bank again
+  }
+
+  load();
+
+  button.addEventListener("click", function () {
+    errorBox.hidden = true;
     if (typeof halyk === "undefined" || !halyk.showPaymentWidget) {
-      window.alert("{% trans 'The payment service could not be loaded. Please try again later.' %}");
+      fail(NOT_LOADED);
       return;
     }
-
     // The bank's card form takes a moment to appear. Without this the page
     // looks like it ignored the click, and people click again.
     button.disabled = true;
-    button.textContent = "{% trans 'Opening the secure payment page…' %}";
-    // The second argument is the widget's callback: { success: true | false }.
-    // Its answer only decides which page the learner lands on. Access is
-    // granted by the server-to-server callback, never here.
-    halyk.showPaymentWidget(paymentObject, function (result) {
-      var ok = result && result.success;
-      window.location.href = ok ? paymentObject.backLink
-                                : paymentObject.failureBackLink;
+    button.textContent = OPENING;
+
+    current().then(function (paymentObject) {
+      // The second argument is the widget's callback: { success: true | false }.
+      // Its answer only decides which page the learner lands on. Access is
+      // granted by the server-to-server callback, never here.
+      halyk.showPaymentWidget(paymentObject, function (result) {
+        var ok = result && result.success;
+        window.location.href = ok ? paymentObject.backLink : paymentObject.failureBackLink;
+      });
+    }, function (error) {
+      if (error.result) {
+        // Already paid or closed in another tab: show what became of it.
+        window.location.href = error.result;
+        return;
+      }
+      fail(error.message || UNAVAILABLE);
     });
   });
 })();
 </script>
 {% endif %}
-</body>
-</html>
+{% endblock %}

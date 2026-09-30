@@ -1,0 +1,182 @@
+{% comment %}
+  What the payment pages need beyond the EKTU brand layer.
+
+  Everything shared with the rest of the site — the hero, buttons, notes,
+  colours and type — comes from lms/templates/ektu/branding.html, which
+  main_django.html pulls in, so these pages look like /help and /faq rather
+  than like a separate app. Only the pieces no other page has live here, all
+  under .ektu-pay so nothing leaks into the header or footer.
+{% endcomment %}
+<style>
+.ektu-pay .ektu-wrap--narrow { max-width: 620px; }
+.ektu-pay--wide .ektu-wrap--narrow { max-width: 820px; }
+
+.ektu-pay__panel {
+  background: #fff;
+  border: 1px solid var(--ektu-border);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 2px 10px rgba(1, 58, 58, 0.05);
+}
+.ektu-pay__panel--center { text-align: center; }
+
+.ektu-pay__icon {
+  width: 56px; height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 24px;
+  background: rgba(var(--ektu-primary-rgb), 0.1);
+  color: var(--ektu-primary);
+}
+.ektu-pay__icon--wait { background: #fdf6e6; color: #8a5a00; }
+.ektu-pay__icon--bad  { background: #fbeeec; color: #9c3226; }
+
+.ektu-pay h2.ektu-pay__title {
+  font-family: var(--ektu-font-display);
+  font-size: 22px;
+  line-height: 1.3;
+  color: var(--ektu-ink);
+  text-align: center;
+  margin: 0 0 8px;
+}
+.ektu-pay p.ektu-pay__text { color: var(--ektu-muted); margin: 0 0 22px; }
+
+/* The v1 base styles dl/dt/dd for other pages; reset them explicitly. */
+.ektu-pay dl.ektu-pay__summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 10px 18px;
+  margin: 0 0 24px;
+  padding: 18px 0;
+  border-top: 1px solid var(--ektu-border);
+  border-bottom: 1px solid var(--ektu-border);
+}
+.ektu-pay__summary dt {
+  margin: 0;
+  color: var(--ektu-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+.ektu-pay__summary dd {
+  margin: 0;
+  color: var(--ektu-ink);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+.ektu-pay__summary dd.ektu-pay__total { font-size: 20px; color: var(--ektu-primary); }
+
+.ektu-pay__actions { display: grid; gap: 10px; }
+.ektu-pay__actions .ektu-btn { display: block; text-align: center; }
+
+/* A <button> picks up the v1 "shiny" button (shared/_forms.scss): gradient,
+   text shadow, 3px corners, letter-spacing and half opacity when disabled.
+   Undo all of it so it matches the .ektu-btn links next to it. */
+.ektu-pay button.ektu-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  background-image: none;
+  text-shadow: none;
+  letter-spacing: normal;
+  font: 600 16px/1.2 var(--ektu-font-display);
+  padding: 15px 30px;
+  cursor: pointer;
+}
+.ektu-pay button.ektu-btn--ghost { border: 1.5px solid var(--ektu-primary); }
+.ektu-pay button.ektu-btn[disabled] {
+  opacity: 0.8;
+  cursor: progress;
+  transform: none;
+  pointer-events: none;
+}
+
+.ektu-pay p.ektu-pay__hint {
+  color: var(--ektu-muted);
+  font-size: 13px;
+  margin: 16px 0 0;
+  text-align: center;
+}
+.ektu-pay__warn,
+.ektu-pay__error {
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+.ektu-pay__warn  { background: #fff8e6; border: 1px solid #f0d999; color: #7a5b12; }
+.ektu-pay__error { background: #fbeeec; border: 1px solid #efc4bd; color: #9c3226; }
+
+/* Order history */
+.ektu-pay__orders { display: grid; gap: 14px; }
+.ektu-pay__order {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  background: #fff;
+  border: 1px solid var(--ektu-border);
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+.ektu-pay p.ektu-pay__course {
+  margin: 0 0 4px;
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.3;
+  color: var(--ektu-ink);
+}
+.ektu-pay__meta { color: var(--ektu-muted); font-size: 13px; }
+.ektu-pay__meta span + span::before { content: "·"; margin: 0 7px; }
+.ektu-pay__right { display: grid; gap: 8px; justify-items: end; text-align: right; }
+.ektu-pay__amount { font-weight: 700; font-size: 18px; white-space: nowrap; color: var(--ektu-ink); }
+.ektu-pay__refunded { color: var(--ektu-muted); font-size: 13px; white-space: nowrap; }
+.ektu-pay__links {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ektu-border);
+  font-size: 14px;
+}
+.ektu-pay__links a { text-decoration: none; }
+.ektu-pay__links a:hover { text-decoration: underline; }
+
+.ektu-pay__pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 6px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.ektu-pay__pill--paid      { background: #e3f0eb; color: var(--ektu-primary); }
+.ektu-pay__pill--refunded,
+.ektu-pay__pill--cancelled { background: #eef1f5; color: #4a5b6b; }
+.ektu-pay__pill--failed    { background: #fbeeec; color: #9c3226; }
+.ektu-pay__pill--pending   { background: #fdf6e6; color: #8a5a00; }
+
+@media (max-width: 560px) {
+  .ektu-pay__panel { padding: 22px 18px; }
+  .ektu-pay__order { grid-template-columns: 1fr; }
+  .ektu-pay__right { justify-items: start; text-align: left; }
+}
+
+.ektu-pay .ektu-pay__print-only { display: none; }
+
+@media print {
+  .ektu-pay .ektu-pay__print-only { display: block; }
+  .ektu-pay .ektu-page-hero,
+  .ektu-pay .ektu-pay__actions,
+  .ektu-pay .ektu-pay__hint,
+  header.global-header,
+  .wrapper-footer,
+  footer { display: none !important; }
+  .ektu-pay .ektu-section { padding: 0; }
+  .ektu-pay__panel { border: 0; box-shadow: none; padding: 0; }
+}
+</style>

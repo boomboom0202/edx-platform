@@ -22,6 +22,26 @@ class HalykError(Exception):
     """Any failure while talking to the bank."""
 
 
+_session = None
+
+
+def _http():
+    """
+    One connection pool for every call to the bank, kept for the process.
+
+    Confirming a single payment is up to six requests in a row — a token, the
+    status, and on a two-step terminal a charge and a second look, each wanting
+    its own token. Opening a fresh TLS connection for every one of them is time
+    the bank spends waiting on its callback and the learner on the checkout
+    page. The bank sets no cookies these calls depend on, and a gunicorn
+    worker serves one request at a time, so sharing it is safe.
+    """
+    global _session  # pylint: disable=global-statement
+    if _session is None:
+        _session = requests.Session()
+    return _session
+
+
 # -- what the bank calls things ------------------------------------------------
 
 #: ``resultCode`` of the status API when the request itself succeeded. It says
@@ -285,7 +305,7 @@ class HalykClient:
         """
         url = f"{self.api_url}/check-status/payment/transaction/{invoice_id}"
         try:
-            response = requests.get(
+            response = _http().get(
                 url,
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=self.timeout,
@@ -365,7 +385,7 @@ class HalykClient:
 
         url = f"{self.api_url}/operation/{transaction_id}/{action}"
         try:
-            response = requests.post(
+            response = _http().post(
                 url,
                 params=params or {},
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -390,7 +410,7 @@ class HalykClient:
     def _post(self, url, payload, what):
         try:
             # form-data, as the documentation specifies for the token endpoint.
-            response = requests.post(url, data=payload, timeout=self.timeout)
+            response = _http().post(url, data=payload, timeout=self.timeout)
             response.raise_for_status()
             return response.json()
         except requests.RequestException as exc:

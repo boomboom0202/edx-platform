@@ -1,13 +1,16 @@
 """
 The rules that decide who gets access to a course.
 
-Two invariants are enforced here and nowhere else:
+Three invariants are enforced here and nowhere else:
 
 1. The price and the course mode come from the CourseMode row, never from the
    request. A learner cannot ask to pay one tenge for a course.
 2. Access is granted exactly once per invoice, from the server-to-server
    callback only. A browser redirect never enrolls anybody, and a repeated
    callback does not enroll twice.
+3. A course is paid for once. Leaving it does not undo the purchase, so coming
+   back never costs a second time; only a refund, or access withdrawn by hand,
+   ends what the payment bought.
 """
 import logging
 from decimal import Decimal
@@ -28,6 +31,11 @@ from .client import (
 from .models import Payment, PaymentStatus
 
 log = logging.getLogger(__name__)
+
+#: The states a payment can still be settled from. Anything else was already
+#: decided after the money arrived — paid, refunded, released, or access taken
+#: away — and a late or repeated message from the bank must not reopen it.
+OPEN_STATES = (PaymentStatus.PENDING, PaymentStatus.FAILED)
 
 
 class PaymentError(Exception):
@@ -175,6 +183,55 @@ def already_enrolled_in_paid_mode(user, course_key):
     return bool(is_active and enrollment_mode == slug)
 
 
+def _entitling(user, course_key):
+    """Payments that still give this learner the course, newest first."""
+    return Payment.objects.filter(
+        user=user, course_id=course_key, status=PaymentStatus.PAID, enrolled=True,
+    ).order_by("-paid_at", "-created")
+
+
+def paid_entitlement(user, course_key):
+    """
+    The payment that still entitles this learner to the course, or None.
+
+    Leaving a course from the dashboard is not a refusal of the contract. The
+    offer makes that a written request (section 6.6) and ends access only when
+    the money is returned (6.8), so a learner who unenrols keeps what they paid
+    for and must be able to come back without paying again.
+
+    ``Payment.enrolled`` is what carries this. It is set when a payment opens
+    the course and cleared only when we take access away — a refund, or by
+    hand — never by the learner unenrolling themselves.
+    """
+    return _entitling(user, course_key).first()
+
+
+@transaction.atomic
+def restore_paid_access(user, course_key):
+    """
+    Put a learner who has already paid back into the course, at no charge.
+
+    Returns the payment that entitles them, or None if there is none, in which
+    case the caller goes on to take payment as usual. The payment row is
+    locked, so a refund being made at the same moment either finishes first
+    and leaves nothing to restore, or waits until this is done.
+    """
+    from common.djangoapps.student.models import CourseEnrollment
+
+    payment = _entitling(user, course_key).select_for_update().first()
+    if payment is None:
+        return None
+
+    mode, is_active = CourseEnrollment.enrollment_mode_for_user(user, course_key)
+    if not (is_active and mode == payment.course_mode):
+        CourseEnrollment.enroll(user, course_key, mode=payment.course_mode)
+        log.info(
+            "Halyk invoice %s: %s is back in %s as %s, no new charge",
+            payment.invoice_id, user.id, course_key, payment.course_mode,
+        )
+    return payment
+
+
 def start_checkout(user, course_key):
     """
     Create a pending payment for this learner and course.
@@ -190,6 +247,12 @@ def start_checkout(user, course_key):
 
     if already_enrolled_in_paid_mode(user, course_key):
         raise CheckoutError("You already have access to this course.")
+
+    if paid_entitlement(user, course_key) is not None:
+        # The checkout view restores access before it ever gets here. This is
+        # the backstop that makes a second charge for one course impossible,
+        # whichever way a learner arrives.
+        raise CheckoutError("You have already paid for this course.")
 
     currency = (mode.currency or settings.HALYK_CURRENCY).upper()
     if currency != settings.HALYK_CURRENCY.upper():
@@ -245,6 +308,16 @@ def mark_paid_and_enroll(payment_id, payload=None, reference="", card_mask="",
 
     if payment.enrolled:
         log.info("Halyk invoice %s already granted, ignoring", payment.invoice_id)
+        return payment
+
+    if payment.status not in OPEN_STATES:
+        # Refunded, released, or paid and then withdrawn by hand: somebody
+        # decided this after the money arrived. The bank re-sending its old
+        # success message must not quietly hand the course back.
+        log.warning(
+            "Halyk invoice %s is %s; not granting access again",
+            payment.invoice_id, payment.status,
+        )
         return payment
 
     payment.status = PaymentStatus.PAID
@@ -384,18 +457,19 @@ def refund_payment(payment_id, amount=None, external_id=None, unenroll=None):
 def mark_failed(payment_id, reason="", payload=None, transaction_id=""):
     """Record that an invoice did not result in a payment."""
     payment = Payment.objects.select_for_update().get(pk=payment_id)
+    if payment.enrolled or payment.status not in OPEN_STATES:
+        # A late failure notice must never revoke access granted against a
+        # confirmed payment, nor turn a refund into "not completed" in the
+        # learner's order history. Undoing a payment is a refund, by hand.
+        log.warning(
+            "Halyk invoice %s reported as failed after it was settled (%s)",
+            payment.invoice_id, payment.status,
+        )
+        return payment
     if transaction_id:
         # Worth keeping even on a refusal: money held on the card still has to
         # be released, and cancelling it needs this id.
         payment.transaction_id = transaction_id
-    if payment.enrolled:
-        # A late failure notice must never revoke access that was already
-        # granted against a confirmed payment; that is a refund, handled by hand.
-        log.warning(
-            "Halyk invoice %s reported as failed after access was granted",
-            payment.invoice_id,
-        )
-        return payment
     payment.status = PaymentStatus.FAILED
     payment.failure_reason = (reason or "")[:255]
     if payload is not None:

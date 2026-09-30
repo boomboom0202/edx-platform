@@ -16,13 +16,14 @@ university's own terminal is a config change and an image rebuild.
 ## How a purchase works
 
 ```
-learner → /halyk/checkout/<course_id>/   creates a pending payment, shows the widget
+learner → /halyk/checkout/<course_id>/   creates a pending payment, shows the page at once
+page    → /halyk/payment-object/<id>/    fetches the bank's token in the background
         → Halyk payment page             card details never touch the university
 bank    → /halyk/postlink/               server to server: confirms, then enrols
 learner → /halyk/result/<invoice_id>/    only reports what the server recorded
 ```
 
-Four rules are deliberate:
+Five rules are deliberate:
 
 - **Only the callback grants access.** The browser coming back from the bank
   never enrols anybody, so a learner cannot open a paid course by visiting a
@@ -31,13 +32,24 @@ Four rules are deliberate:
   the mode from `CourseMode`; nothing about the price comes from the request.
 - **Every callback is checked twice.** Its `secret_hash`, amount, currency and
   terminal must match the payment, and then the bank's status API is asked
-  again (`HALYK_VERIFY_WITH_STATUS_API`) before anyone is enrolled.
+  again (`HALYK_VERIFY_WITH_STATUS_API`) before anyone is enrolled. A callback
+  without `secret_hash` is not rejected — the documented examples do not show
+  the field — but nothing in it is believed, success or failure: it only makes
+  us ask the bank, whatever that setting says. Invoice numbers are sequential,
+  so an unsigned "error" would otherwise let anyone fail a stranger's checkout
+  mid-payment and send them to pay twice.
+- **A course is paid for once.** Unenrolling from the dashboard does not undo a
+  purchase: the offer ends access only on a refund (sections 6.6 and 6.8). A
+  learner who comes back is re-enrolled in the mode they paid for, at no charge.
+  Only a refund, or access withdrawn by hand, ends the purchase.
 - **Uncertainty never becomes a failure.** A transaction still in progress, a
   non-final `reasonCode` or an unreachable bank leaves the payment pending for a
   human, because none of those are evidence that the learner did not pay.
 
 Re-delivery of the same callback is harmless: the payment row is locked and the
-enrolment happens only on the transition into the paid state.
+enrolment happens only on the transition into the paid state. A payment that
+was refunded, released or had its access withdrawn is not reopened by a late
+success or failure message either.
 
 ## What the documentation pins down
 
@@ -273,6 +285,28 @@ It asks the bank about each pending payment and enrols the ones it confirms,
 through exactly the same check the callback uses — so it cannot open a course
 that was not paid for, and it is safe to run from cron.
 
+### Leaving a course and coming back
+
+`Payment.enrolled` is what keeps a purchase in force. It is set when a payment
+opens the course and cleared only when access is taken away — by
+`halyk_refund`, or by hand — never by the learner unenrolling. So "Enroll" on a
+course someone already bought goes through checkout, which puts them back in
+and sends them to the course without opening an invoice. "Go to the course" in
+the order history does the same.
+
+To take a course away without a refund (offer, section 8.4): untick *enrolled*
+on the payment in Django admin, then unenroll the learner from the course.
+Unticking alone leaves them in the course; unenrolling alone lets them back in
+for free.
+
+### Restricting the callback to the bank's addresses
+
+`HALYK_POSTLINK_IP_ALLOWLIST` is compared with the address the platform itself
+trusts — the same helper it rate-limits logins with — not with `REMOTE_ADDR`,
+which behind Tutor's Caddy is only the proxy's container. Ask the bank for the
+addresses its postLink comes from and list them; until then every unsigned
+callback costs a round trip to the bank's status API.
+
 ### Refunds and released holds
 
 Refunding through the merchant portal moves the money but leaves the learner
@@ -307,10 +341,16 @@ pytest halyk_payments/tests/
 ```
 
 They cover the things that would cost money if they broke: the price comes from
-the course, a forged or mismatched callback enrols nobody, a repeated callback
-enrols once, `AUTH` does not open a course, a non-final error code leaves the
-payment pending, and a late failure notice does not revoke access already
-granted.
+the course, a forged or mismatched callback enrols nobody, an unsigned one
+decides nothing by itself, a repeated callback enrols once, `AUTH` does not
+open a course, a non-final error code leaves the payment pending, a late
+message does not reopen a settled payment, and a learner who left a course
+they paid for gets back in without a second charge.
+
+They patch the platform's `CourseEnrollment` and `CourseMode` rather than
+creating rows in them, and need pytest-django with an LMS test settings module
+— edx-platform's own test environment. The production image Tutor builds does
+not ship pytest.
 
 ## Not built yet
 
