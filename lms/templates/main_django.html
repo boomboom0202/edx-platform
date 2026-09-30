@@ -17,6 +17,15 @@
   {% block main_vendor_js %}
   {% javascript 'main_vendor' %}
   {% endblock %}
+
+  {% comment %}
+    EKTU brand layer, as main.html:139 includes it for Mako pages. Without it
+    a Django page gets the header and footer markup but none of their styling.
+    It comes after the platform CSS so it wins, and before headextra so a page
+    can still refine it.
+  {% endcomment %}
+  {% include "ektu/branding.html" %}
+
   {% block headextra %}{% endblock %}
   {% render_block "css" %}
 
