@@ -106,3 +106,14 @@ class SupportPagesTest(TestCase):
             assert response.status_code == 200, page
             assert URL.encode() in response.content, page
             assert b"info.open@edu.ektu.kz" in response.content, page
+
+
+class VisitorIpTest(TestCase):
+
+    def test_prefers_the_cloudflare_header(self):
+        from django.test import RequestFactory
+
+        from lms.djangoapps.ektu_support.views import visitor_ip
+
+        request = RequestFactory().post(URL, HTTP_CF_CONNECTING_IP="203.0.113.7")
+        assert visitor_ip(None, request) == "203.0.113.7"

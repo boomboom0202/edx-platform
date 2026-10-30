@@ -18,6 +18,7 @@ from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
 
 from common.djangoapps.edxmako.shortcuts import render_to_response
+from openedx.core.djangoapps.util.ratelimit import real_ip
 
 from .forms import ROLES, TOPICS, SupportForm, topic_label
 
@@ -27,8 +28,22 @@ log = logging.getLogger(__name__)
 STAFF_LANGUAGE = "ru"
 
 
+def visitor_ip(group, request):
+    """
+    The address to rate-limit by.
+
+    The site sits behind Cloudflare, so the platform's own client IP is one of
+    Cloudflare's edge servers, shared by everyone behind it: limiting by it
+    would let a handful of questions an hour through for the whole country.
+    Cloudflare passes the visitor's address in CF-Connecting-IP. A visitor who
+    reaches the server directly could forge that header, which only gets them
+    around this limit, not past the honeypot.
+    """
+    return request.META.get("HTTP_CF_CONNECTING_IP") or real_ip(group, request)
+
+
 @require_http_methods(["GET", "POST"])
-@ratelimit(key="openedx.core.djangoapps.util.ratelimit.real_ip", rate="5/h", method="POST", block=False)
+@ratelimit(key=visitor_ip, rate="5/h", method="POST", block=False)
 def ask(request):
     user = request.user if request.user.is_authenticated else None
     error = None
