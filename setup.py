@@ -157,6 +157,8 @@ setup(
             "program_enrollments = lms.djangoapps.program_enrollments.apps:ProgramEnrollmentsConfig",
             # EKTU: the "Ask a question" support form at /help/ask/.
             "ektu_support = lms.djangoapps.ektu_support.apps:EktuSupportConfig",
+            # EKTU: the staff-only course log at /course-log/.
+            "ektu_audit = lms.djangoapps.ektu_audit.apps:EktuAuditConfig",
         ],
         "cms.djangoapp": [
             "announcements = openedx.features.announcements.apps:AnnouncementsConfig",

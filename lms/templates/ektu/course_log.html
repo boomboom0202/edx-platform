@@ -1,0 +1,341 @@
+<%page expression_filter="h"/>
+<%!
+from django.urls import reverse
+from django.utils.translation import gettext as _
+%>
+<%inherit file="../main.html" />
+
+## Журнал изменений курсов: только для staff (см. ektu_audit/views.py).
+## Одна страница с вкладками: tab = feed | change | uploads | people.
+
+<%block name="pagetitle">${_("Course log")}</%block>
+<%block name="bodyclass">ektu-page ektu-page-course-log</%block>
+
+<%def name="course_select(name='course')">
+  <label class="ektu-log__filter">
+    <span>${_("Course")}</span>
+    <select name="${name}">
+      <option value="">${_("All courses")}</option>
+      % for key, title in courses:
+        <option value="${key}" ${'selected' if params.get(name) == key else ''}>${title}</option>
+      % endfor
+    </select>
+  </label>
+</%def>
+
+<%def name="date_filters()">
+  <label class="ektu-log__filter ektu-log__filter--date">
+    <span>${_("From")}</span>
+    <input type="date" name="from" value="${params.get('from', '')}">
+  </label>
+  <label class="ektu-log__filter ektu-log__filter--date">
+    <span>${_("To")}</span>
+    <input type="date" name="to" value="${params.get('to', '')}">
+  </label>
+</%def>
+
+<%def name="pager()">
+  % if links:
+    <nav class="ektu-log__pager" aria-label="${_('Pages')}">
+      % if links.get('newer'):
+        <a class="ektu-btn ektu-btn--ghost" href="${links['newer']}">← ${_("Newer")}</a>
+      % endif
+      <span>${_("Page {page}").format(page=page)}</span>
+      % if links.get('older'):
+        <a class="ektu-btn ektu-btn--ghost" href="${links['older']}">${_("Older")} →</a>
+      % endif
+    </nav>
+  % endif
+</%def>
+
+<%def name="who_cell(who)">
+  % if who.get('system'):
+    <span class="ektu-log__system">${who['name']}</span>
+  % else:
+    <strong>${who['name']}</strong>
+    % if who.get('username') and who['username'] != who['name']:
+      <span class="ektu-log__muted">${who['username']}</span>
+    % endif
+  % endif
+</%def>
+
+<main id="main" aria-label="Content" tabindex="-1">
+  <section class="ektu-static ektu-log">
+
+    <header class="ektu-page-hero">
+      <div class="ektu-wrap">
+        <span class="ektu-eyebrow">${_("Staff only")}</span>
+        <h1><%block name="pageheader">${_("Course log")}</%block></h1>
+        <p>${_("Who changed what in the courses, and which files were uploaded. Times are in Kazakhstan time (UTC+5).")}</p>
+      </div>
+    </header>
+
+    <section class="ektu-section">
+      <div class="ektu-wrap">
+
+        <nav class="ektu-log__tabs" aria-label="${_('Course log')}">
+          <a href="${reverse('ektu_audit:feed')}" class="${'is-active' if tab in ('feed', 'change') else ''}">${_("Changes")}</a>
+          <a href="${reverse('ektu_audit:uploads')}" class="${'is-active' if tab == 'uploads' else ''}">${_("Uploaded files")}</a>
+          <a href="${reverse('ektu_audit:people')}" class="${'is-active' if tab == 'people' else ''}">${_("Authors")}</a>
+        </nav>
+
+      % if tab == 'feed':
+        <form class="ektu-log__filters" method="get">
+          ${course_select()}
+          <label class="ektu-log__filter">
+            <span>${_("Author")}</span>
+            <select name="user">
+              <option value="">${_("Everyone")}</option>
+              % for user_id, name in editors:
+                <option value="${user_id}" ${'selected' if params.get('user') == str(user_id) else ''}>${name}</option>
+              % endfor
+            </select>
+          </label>
+          <label class="ektu-log__filter">
+            <span>${_("Kind")}</span>
+            <select name="branch">
+              <option value="">${_("Edits and publishing")}</option>
+              <option value="draft" ${'selected' if params.get('branch') == 'draft' else ''}>${_("Edits only")}</option>
+              <option value="published" ${'selected' if params.get('branch') == 'published' else ''}>${_("Publishing only")}</option>
+            </select>
+          </label>
+          ${date_filters()}
+          <label class="ektu-log__check">
+            <input type="checkbox" name="system" value="1" ${'checked' if params.get('system') == '1' else ''}>
+            ${_("Show system changes")}
+          </label>
+          <button type="submit" class="ektu-btn">${_("Show")}</button>
+        </form>
+
+        <p class="ektu-log__muted">${_("Found: {count}").format(count=total)}</p>
+
+        % if not rows:
+          <p>${_("Nothing found for these filters.")}</p>
+        % else:
+          <div class="ektu-log__table-wrap">
+          <table class="ektu-log__table">
+            <thead><tr>
+              <th>${_("When")}</th><th>${_("Who")}</th><th>${_("Course")}</th><th>${_("What was done")}</th><th></th>
+            </tr></thead>
+            <tbody>
+            % for row in rows:
+              <tr>
+                <td class="ektu-log__nowrap">
+                  ${row['when']}
+                  % if row['version'].branch:
+                    <span class="ektu-log__badge ektu-log__badge--${row['version'].branch}">${branch_labels.get(row['version'].branch, '')}</span>
+                  % endif
+                </td>
+                <td>${who_cell(row['who'])}</td>
+                <td>${row['course']}</td>
+                <td>
+                  % if not row['changes']:
+                    <span class="ektu-log__muted">${_("No changes to the content")}</span>
+                  % endif
+                  <ul class="ektu-log__changes">
+                    % for item in row['changes'][:5]:
+                      <li class="is-${item['kind_code']}">${item['kind']} · ${item['type']}${(' «' + item['name'] + '»') if item['name'] else ''}</li>
+                    % endfor
+                  </ul>
+                  % if len(row['changes']) > 5:
+                    <span class="ektu-log__muted">${_("and {count} more").format(count=len(row['changes']) - 5)}</span>
+                  % endif
+                </td>
+                <td><a href="${reverse('ektu_audit:change', args=[str(row['version'].id)])}">${_("Details")}</a></td>
+              </tr>
+            % endfor
+            </tbody>
+          </table>
+          </div>
+          ${pager()}
+        % endif
+
+      % elif tab == 'change':
+        <p><a href="${reverse('ektu_audit:feed')}">← ${_("Back to changes")}</a></p>
+        <dl class="ektu-log__meta">
+          <dt>${_("When")}</dt><dd>${when}
+            % if version.branch:
+              <span class="ektu-log__badge ektu-log__badge--${version.branch}">${branch_labels.get(version.branch, '')}</span>
+            % endif
+          </dd>
+          <dt>${_("Who")}</dt><dd>${who_cell(who)}</dd>
+          <dt>${_("Course")}</dt><dd>${course} <span class="ektu-log__muted">${course_key or ''}</span></dd>
+        </dl>
+
+        % if not blocks:
+          <p>${_("This save did not change the content of any block.")}</p>
+        % endif
+        % for block in blocks:
+          <article class="ektu-log__block is-${block['kind_code']}">
+            <h2 class="ektu-log__block-title">
+              ${block['kind']} · ${block['type']}${(' «' + block['name'] + '»') if block['name'] else ''}
+              <span class="ektu-log__muted">${block['block_id']}</span>
+            </h2>
+            % if not block['fields']:
+              <p class="ektu-log__muted">${_("No field-level differences.")}</p>
+            % endif
+            % for change in block['fields']:
+              <div class="ektu-log__field">
+                <h3>
+                  % if change.name == 'children':
+                    ${_("Contents")}
+                  % else:
+                    ${change.name}
+                  % endif
+                </h3>
+                % if change.diff:
+                  <pre class="ektu-log__diff">\
+% for line in change.diff:
+<span class="${'is-add' if line.startswith('+') else ('is-del' if line.startswith('-') else ('is-hunk' if line.startswith('@@') else ''))}">${line}</span>\
+% endfor
+</pre>
+                % elif change.name == 'children':
+                  % if change.after:
+                    <p><strong>${_("Added:")}</strong> ${change.after}</p>
+                  % endif
+                  % if change.before:
+                    <p><strong>${_("Removed:")}</strong> ${change.before}</p>
+                  % endif
+                  % if not change.after and not change.before:
+                    <p>${_("The order was changed.")}</p>
+                  % endif
+                % else:
+                  <div class="ektu-log__values">
+                    <div><span class="ektu-log__muted">${_("Before")}</span><code>${change.before or '—'}</code></div>
+                    <div><span class="ektu-log__muted">${_("After")}</span><code>${change.after or '—'}</code></div>
+                  </div>
+                % endif
+              </div>
+            % endfor
+          </article>
+        % endfor
+
+      % elif tab == 'uploads':
+        <form class="ektu-log__filters" method="get">
+          ${course_select()}
+          ${date_filters()}
+          <button type="submit" class="ektu-btn">${_("Show")}</button>
+        </form>
+        <p class="ektu-log__muted">
+          ${_("Found: {count}").format(count=total)}.
+          ${_("The uploader is known from November 2025, when Studio's request log starts.")}
+        </p>
+        % if not rows:
+          <p>${_("Nothing found for these filters.")}</p>
+        % else:
+          <div class="ektu-log__table-wrap">
+          <table class="ektu-log__table">
+            <thead><tr>
+              <th>${_("When")}</th><th>${_("File")}</th><th>${_("Course")}</th><th>${_("Size")}</th><th>${_("Who uploaded")}</th>
+            </tr></thead>
+            <tbody>
+            % for row in rows:
+              <tr>
+                <td class="ektu-log__nowrap">${row['when']}</td>
+                <td class="ektu-log__file">${row['upload'].name}<span class="ektu-log__muted">${row['upload'].content_type}</span></td>
+                <td>${row['course']}</td>
+                <td class="ektu-log__nowrap">${row['size']}</td>
+                <td>
+                  % if row['who']:
+                    ${who_cell(row['who'])}
+                  % endif
+                  % if row['upload'].copied_from:
+                    <span class="ektu-log__muted">${_("copied on re-run from {course}").format(course=row['upload'].copied_from)}</span>
+                  % elif not row['who']:
+                    <span class="ektu-log__muted">${_("Unknown")}</span>
+                  % endif
+                </td>
+              </tr>
+            % endfor
+            </tbody>
+          </table>
+          </div>
+          ${pager()}
+        % endif
+
+      % elif tab == 'people':
+        <form class="ektu-log__filters" method="get">
+          <label class="ektu-log__filter ektu-log__filter--date">
+            <span>${_("Since")}</span>
+            <input type="date" name="from" value="${params.get('from', '')}">
+          </label>
+          <button type="submit" class="ektu-btn">${_("Show")}</button>
+        </form>
+        % if not rows:
+          <p>${_("Nothing found for these filters.")}</p>
+        % else:
+          <div class="ektu-log__table-wrap">
+          <table class="ektu-log__table">
+            <thead><tr>
+              <th>${_("Author")}</th><th>${_("Saves")}</th><th>${_("Publishes")}</th><th>${_("Courses")}</th><th>${_("Last activity")}</th>
+            </tr></thead>
+            <tbody>
+            % for row in rows:
+              <tr>
+                <td><a href="${reverse('ektu_audit:feed')}?user=${row['user_id']}">${who_cell(row['who'])}</a></td>
+                <td>${row['saves']}</td>
+                <td>${row['publishes']}</td>
+                <td>${', '.join(row['courses'])}</td>
+                <td class="ektu-log__nowrap">${row['last']}</td>
+              </tr>
+            % endfor
+            </tbody>
+          </table>
+          </div>
+        % endif
+      % endif
+
+      </div>
+    </section>
+  </section>
+</main>
+
+<style>
+.ektu-log__tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; border-bottom: 1.5px solid var(--ektu-border); }
+.ektu-log__tabs a {
+  padding: 10px 18px; margin-bottom: -1.5px; border-bottom: 3px solid transparent;
+  font-family: var(--ektu-font-display); font-weight: 600; color: var(--ektu-muted); text-decoration: none;
+}
+.ektu-log__tabs a.is-active, .ektu-log__tabs a:hover { color: var(--ektu-primary); border-bottom-color: var(--ektu-primary); }
+.ektu-log__filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 16px; margin-bottom: 18px; }
+.ektu-log__filter { display: flex; flex-direction: column; gap: 6px; margin: 0; font-size: 14px; color: var(--ektu-muted); }
+.ektu-log__filter select, .ektu-log__filter input {
+  min-width: 200px; max-width: 320px; padding: 9px 12px; border: 1.5px solid var(--ektu-border);
+  border-radius: 10px; background: #fff; color: var(--ektu-ink); font-family: var(--ektu-font-body); font-size: 15px;
+}
+.ektu-log__filter--date input { min-width: 0; }
+.ektu-log__check { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 14px; color: var(--ektu-ink); }
+.ektu-log__filters .ektu-btn { border: 0; cursor: pointer; padding: 11px 26px; }
+.ektu-log__muted { color: var(--ektu-muted); font-size: 13px; display: block; }
+.ektu-log__system { color: var(--ektu-muted); font-style: italic; }
+.ektu-log__table-wrap { overflow-x: auto; }
+.ektu-log__table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+.ektu-log__table th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--ektu-border); color: var(--ektu-muted); font-weight: 600; white-space: nowrap; }
+.ektu-log__table td { padding: 12px; border-bottom: 1px solid var(--ektu-border); vertical-align: top; color: var(--ektu-ink); }
+.ektu-log__nowrap { white-space: nowrap; }
+.ektu-log__file { word-break: break-word; }
+.ektu-log__changes { margin: 0; padding: 0; list-style: none; }
+.ektu-log__changes li { margin: 0 0 3px; }
+.ektu-log__changes li.is-created::before, .ektu-log__block.is-created .ektu-log__block-title::before { content: "+ "; color: var(--ektu-primary); font-weight: 700; }
+.ektu-log__changes li.is-deleted::before, .ektu-log__block.is-deleted .ektu-log__block-title::before { content: "− "; color: #b42318; font-weight: 700; }
+.ektu-log__badge { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em; }
+.ektu-log__badge--draft { background: var(--ektu-surface); color: var(--ektu-muted); border: 1px solid var(--ektu-border); }
+.ektu-log__badge--published { background: rgba(var(--ektu-primary-rgb), 0.12); color: var(--ektu-primary); }
+.ektu-log__pager { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 24px; }
+.ektu-log__pager .ektu-btn { padding: 9px 20px; font-size: 14px; }
+.ektu-log__meta { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0 0 28px; }
+.ektu-log__meta dt { color: var(--ektu-muted); }
+.ektu-log__meta dd { margin: 0; }
+.ektu-log__block { border: 1.5px solid var(--ektu-border); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; background: #fff; }
+.ektu-log__block-title { font-size: 17px; margin: 0 0 12px; }
+.ektu-log__field { margin-top: 14px; }
+.ektu-log__field h3 { font-size: 14px; margin: 0 0 6px; color: var(--ektu-muted); font-family: var(--ektu-font-body); font-weight: 600; }
+.ektu-log__values { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ektu-log__values code { display: block; white-space: pre-wrap; word-break: break-word; background: var(--ektu-surface); padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.ektu-log__diff { max-height: 480px; overflow: auto; margin: 0; padding: 10px 12px; background: var(--ektu-surface); border-radius: 8px; font-size: 12.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.ektu-log__diff span { display: block; }
+.ektu-log__diff .is-add { background: rgba(var(--ektu-primary-rgb), 0.14); }
+.ektu-log__diff .is-del { background: rgba(180, 35, 24, 0.12); }
+.ektu-log__diff .is-hunk { color: var(--ektu-muted); }
+@media (max-width: 640px) { .ektu-log__values { grid-template-columns: 1fr; } }
+</style>
