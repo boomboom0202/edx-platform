@@ -202,3 +202,14 @@ class ChangePageTest(TestCase):
         assert response.status_code == 200
         assert b"Intro" in response.content
         assert b"New" in response.content
+
+
+class MenuLinkTest(TestCase):
+
+    def page_for(self, user):
+        self.client.login(username=user.username, password=PASSWORD)
+        return self.client.get("/help").content
+
+    def test_only_staff_see_the_link(self):
+        assert b"/course-log/" in self.page_for(UserFactory(is_staff=True))
+        assert b"/course-log/" not in self.page_for(UserFactory())

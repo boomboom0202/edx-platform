@@ -56,6 +56,10 @@ should_show_order_history = not enterprise_customer_portal and bool(order_histor
         % if should_show_order_history:
             <div class="mobile-nav-item dropdown-item dropdown-nav-item"><a href="${order_history_url}" role="menuitem">${_("Order History")}</a></div>
         % endif
+        ## EKTU: the staff course log (ektu_audit), for platform administrators only.
+        % if self.real_user.is_staff or self.real_user.is_superuser:
+            <div class="mobile-nav-item dropdown-item dropdown-nav-item"><a href="${reverse('ektu_audit:feed')}" role="menuitem">${_("Course log")}</a></div>
+        % endif
         <div class="mobile-nav-item dropdown-item dropdown-nav-item"><a href="${reverse('logout')}" role="menuitem">${_("Sign Out")}</a></div>
     </div>
 </div>
