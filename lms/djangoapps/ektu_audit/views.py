@@ -213,7 +213,7 @@ def change(request, version_id):
         "version": version,
         "when": local(version.edited_on),
         "who": person(editors, version.edited_by),
-        "course": names.get(version.course_key, version.course_key or _("Unknown course")),
+        "course_name": names.get(version.course_key, version.course_key or _("Unknown course")),
         "course_key": version.course_key,
         "blocks": [
             {"kind": kind_label(change.kind, version.branch), "kind_code": change.kind,

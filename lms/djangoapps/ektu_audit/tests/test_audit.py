@@ -183,3 +183,22 @@ class StructureDocsTest(TestCase):
             assert [d["_id"] for d in history.structure_docs()] == [first, second]
         assert calls[1] == {"_id": {"$gt": first}}
         assert calls[2] == {"_id": {"$gt": second}}
+
+
+class ChangePageTest(TestCase):
+
+    @mock.patch.object(history, "detail", return_value=[(
+        history.BlockChange(history.CHANGED, "html", "h1", "Intro"),
+        [history.FieldChange("display_name", before="Old", after="New")],
+    )])
+    @mock.patch.object(history, "get_version")
+    def test_change_page_renders(self, get_version, _detail):
+        version_id = ObjectId()
+        get_version.return_value = history.Version(
+            version_id, ObjectId(), 5, at(0), "course-v1:A+B+C", history.DRAFT)
+        staff = UserFactory(is_staff=True)
+        self.client.login(username=staff.username, password=PASSWORD)
+        response = self.client.get(f"/course-log/change/{version_id}/")
+        assert response.status_code == 200
+        assert b"Intro" in response.content
+        assert b"New" in response.content

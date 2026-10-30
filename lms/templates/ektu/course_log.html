@@ -159,7 +159,7 @@ from django.utils.translation import gettext as _
             % endif
           </dd>
           <dt>${_("Who")}</dt><dd>${who_cell(who)}</dd>
-          <dt>${_("Course")}</dt><dd>${course} <span class="ektu-log__muted">${course_key or ''}</span></dd>
+          <dt>${_("Course")}</dt><dd>${course_name} <span class="ektu-log__muted">${course_key or ''}</span></dd>
         </dl>
 
         % if not blocks:
