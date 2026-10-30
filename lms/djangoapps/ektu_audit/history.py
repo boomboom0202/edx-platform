@@ -40,7 +40,7 @@ DELETED = "deleted"
 # ModuleStoreEnum.UserID: changes made by commands and the platform itself.
 SYSTEM_USER_IDS = {-1, -2, -3, -4}
 
-CACHE_SECONDS = 120
+CACHE_SECONDS = 60
 MAX_DIFF_LINES = 400
 MAX_VALUE_CHARS = 500
 
@@ -139,15 +139,40 @@ def assign_versions(docs, heads):
 _cache = {"at": 0.0, "versions": None}
 _cache_lock = threading.Lock()
 
+STRUCTURES_CACHE_KEY = "ektu_audit:structures:v1"
+STRUCTURE_FIELDS = {"previous_version": 1, "original_version": 1, "edited_by": 1, "edited_on": 1}
+BATCH_SIZE = 500
+
+
+def structure_docs():
+    """
+    The few fields of every structure that the log needs.
+
+    The collection holds gigabytes of course snapshots, too much to scan within
+    the modulestore's socket timeout on every request. Structure ids are
+    ObjectIds, which grow with time, so after the first full read only the
+    structures newer than the last one seen are fetched, through the _id
+    index. The result lives in the shared Django cache, so every LMS process
+    and every restart reuses it.
+    """
+    from django.core.cache import cache
+
+    known = cache.get(STRUCTURES_CACHE_KEY) or {"last": None, "docs": []}
+    spec = {"_id": {"$gt": known["last"]}} if known["last"] else {}
+    new = list(
+        _connection().structures.find(spec, STRUCTURE_FIELDS).sort("_id", 1).batch_size(BATCH_SIZE)
+    )
+    if new:
+        known = {"last": new[-1]["_id"], "docs": known["docs"] + new}
+        cache.set(STRUCTURES_CACHE_KEY, known, timeout=None)
+    return known["docs"]
+
 
 def all_versions():
-    """Every structure, newest first. Cached briefly: there are tens of thousands."""
+    """Every structure, newest first, with its course and branch."""
     with _cache_lock:
         if _cache["versions"] is None or time.monotonic() - _cache["at"] > CACHE_SECONDS:
-            docs = _connection().structures.find(
-                {}, {"previous_version": 1, "original_version": 1, "edited_by": 1, "edited_on": 1},
-            )
-            _cache["versions"] = assign_versions(list(docs), _heads())
+            _cache["versions"] = assign_versions(structure_docs(), _heads())
             _cache["at"] = time.monotonic()
         return _cache["versions"]
 

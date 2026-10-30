@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from unittest import mock
 
 from bson import ObjectId
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from common.djangoapps.student.tests.factories import UserFactory
 from lms.djangoapps.ektu_audit import history, uploads
@@ -150,3 +150,36 @@ class AccessTest(TestCase):
         assert response.status_code == 200
         assert b"Lecture 1" in response.content
         assert teacher.username.encode() in response.content
+
+
+@override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}})
+class StructureDocsTest(TestCase):
+
+    def test_reads_only_new_structures_after_the_first_time(self):
+        from django.core.cache import cache
+
+        cache.delete(history.STRUCTURES_CACHE_KEY)
+        first, second = ObjectId(), ObjectId()
+        calls = []
+
+        class Cursor(list):
+            def sort(self, *args):
+                return self
+
+            def batch_size(self, size):
+                return self
+
+        def find(spec, fields):
+            calls.append(spec)
+            if not spec:
+                return Cursor([{"_id": first}])
+            return Cursor([{"_id": second}]) if len(calls) == 2 else Cursor()
+
+        connection = mock.Mock()
+        connection.structures.find.side_effect = find
+        with mock.patch.object(history, "_connection", return_value=connection):
+            assert [d["_id"] for d in history.structure_docs()] == [first]
+            assert [d["_id"] for d in history.structure_docs()] == [first, second]
+            assert [d["_id"] for d in history.structure_docs()] == [first, second]
+        assert calls[1] == {"_id": {"$gt": first}}
+        assert calls[2] == {"_id": {"$gt": second}}
