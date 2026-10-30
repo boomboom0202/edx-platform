@@ -1,0 +1,272 @@
+<%page expression_filter="h"/>
+<%!
+from django.urls import reverse
+from django.utils.translation import gettext as _
+
+from openedx.core.djangolib.markup import HTML, Text
+%>
+<%inherit file="../main.html" />
+<%namespace name="ektu" file="/ektu/links.html"/>
+<%
+  links = ektu.attr.EKTU_LINKS
+  data = form.data if form.is_bound else form.initial
+  chosen_role = data.get('role', '')
+  chosen_topic = data.get('topic', '')
+  role_groups = dict(roles)
+%>
+
+## Форма вопроса в ЦОТ. Вопрос уходит письмом на CONTACT_EMAIL (см. ektu_support/views.py).
+## Список тем зависит от роли: без JS видны обе группы, с JS — только темы выбранной роли.
+
+<%block name="pagetitle">${_("Ask a question")}</%block>
+<%block name="bodyclass">ektu-page ektu-page-ask</%block>
+
+<%def name="field_error(name)">
+  % if form.is_bound and form.errors.get(name):
+    <p class="ektu-ask__error" id="err-${name}">${form.errors[name][0]}</p>
+  % endif
+</%def>
+
+<main id="main" aria-label="Content" tabindex="-1">
+  <section class="ektu-static ektu-ask">
+
+    <header class="ektu-page-hero">
+      <div class="ektu-wrap">
+        <span class="ektu-eyebrow">${_("Support")}</span>
+        <h1><%block name="pageheader">${_("Ask a question")}</%block></h1>
+        <p>${_("Tell us what happened, and the engineers of the center will answer you by email.")}</p>
+      </div>
+    </header>
+
+    <section class="ektu-section">
+      <div class="ektu-wrap ektu-wrap--narrow">
+
+      % if sent:
+        <div class="ektu-ask__done" role="status">
+          <span class="ektu-ask__done-icon fa fa-check-circle" aria-hidden="true"></span>
+          <h2 class="ektu-static__h2">${_("Your question has been sent")}</h2>
+          <p>${_("We will reply to the email address you gave. If the answer is urgent, you can also call us.")}</p>
+          <p>
+            <a class="ektu-btn" href="${reverse('help_edx')}">${_("Back to help")}</a>
+            <a class="ektu-btn ektu-btn--ghost" href="${reverse('ektu_support:ask')}">${_("Ask another question")}</a>
+          </p>
+        </div>
+      % else:
+
+        % if error:
+          <div class="ektu-note ektu-ask__alert" role="alert">
+            <span class="ektu-note__icon fa fa-exclamation-circle" aria-hidden="true"></span>
+            <div>${error}</div>
+          </div>
+        % endif
+        % if form.is_bound and form.non_field_errors():
+          <div class="ektu-note ektu-ask__alert" role="alert">
+            <span class="ektu-note__icon fa fa-exclamation-circle" aria-hidden="true"></span>
+            <div>
+              % for message in form.non_field_errors():
+                <p>${message}</p>
+              % endfor
+            </div>
+          </div>
+        % endif
+
+        <form class="ektu-ask__form" method="post" action="${reverse('ektu_support:ask')}"
+              enctype="multipart/form-data" novalidate>
+          <input type="hidden" name="csrfmiddlewaretoken" value="${csrf_token}">
+
+          <fieldset class="ektu-ask__step">
+            <legend class="ektu-ask__label">${_("Who are you?")}</legend>
+            <div class="ektu-ask__roles">
+              % for value, label in roles:
+                <label class="ektu-ask__role">
+                  <input type="radio" name="role" value="${value}" required
+                         ${'checked' if chosen_role == value else ''}>
+                  <span class="ektu-ask__role-box">
+                    <span class="fa ${'fa-graduation-cap' if value == 'student' else 'fa-book'}" aria-hidden="true"></span>
+                    ${label}
+                  </span>
+                </label>
+              % endfor
+            </div>
+            ${field_error('role')}
+          </fieldset>
+
+          <div class="ektu-ask__step">
+            <label class="ektu-ask__label" for="ask-topic">${_("What is your question about?")}</label>
+            <select id="ask-topic" name="topic" required>
+              <option value="">${_("Choose a topic")}</option>
+              % for role_value, role_topics in topics.items():
+                <optgroup label="${role_groups[role_value]}" data-role="${role_value}">
+                  % for value, label in role_topics:
+                    <option value="${value}" ${'selected' if chosen_topic == value else ''}>${label}</option>
+                  % endfor
+                </optgroup>
+              % endfor
+            </select>
+            ${field_error('topic')}
+          </div>
+
+          <div class="ektu-ask__row">
+            <div class="ektu-ask__step">
+              <label class="ektu-ask__label" for="ask-name">${_("Your name")}</label>
+              <input id="ask-name" type="text" name="name" maxlength="150" required
+                     autocomplete="name" value="${data.get('name', '')}">
+              ${field_error('name')}
+            </div>
+            <div class="ektu-ask__step">
+              <label class="ektu-ask__label" for="ask-email">${_("Email for the reply")}</label>
+              <input id="ask-email" type="email" name="email" maxlength="254" required
+                     autocomplete="email" value="${data.get('email', '')}">
+              ${field_error('email')}
+            </div>
+          </div>
+
+          <div class="ektu-ask__step">
+            <label class="ektu-ask__label" for="ask-course">
+              ${_("Course")} <span class="ektu-ask__optional">${_("(if the question is about a specific course)")}</span>
+            </label>
+            <input id="ask-course" type="text" name="course" maxlength="300" value="${data.get('course', '')}">
+            ${field_error('course')}
+          </div>
+
+          <div class="ektu-ask__step">
+            <label class="ektu-ask__label" for="ask-message">${_("Describe the problem")}</label>
+            <p class="ektu-ask__hint" id="ask-message-hint">
+              ${_("What were you doing, what did you expect, and what happened instead? If there was an error message, copy its text.")}
+            </p>
+            <textarea id="ask-message" name="message" rows="7" maxlength="5000" required
+                      aria-describedby="ask-message-hint">${data.get('message', '')}</textarea>
+            ${field_error('message')}
+          </div>
+
+          <div class="ektu-ask__step">
+            <label class="ektu-ask__label" for="ask-screens">
+              ${_("Screenshots")} <span class="ektu-ask__optional">${_("(optional)")}</span>
+            </label>
+            <p class="ektu-ask__hint" id="ask-screens-hint">${_("Up to 3 images, no more than 5 MB each.")}</p>
+            <input id="ask-screens" type="file" name="screenshots" multiple
+                   accept="image/png,image/jpeg,image/gif,image/webp" aria-describedby="ask-screens-hint">
+          </div>
+
+          <div class="ektu-ask__trap" aria-hidden="true">
+            <label for="ask-website">Website</label>
+            <input id="ask-website" type="text" name="website" tabindex="-1" autocomplete="off">
+          </div>
+
+          <p class="ektu-ask__submit">
+            <button type="submit" class="ektu-btn">${_("Send")}</button>
+          </p>
+        </form>
+
+        <p class="ektu-ask__direct">
+          ${Text(_("You can also write to us directly at {email}.")).format(
+            email=HTML('<a href="mailto:{0}">{0}</a>').format(links['support_email']),
+          )}
+        </p>
+
+      % endif
+      </div>
+    </section>
+
+  </section>
+</main>
+
+<style>
+.ektu-ask__form { display: grid; gap: 26px; }
+.ektu-ask__step { margin: 0; padding: 0; border: 0; min-width: 0; }
+.ektu-ask__label {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--ektu-font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ektu-ink);
+}
+.ektu-ask__optional, .ektu-ask__hint { font-weight: 400; color: var(--ektu-muted); font-size: 14px; }
+.ektu-ask__hint { margin: -2px 0 8px; }
+.ektu-ask__row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.ektu-ask input[type="text"],
+.ektu-ask input[type="email"],
+.ektu-ask select,
+.ektu-ask textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ektu-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ektu-ink);
+  font-family: var(--ektu-font-body);
+  font-size: 16px;
+  line-height: 1.4;
+}
+.ektu-ask textarea { resize: vertical; min-height: 160px; }
+.ektu-ask input:focus, .ektu-ask select:focus, .ektu-ask textarea:focus {
+  outline: none;
+  border-color: var(--ektu-primary);
+  box-shadow: 0 0 0 3px rgba(var(--ektu-primary-rgb), 0.15);
+}
+.ektu-ask__roles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ektu-ask__role { position: relative; display: block; cursor: pointer; margin: 0; }
+.ektu-ask__role input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ektu-ask__role-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1.5px solid var(--ektu-border);
+  border-radius: 14px;
+  background: #fff;
+  font-family: var(--ektu-font-display);
+  font-weight: 600;
+  color: var(--ektu-ink);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ektu-ask__role-box .fa { font-size: 20px; color: var(--ektu-primary); }
+.ektu-ask__role input:checked + .ektu-ask__role-box {
+  border-color: var(--ektu-primary);
+  background: var(--ektu-surface);
+  box-shadow: 0 0 0 3px rgba(var(--ektu-primary-rgb), 0.15);
+}
+.ektu-ask__role input:focus-visible + .ektu-ask__role-box { outline: 2px solid var(--ektu-primary); outline-offset: 2px; }
+.ektu-ask__error { margin: 6px 0 0; color: #b42318; font-size: 14px; }
+.ektu-ask__alert { margin-bottom: 24px; }
+.ektu-ask__alert p { margin: 0; }
+.ektu-ask__trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.ektu-ask__submit { margin: 0; }
+.ektu-ask__submit .ektu-btn { border: 0; cursor: pointer; font-size: 16px; }
+.ektu-ask__direct { margin-top: 28px; color: var(--ektu-muted); }
+.ektu-ask__done { text-align: center; padding: 24px 0; }
+.ektu-ask__done-icon { font-size: 48px; color: var(--ektu-primary); }
+.ektu-ask__done .ektu-btn { margin: 6px; }
+@media (max-width: 640px) {
+  .ektu-ask__row, .ektu-ask__roles { grid-template-columns: 1fr; }
+}
+</style>
+
+<script>
+(function () {
+  var form = document.querySelector('.ektu-ask__form');
+  if (!form) { return; }
+  var select = form.querySelector('#ask-topic');
+  var groups = select.querySelectorAll('optgroup');
+
+  // Показать только темы выбранной роли; тему другой роли сбросить.
+  function sync() {
+    var checked = form.querySelector('input[name="role"]:checked');
+    var role = checked ? checked.value : null;
+    for (var i = 0; i < groups.length; i++) {
+      var match = !role || groups[i].getAttribute('data-role') === role;
+      groups[i].hidden = !match;
+      groups[i].disabled = !match;
+    }
+    var current = select.options[select.selectedIndex];
+    if (current && current.parentNode.disabled) { select.value = ''; }
+    select.disabled = !role;
+  }
+
+  var radios = form.querySelectorAll('input[name="role"]');
+  for (var j = 0; j < radios.length; j++) { radios[j].addEventListener('change', sync); }
+  sync();
+}());
+</script>

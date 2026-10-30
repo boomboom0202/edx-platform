@@ -34,10 +34,12 @@ from django.urls import reverse
         <p class="ektu-static__lead">
           ${_("Everything to do with how the platform works, such as signing in, course access, grades and certificates, is handled by email. That way your request reaches the engineers of the center directly.")}
         </p>
-        <p>
-          <a class="ektu-btn" href="mailto:${links['support_email']}">
+        <p class="ektu-btn-row">
+          <a class="ektu-btn" href="${reverse('ektu_support:ask')}">${_("Ask a question")}</a>
+          <a class="ektu-btn ektu-btn--ghost" href="mailto:${links['support_email']}">
             ${_("Write to us by email")}
           </a>
+          <span class="ektu-mailaddr">${links['support_email']}</span>
         </p>
 
         <div class="ektu-note">

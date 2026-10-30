@@ -1833,6 +1833,8 @@ body.ektu-page .content-wrapper {
   font-size: 14px;
   padding: 11px 22px;
 }
+.ektu-two-col .ektu-card .ektu-btn-row { margin: auto 0 0; }
+.ektu-two-col .ektu-card .ektu-btn-row .ektu-btn { margin-top: 0; }
 
 /* Callout note */
 .ektu-note {
@@ -1892,6 +1894,13 @@ body.ektu-page .content-wrapper {
   color: var(--ektu-primary);
   font-size: 16px;
 }
+/* Support address shown next to "write to us by email" links and buttons. */
+.ektu-mailaddr { white-space: nowrap; font-weight: 600; }
+.ektu-btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; }
+.ektu-btn-row--center { justify-content: center; }
+.ektu-cta-band .ektu-mailaddr { opacity: 0.85; }
+.ektu-linkcard__body span.ektu-mailaddr { color: var(--ektu-primary); font-weight: 600; margin-top: 4px; }
+
 .ektu-linkcard__body { display: block; min-width: 0; }
 .ektu-linkcard__body strong {
   display: block;

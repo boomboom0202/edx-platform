@@ -1,5 +1,6 @@
 <%page expression_filter="h"/>
 <%!
+from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from openedx.core.djangolib.markup import HTML, Text
@@ -10,6 +11,9 @@ from openedx.core.djangolib.markup import HTML, Text
 <%
   links = ektu.attr.EKTU_LINKS
   docs = ektu.attr.EKTU_DOCS
+  ## The address goes right after each "write to us by email" link, so it can
+  ## be copied by people whose browser has no mail client set up.
+  mail_link_end = HTML('</a> (<span class="ektu-mailaddr">{}</span>)').format(links['support_email'])
 %>
 
 <%block name="pagetitle">${_("FAQ")}</%block>
@@ -62,7 +66,7 @@ from openedx.core.djangolib.markup import HTML, Text
               <p>
                 ${Text(_("You cannot fix this yourself, the engineers have to do it. {link_start}Write to us by email{link_end} and include the email address you are trying to sign in with.")).format(
                   link_start=HTML('<a href="mailto:{}">').format(links['support_email']),
-                  link_end=HTML('</a>'),
+                  link_end=mail_link_end,
                 )}
               </p>
             </div>
@@ -106,7 +110,7 @@ from openedx.core.djangolib.markup import HTML, Text
               <p>
                 ${Text(_("If the course has finished and you reached the passing grade but there is still no certificate, {link_start}write to us by email{link_end}.")).format(
                   link_start=HTML('<a href="mailto:{}">').format(links['support_email']),
-                  link_end=HTML('</a>'),
+                  link_end=mail_link_end,
                 )}
               </p>
             </div>
@@ -118,7 +122,7 @@ from openedx.core.djangolib.markup import HTML, Text
               <p>
                 ${Text(_("Tell the course teacher: an attempt can be reset, but only with their approval. If the problem is technical and keeps happening, also {link_start}report it by email{link_end}.")).format(
                   link_start=HTML('<a href="mailto:{}">').format(links['support_email']),
-                  link_end=HTML('</a>'),
+                  link_end=mail_link_end,
                 )}
               </p>
             </div>
@@ -148,7 +152,7 @@ from openedx.core.djangolib.markup import HTML, Text
               <p>
                 ${Text(_("{link_start}Write to us by email{link_end}. To get an answer faster, include your email address, the course name, what exactly you were doing, and a screenshot of the error.")).format(
                   link_start=HTML('<a href="mailto:{}">').format(links['support_email']),
-                  link_end=HTML('</a>'),
+                  link_end=mail_link_end,
                 )}
               </p>
             </div>
@@ -163,9 +167,13 @@ from openedx.core.djangolib.markup import HTML, Text
       <div class="ektu-wrap">
         <h2>${_("Did not find your question?")}</h2>
         <p>${_("Describe the problem in an email and the engineers of the center will help you sort it out.")}</p>
-        <a class="ektu-btn ektu-btn--light" href="mailto:${links['support_email']}">
-          ${_("Write to us by email")}
-        </a>
+        <p class="ektu-btn-row ektu-btn-row--center">
+          <a class="ektu-btn ektu-btn--light" href="${reverse('ektu_support:ask')}">${_("Ask a question")}</a>
+          <a class="ektu-btn ektu-btn--light" href="mailto:${links['support_email']}">
+            ${_("Write to us by email")}
+          </a>
+        </p>
+        <p class="ektu-mailaddr">${links['support_email']}</p>
       </div>
     </section>
 

@@ -56,10 +56,16 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
                 strong_end=HTML('</strong>'),
               )}
             </p>
-            <a class="ektu-btn ektu-btn--ghost" href="${static.url(docs['login_guide'])}"
-               target="_blank" rel="noopener">
-              ${_("Instructions")}
-            </a>
+            <p class="ektu-btn-row">
+              <a class="ektu-btn ektu-btn--ghost" href="${static.url(docs['login_guide'])}"
+                 target="_blank" rel="noopener">
+                ${_("Instructions")}
+              </a>
+              <a class="ektu-btn ektu-btn--ghost" href="${links['openedx_help']}"
+                 target="_blank" rel="noopener">
+                ${_("Resources for working with Open edX")}
+              </a>
+            </p>
           </div>
 
           <div class="ektu-card">
@@ -84,10 +90,12 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
         <p class="ektu-static__lead">
           ${_("Write to the center by email and the engineers will look into it. Where possible, include your email address, the course name and a screenshot.")}
         </p>
-        <p>
-          <a class="ektu-btn" href="mailto:${links['support_email']}">
+        <p class="ektu-btn-row">
+          <a class="ektu-btn" href="${reverse('ektu_support:ask')}">${_("Ask a question")}</a>
+          <a class="ektu-btn ektu-btn--ghost" href="mailto:${links['support_email']}">
             ${_("Write to us by email")}
           </a>
+          <span class="ektu-mailaddr">${links['support_email']}</span>
         </p>
 
         <h2 class="ektu-static__h2">${_("Useful resources")}</h2>
@@ -111,6 +119,7 @@ from openedx.core.djangoapps.user_authn.toggles import should_redirect_to_authn_
             <span class="ektu-linkcard__body">
               <strong>${_("Email support")}</strong>
               <span>${_("Write to us about a technical problem")}</span>
+              <span class="ektu-mailaddr">${links['support_email']}</span>
             </span>
           </a>
           <a class="ektu-linkcard" href="${links['center']}" target="_blank" rel="noopener">
