@@ -8,6 +8,8 @@ XBLOCKS = [
     "about = xmodule.html_block:AboutBlock",
     "book = xmodule.template_block:TranslateCustomTagBlock",
     "annotatable = xmodule.annotatable_block:AnnotatableBlock",
+    # EKTU: a BigBlueButton online session inside a course unit.
+    "bigbluebutton = openedx.features.ektu_bigbluebutton.block:BigBlueButtonBlock",
     "chapter = xmodule.seq_block:SectionBlock",
     "conditional = xmodule.conditional_block:ConditionalBlock",
     "course = xmodule.course_block:CourseBlock",

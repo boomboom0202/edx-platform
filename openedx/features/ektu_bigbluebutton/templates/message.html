@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="{{ language }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% if refresh_seconds %}<meta http-equiv="refresh" content="{{ refresh_seconds }}">{% endif %}
+  <title>{{ title }}</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+           background: #f4f8f6; color: #0d2b27; font-family: Manrope, "Helvetica Neue", Arial, sans-serif; }
+    main { max-width: 520px; margin: 24px; padding: 32px; background: #fff; border: 1px solid #d9e6e1;
+           border-radius: 16px; text-align: center; }
+    h1 { margin: 0 0 12px; font-size: 22px; color: #013a3a; }
+    p { margin: 0; line-height: 1.5; color: #5b726c; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>{{ title }}</h1>
+    <p>{{ text }}</p>
+  </main>
+</body>
+</html>

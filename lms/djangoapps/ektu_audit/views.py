@@ -46,6 +46,7 @@ def block_type_label(block_type):
         "static_tab": _("Custom page"),
         "course_info": _("Course updates"),
         "pdf": _("PDF"),
+        "bigbluebutton": _("Online session"),
         "openassessment": _("Open response assessment"),
         "library_content": _("Library content"),
         "drag-and-drop-v2": _("Drag and drop"),

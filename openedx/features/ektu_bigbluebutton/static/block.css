@@ -1,0 +1,65 @@
+.ektu-bbb {
+  padding: 20px 22px;
+  border: 1px solid #d9e6e1;
+  border-radius: 14px;
+  background: #fff;
+  color: #0d2b27;
+}
+.ektu-bbb__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.ektu-bbb .ektu-bbb__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #013a3a;
+}
+.ektu-bbb__status {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #f4f8f6;
+  color: #5b726c;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ektu-bbb__status[hidden],
+.ektu-bbb__recordings[hidden] { display: none; }
+.ektu-bbb__status.is-running {
+  background: rgba(0, 109, 91, 0.12);
+  color: #006d5b;
+}
+.ektu-bbb .ektu-bbb__schedule { margin: 8px 0 0; color: #5b726c; }
+.ektu-bbb .ektu-bbb__actions { margin: 16px 0 8px; }
+.ektu-bbb .ektu-bbb__button,
+.ektu-bbb .ektu-bbb__button:hover,
+.ektu-bbb .ektu-bbb__button:focus {
+  display: inline-block;
+  padding: 11px 26px;
+  border-radius: 999px;
+  background: #006d5b;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.ektu-bbb .ektu-bbb__button:hover,
+.ektu-bbb .ektu-bbb__button:focus { background: #013a3a; }
+.ektu-bbb .ektu-bbb__hint { margin: 0; font-size: 14px; color: #5b726c; }
+.ektu-bbb__recordings {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #d9e6e1;
+}
+.ektu-bbb .ektu-bbb__subtitle { margin: 0 0 8px; font-size: 15px; font-weight: 700; color: #013a3a; }
+.ektu-bbb .ektu-bbb__list { margin: 0; padding: 0; list-style: none; }
+.ektu-bbb .ektu-bbb__list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 6px 0;
+  font-size: 14px;
+}
+.ektu-bbb .ektu-bbb__list a { color: #006d5b; font-weight: 600; }

@@ -1,0 +1,15 @@
+<div class="ektu-bbb">
+  <div class="ektu-bbb__head">
+    <h3 class="ektu-bbb__title">{{ title }}</h3>
+    <span class="ektu-bbb__status" data-role="status" hidden></span>
+  </div>
+  {% if schedule %}<p class="ektu-bbb__schedule">{{ schedule }}</p>{% endif %}
+  <p class="ektu-bbb__actions">
+    <a class="ektu-bbb__button" data-role="join" href="{{ join_url }}" target="_blank" rel="noopener">{{ button }}</a>
+  </p>
+  <p class="ektu-bbb__hint">{{ hint }}</p>
+  <div class="ektu-bbb__recordings" data-role="recordings" hidden>
+    <h4 class="ektu-bbb__subtitle">{{ recordings_title }}</h4>
+    <ul class="ektu-bbb__list" data-role="recording-list"></ul>
+  </div>
+</div>
