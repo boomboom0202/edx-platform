@@ -23,6 +23,12 @@ class CatalogueTest(TestCase):
         course("EDUFUSION", "EF01", "First Edufusion")
         course("EDUFUSION", "EF03", "Hidden Edufusion", visibility="none")
         course("ACD", "X1", "Ordinary course", visibility="both")
+        course("EDUFUSION", "EF08", "Eighth Edufusion")
+        key = CourseKey.from_string("course-v1:VKTU+PBLaMP+2026_C1")
+        CourseOverviewFactory(
+            id=key, org="VKTU", display_number_with_default="PBLaMP",
+            display_name="Listed from another org", catalog_visibility="about",
+        )
 
     def test_lists_only_edufusion_courses_in_order(self):
         content = self.client.get(URL).content.decode()
@@ -30,8 +36,14 @@ class CatalogueTest(TestCase):
         assert "Hidden Edufusion" not in content
         assert "Ordinary course" not in content
 
+    def test_lists_a_course_from_another_org_in_its_place(self):
+        content = self.client.get(URL).content.decode()
+        assert content.index("Second Edufusion") < content.index("Listed from another org")
+        assert content.index("Listed from another org") < content.index("Eighth Edufusion")
+
     def test_shows_both_logos(self):
         content = self.client.get(URL).content.decode()
+        assert content.index("<h1>") < content.index("edufusion-nsg-logo")
         assert content.index("edufusion-nsg-logo") < content.index("eu-co-funded")
 
     def test_main_catalog_leaves_them_out(self):

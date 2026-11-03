@@ -13,17 +13,14 @@ from django.utils.translation import gettext as _
 
 <main id="main" aria-label="Content" tabindex="-1">
   <section class="ektu-catalog">
-    <div class="ektu-ef-logos">
-      <div class="ektu-wrap ektu-ef-logos__row">
-        <img class="ektu-ef-logos__project" src="${static.url('ektu/images/edufusion-nsg-logo.jpg')}" alt="EduFusion NSG">
-        <img class="ektu-ef-logos__eu" src="${static.url('ektu/images/eu-co-funded.jpg')}" alt="${_('Co-funded by the European Union')}">
-      </div>
-    </div>
-
     <header class="ektu-catalog-hero">
       <div class="ektu-wrap">
         <span class="ektu-eyebrow">EduFusion NSG</span>
         <h1>${_("Edufusion Course Catalogue")}</h1>
+        <div class="ektu-ef-logos">
+          <img class="ektu-ef-logos__project" src="${static.url('ektu/images/edufusion-nsg-logo.jpg')}" alt="EduFusion NSG">
+          <img class="ektu-ef-logos__eu" src="${static.url('ektu/images/eu-co-funded.jpg')}" alt="${_('Co-funded by the European Union')}">
+        </div>
       </div>
     </header>
 
@@ -47,14 +44,18 @@ from django.utils.translation import gettext as _
 </main>
 
 <style>
-.ektu-ef-logos { background: #fff; padding: 18px 24px; }
-.ektu-ef-logos__row { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.ektu-ef-logos__project { height: 110px; width: auto; }
-.ektu-ef-logos__eu { height: 64px; width: auto; }
+/* Both logos are JPEGs on white, so they share one white plate on the green hero. */
+.ektu-ef-logos {
+  display: inline-flex; align-items: center; justify-content: center; gap: 16px;
+  margin-top: 22px; padding: 10px 22px; background: #fff; border-radius: 16px;
+}
+.ektu-ef-logos__project { height: 92px; width: auto; }
+.ektu-ef-logos__eu { height: 58px; width: auto; }
 /* New courses keep the platform's placeholder start date until a real one is set. */
 .ektu-page-edufusion .course-date { display: none; }
 @media (max-width: 640px) {
-  .ektu-ef-logos__project { height: 72px; }
-  .ektu-ef-logos__eu { height: auto; width: 55%; }
+  .ektu-ef-logos { gap: 10px; padding: 8px 14px; }
+  .ektu-ef-logos__project { height: 58px; }
+  .ektu-ef-logos__eu { height: 36px; }
 }
 </style>
