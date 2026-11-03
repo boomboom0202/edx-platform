@@ -159,6 +159,8 @@ setup(
             "ektu_support = lms.djangoapps.ektu_support.apps:EktuSupportConfig",
             # EKTU: the staff-only course log at /course-log/.
             "ektu_audit = lms.djangoapps.ektu_audit.apps:EktuAuditConfig",
+            # EKTU: the Edufusion course catalogue at /edufusion/.
+            "ektu_edufusion = lms.djangoapps.ektu_edufusion.apps:EktuEdufusionConfig",
         ],
         "cms.djangoapp": [
             "announcements = openedx.features.announcements.apps:AnnouncementsConfig",

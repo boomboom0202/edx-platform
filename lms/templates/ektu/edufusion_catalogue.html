@@ -1,0 +1,60 @@
+<%page expression_filter="h"/>
+<%!
+from django.utils.translation import gettext as _
+%>
+<%inherit file="../main.html" />
+<%namespace name='static' file='../static_content.html'/>
+
+## Каталог курсов проекта EduFusion NSG (см. ektu_edufusion/views.py).
+## "ektu-page-catalog" даёт ту же вёрстку и те же карточки, что в основном каталоге.
+
+<%block name="pagetitle">${_("Edufusion Course Catalogue")}</%block>
+<%block name="bodyclass">ektu-page ektu-page-catalog ektu-page-edufusion</%block>
+
+<main id="main" aria-label="Content" tabindex="-1">
+  <section class="ektu-catalog">
+    <div class="ektu-ef-logos">
+      <div class="ektu-wrap ektu-ef-logos__row">
+        <img class="ektu-ef-logos__project" src="${static.url('ektu/images/edufusion-nsg-logo.jpg')}" alt="EduFusion NSG">
+        <img class="ektu-ef-logos__eu" src="${static.url('ektu/images/eu-co-funded.jpg')}" alt="${_('Co-funded by the European Union')}">
+      </div>
+    </div>
+
+    <header class="ektu-catalog-hero">
+      <div class="ektu-wrap">
+        <span class="ektu-eyebrow">EduFusion NSG</span>
+        <h1>${_("Edufusion Course Catalogue")}</h1>
+      </div>
+    </header>
+
+    <div class="ektu-wrap ektu-catalog__body">
+      % if courses:
+      <ul class="courses-listing courses-list">
+        % for course in courses:
+        <li class="courses-listing-item">
+          <%include file="../course.html" args="course=course" />
+        </li>
+        % endfor
+      </ul>
+      % else:
+      <div class="ektu-catalog__empty">
+        <span class="ektu-catalog__empty-icon fa fa-graduation-cap" aria-hidden="true"></span>
+        <p>${_("There are no courses available at the moment. Please check back soon.")}</p>
+      </div>
+      % endif
+    </div>
+  </section>
+</main>
+
+<style>
+.ektu-ef-logos { background: #fff; padding: 18px 24px; }
+.ektu-ef-logos__row { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.ektu-ef-logos__project { height: 110px; width: auto; }
+.ektu-ef-logos__eu { height: 64px; width: auto; }
+/* New courses keep the platform's placeholder start date until a real one is set. */
+.ektu-page-edufusion .course-date { display: none; }
+@media (max-width: 640px) {
+  .ektu-ef-logos__project { height: 72px; }
+  .ektu-ef-logos__eu { height: auto; width: 55%; }
+}
+</style>
