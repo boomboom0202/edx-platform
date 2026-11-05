@@ -348,6 +348,8 @@ class UserAdmin(BaseUserAdmin):
     """ Admin interface for the User model. """
     inlines = (UserProfileInline, AccountRecoveryInline)
     form = UserChangeForm
+    # EKTU: the platform's filters plus when people registered and last signed in.
+    list_filter = BaseUserAdmin.list_filter + ('date_joined', 'last_login')
 
     def get_readonly_fields(self, request, obj=None):
         """

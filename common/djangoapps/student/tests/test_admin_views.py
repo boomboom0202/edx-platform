@@ -205,6 +205,32 @@ class AdminUserPageTest(TestCase):
         user = Mock()
         assert 'username' in self.admin.get_readonly_fields(request, user)
 
+    def test_users_can_be_filtered_by_registration_and_last_login(self):
+        """
+        The user list offers both date filters, and they select the right people.
+        """
+        password = 'Password1234'
+        admin_user = UserFactory.create(password=password, is_staff=True, is_superuser=True)
+        self.client.login(username=admin_user.username, password=password)
+        recent = now()
+        long_ago = recent - datetime.timedelta(days=400)
+        old_user = UserFactory.create(username='joined_long_ago', date_joined=long_ago, last_login=None)
+        new_user = UserFactory.create(username='joined_recently', date_joined=recent, last_login=recent)
+        url = reverse('admin:auth_user_changelist')
+
+        page = self.client.get(url).content.decode()
+        assert 'date_joined__gte' in page
+        assert 'last_login__gte' in page
+
+        start = (recent - datetime.timedelta(days=7)).date().isoformat()
+        page = self.client.get(url, {'date_joined__gte': start}).content.decode()
+        assert new_user.username in page
+        assert old_user.username not in page
+
+        page = self.client.get(url, {'last_login__isnull': 'True'}).content.decode()
+        assert old_user.username in page
+        assert new_user.username not in page
+
 
 @ddt.ddt
 class CourseEnrollmentAdminTest(SharedModuleStoreTestCase):
