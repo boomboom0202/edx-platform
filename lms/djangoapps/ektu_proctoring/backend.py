@@ -38,6 +38,9 @@ class EktuProctoringBackend(ProctoringBackendProvider):
             subject_name=context.get("full_name", ""),
             course_id=exam["course_id"],
             exam_name=exam["exam_name"],
+            # The course turns its own tab into the recording page, so that page
+            # offers the exam again, in a new tab.
+            return_url=f"{settings.LEARNING_MICROFRONTEND_URL}/course/{exam['course_id']}/{exam['content_id']}",
         )
         return str(session.key)
 
@@ -102,10 +105,11 @@ class EktuProctoringBackend(ProctoringBackendProvider):
             "name": self.verbose_name,
             "instructions": [
                 _("Use a computer with a webcam and a microphone, and the Chrome, Edge, Firefox or Yandex browser."),
-                _("Select Start System Check. A recording page opens in a new tab."),
+                _("Select Start System Check. The recording page opens in this tab."),
                 _("On that page, agree to the recording, allow the camera and the microphone, "
                   "and share your entire screen."),
-                _("Keep the recording tab open, come back to this tab and select Start Exam."),
+                _("Then select Open the exam there: the exam opens in a new tab. "
+                  "Keep the recording tab open until you submit the exam."),
                 _("The recording stops by itself when you submit the exam."),
             ],
         }

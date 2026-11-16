@@ -1,6 +1,7 @@
 <%page expression_filter="h"/>
 <%!
 from django.conf import settings
+from django.urls import reverse
 from django.utils.translation import get_language, gettext as _
 
 from openedx.core.djangolib.js_utils import dump_js_escaped_json
@@ -45,6 +46,8 @@ from openedx.core.djangolib.js_utils import dump_js_escaped_json
     .pr-level { width: 240px; max-width: 100%; height: 8px; margin-top: 8px; border-radius: 4px; background: var(--ektu-border); overflow: hidden; }
     .pr-level span { display: block; width: 0; height: 100%; background: var(--ektu-primary); transition: width .15s; }
     .pr-hint { color: var(--ektu-muted); font-size: 14px; }
+    .pr-help { margin: 16px 0 0 !important; }
+    .pr a:not(.pr-btn) { color: var(--ektu-primary); }
     .pr-live { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 20px; font-weight: 700; color: #b42318; }
     .pr-live::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #b42318; animation: pr-blink 1.4s infinite; }
     @keyframes pr-blink { 50% { opacity: .25; } }
@@ -92,6 +95,7 @@ from openedx.core.djangolib.js_utils import dump_js_escaped_json
       <span>${_("I have read this and agree to the recording.")}</span>
     </label>
     <button type="button" class="pr-btn" id="pr-continue" disabled>${_("Continue")}</button>
+    <p class="pr-hint pr-help"><a href="${reverse('ektu_proctoring:help')}" target="_blank" rel="noopener">${_("Rules and requirements of recorded exams")}</a></p>
   </section>
 
   <section class="pr-card" data-step="check" hidden>
@@ -122,11 +126,11 @@ from openedx.core.djangolib.js_utils import dump_js_escaped_json
     <p><strong>${_("Do not close this tab.")}</strong></p>
     % if session.client_id:
       <p>${_("Now go back to the exam. When you have submitted it, come back here and stop the recording.")}</p>
-      % if session.return_url:
-        <p><a class="pr-btn" href="${session.return_url}" target="_blank" rel="noopener">${_("Open the exam")}</a></p>
-      % endif
     % else:
-      <p>${_("Now go back to the tab with the exam and select Start Exam. The recording stops by itself when you submit the exam.")}</p>
+      <p>${_("Now open the exam: it opens in a new tab. The recording stops by itself when you submit the exam.")}</p>
+    % endif
+    % if session.return_url:
+      <p><a class="pr-btn" href="${session.return_url}" target="_blank" rel="noopener">${_("Open the exam")}</a></p>
     % endif
     <video class="pr-preview" autoplay muted playsinline></video>
     <p class="pr-note" id="pr-display" hidden></p>

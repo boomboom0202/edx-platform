@@ -6,6 +6,7 @@ from . import views_api, views_capture, views_review
 app_name = "ektu_proctoring"
 
 urlpatterns = [
+    path("help/", views_capture.help_page, name="help"),
     # The recording page and what it sends.
     path("resume/", views_capture.resume, name="resume"),
     path("s/<str:token>/", views_capture.capture, name="capture"),

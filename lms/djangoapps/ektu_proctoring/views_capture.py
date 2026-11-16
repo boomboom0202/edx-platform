@@ -79,6 +79,11 @@ def capture(request, token):
     return render_to_response("ektu/proctoring_capture.html", {"session": session, "config": config})
 
 
+def help_page(request):
+    """What a recorded exam needs and how it goes; the course and its e-mails link here."""
+    return render_to_response("ektu/proctoring_help.html", {})
+
+
 @login_required
 def resume(request):
     """Send a learner to the recording page of the exam they are taking."""

@@ -79,6 +79,11 @@ class CapturePageTest(ProctoringTestCase):
         assert "Final exam" in response.content.decode()
         assert self.client.get(reverse("ektu_proctoring:capture", args=["nope"])).status_code == 404
 
+    def test_help_page_is_open_to_everyone(self):
+        response = self.client.get(reverse("ektu_proctoring:help"))
+        assert response.status_code == 200
+        assert reverse("ektu_proctoring:resume") in response.content.decode()
+
     def test_pieces_are_appended_in_order(self):
         assert self.send(self.session, 0).status_code == 409  # nothing is recorded before the start
         assert self.client.post(self.url("start", self.session)).json() == {"status": "recording"}
@@ -202,6 +207,10 @@ class OpenEdxBackendTest(ProctoringTestCase):
         assert self.session.external_ref == attempt["attempt_code"]
         data = get_exam_attempt_data(self.exam_id, self.attempt_id, is_learning_mfe=True)
         assert data["software_download_url"].endswith(self.url("capture", self.session))
+        # The course turns its tab into the recording page, which then offers the exam in a new tab.
+        assert self.session.return_url.endswith(f"/course/{COURSE}/block-v1:EKTU+PR101+2026+type@sequential+block@final")
+        page = self.client.get(self.url("capture", self.session)).content.decode()
+        assert f'href="{self.session.return_url}" target="_blank"' in page
 
     def test_the_course_page_explains_what_to_do(self):
         from edx_proctoring.api import get_proctoring_settings_by_exam_id  # pylint: disable=import-outside-toplevel

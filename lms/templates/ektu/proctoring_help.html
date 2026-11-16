@@ -1,0 +1,79 @@
+<%page expression_filter="h"/>
+<%!
+from django.conf import settings
+from django.urls import reverse
+from django.utils.translation import gettext as _
+%>
+<%inherit file="../main.html" />
+
+## Правила и требования экзаменов под запись (ektu_proctoring/views_capture.py). На эту
+## страницу ведут ссылки с экрана экзамена в курсе, из писем и со страницы записи.
+
+<%block name="pagetitle">${_("Exams under recording")}</%block>
+<%block name="bodyclass">ektu-page ektu-page-proctoring-help</%block>
+
+<main id="main" aria-label="Content" tabindex="-1">
+  <section class="ektu-static ektu-prh">
+    <header class="ektu-page-hero">
+      <div class="ektu-wrap">
+        <h1>${_("Exams under recording")}</h1>
+        <p>${_("Some exams are taken under recording: your webcam, microphone and screen are recorded while you answer. Here is what you need and how it goes.")}</p>
+      </div>
+    </header>
+
+    <section class="ektu-section">
+      <div class="ektu-wrap ektu-prh__text">
+        <h2>${_("What you need")}</h2>
+        <ul>
+          <li>${_("A computer or a laptop with a webcam and a microphone. A phone or a tablet will not do: they cannot share the screen.")}</li>
+          <li>${_("The Chrome, Edge, Firefox or Yandex browser, updated to a recent version.")}</li>
+          <li>${_("A stable internet connection.")}</li>
+          <li>${_("One display. Disconnect a second monitor before you begin.")}</li>
+        </ul>
+
+        <h2>${_("How the exam goes")}</h2>
+        <ol>
+          <li>${_("Open the exam in your course and select Start System Check. The recording page opens.")}</li>
+          <li>${_("On the recording page, agree to the recording, turn on the camera and the microphone, share your entire screen and start the recording.")}</li>
+          <li>${_("Select Open the exam on the recording page. The exam opens in a new tab: start it and answer the questions.")}</li>
+          <li>${_("Submit the exam. The recording stops by itself, and the recording tab says it is saved.")}</li>
+          <li>${_("Staff watch the recording and decide whether the exam counts. You are told the result by e-mail.")}</li>
+        </ol>
+
+        <h2>${_("Rules during the exam")}</h2>
+        <ul>
+          <li>${_("Stay in front of the camera, alone in the room.")}</li>
+          <li>${_("Do not use other devices, other people's help or materials the exam does not allow.")}</li>
+          <li>${_("Do not close the recording tab and do not stop sharing the screen until you have submitted the exam.")}</li>
+        </ul>
+        <p>${_("If the rules are broken, or a part of the exam is not recorded, the exam may not count.")}</p>
+
+        <h2>${_("If something goes wrong")}</h2>
+        <ul>
+          <li>${_("The camera or screen sharing stopped: the recording page shows a button to turn it on again.")}</li>
+          <li>
+            ${_("You closed the recording tab or the browser: open the recording page again and turn everything on.")}
+            <a href="${reverse('ektu_proctoring:resume')}">${_("Back to my recording page")}</a>
+          </li>
+          <li>
+            ${_("Anything else: write to us, and say which course and exam it is.")}
+            <a href="${reverse('ektu_support:ask')}">${_("Ask a question")}</a>
+          </li>
+        </ul>
+
+        <h2>${_("What happens to the recording")}</h2>
+        <p>${_("The recording is kept on the servers of {platform} and is watched only by the staff who check that the exam rules were followed.").format(platform=settings.PLATFORM_NAME)}</p>
+      </div>
+    </section>
+  </section>
+</main>
+
+<style>
+.ektu-prh__text { max-width: 820px; color: var(--ektu-ink); font-size: 16px; line-height: 1.6; }
+.ektu-prh__text h2 { margin: 32px 0 10px; }
+.ektu-prh__text h2:first-child { margin-top: 0; }
+.ektu-prh__text ul, .ektu-prh__text ol { margin: 0 0 12px; padding-left: 24px; }
+.ektu-prh__text li { margin-bottom: 8px; list-style: inherit; }
+.ektu-prh__text ol li { list-style: decimal; }
+.ektu-prh__text a { color: var(--ektu-primary); font-weight: 600; }
+</style>
