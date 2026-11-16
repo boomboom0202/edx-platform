@@ -163,6 +163,8 @@ setup(
             "ektu_audit = lms.djangoapps.ektu_audit.apps:EktuAuditConfig",
             # EKTU: the Edufusion course catalogue at /edufusion/.
             "ektu_edufusion = lms.djangoapps.ektu_edufusion.apps:EktuEdufusionConfig",
+            # EKTU: the proctoring service at /proctoring/.
+            "ektu_proctoring = lms.djangoapps.ektu_proctoring.apps:EktuProctoringConfig",
         ],
         "cms.djangoapp": [
             "announcements = openedx.features.announcements.apps:AnnouncementsConfig",
@@ -196,6 +198,10 @@ setup(
             'team = openedx.core.lib.teams_config:create_team_set_partition',
         ],
         'xblock.v1': XBLOCKS,
+        # EKTU: our own proctoring service as an edx-proctoring backend.
+        "openedx.proctoring": [
+            "ektu = lms.djangoapps.ektu_proctoring.backend:EktuProctoringBackend",
+        ],
         'xblock_asides.v1': XBLOCKS_ASIDES,
         'console_scripts': [
             'xmodule_assets = xmodule.static_content:main',

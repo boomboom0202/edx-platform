@@ -1,0 +1,159 @@
+<%page expression_filter="h"/>
+<%!
+from django.conf import settings
+from django.utils.translation import get_language, gettext as _
+
+from openedx.core.djangolib.js_utils import dump_js_escaped_json
+%>
+<%namespace name='static' file='../static_content.html'/>
+## Страница записи экзамена (ektu_proctoring/views_capture.py). Открывается в отдельной
+## вкладке и остаётся открытой до конца экзамена, поэтому без шапки и футера сайта:
+## её видят и слушатели других систем, у которых нет учётной записи здесь.
+<!DOCTYPE html>
+<html lang="${get_language()}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>${_("Exam recording")} | ${settings.PLATFORM_NAME}</title>
+  <style>
+    :root { --ektu-primary: #006D5B; --ektu-primary-dark: #013A3A; --ektu-ink: #0d2b27; --ektu-muted: #5b726c;
+            --ektu-surface: #f4f8f6; --ektu-border: #d9e6e1; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--ektu-surface); color: var(--ektu-ink);
+           font: 16px/1.55 'Manrope', 'Helvetica Neue', Arial, sans-serif; }
+    .pr { max-width: 760px; margin: 0 auto; padding: 32px 20px 56px; }
+    .pr-brand { margin: 0 0 4px; color: var(--ektu-muted); font-size: 14px; }
+    .pr h1 { margin: 0 0 6px; font-size: 28px; line-height: 1.2; }
+    .pr-exam { margin: 0 0 24px; color: var(--ektu-muted); }
+    .pr-card { background: #fff; border: 1.5px solid var(--ektu-border); border-radius: 14px; padding: 24px; }
+    .pr-card h2 { margin: 0 0 12px; font-size: 20px; }
+    .pr-card p, .pr-card ul { margin: 0 0 14px; }
+    .pr-card ul { padding-left: 22px; }
+    .pr-box { border-top: 1px solid var(--ektu-border); padding: 16px 0; }
+    .pr-btn { display: inline-block; border: 0; border-radius: 10px; padding: 11px 22px; cursor: pointer;
+              background: var(--ektu-primary); color: #fff; font: inherit; font-weight: 600; text-decoration: none; }
+    .pr-btn:hover, .pr-btn:focus { background: var(--ektu-primary-dark); }
+    .pr-btn[disabled] { background: #b9c9c4; cursor: not-allowed; }
+    .pr-btn--ghost { background: #fff; color: var(--ektu-ink); border: 1.5px solid var(--ektu-border); }
+    .pr-btn--ghost:hover, .pr-btn--ghost:focus { background: var(--ektu-surface); }
+    .pr-note { margin: 10px 0 0; color: var(--ektu-primary); font-weight: 600; }
+    .pr-note.is-bad { color: #b42318; }
+    .pr-agree { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 18px; font-weight: 600; }
+    .pr-agree input { margin-top: 5px; }
+    .pr-preview { display: block; width: 240px; max-width: 100%; margin-top: 12px; border-radius: 10px; background: #000; }
+    .pr-level { width: 240px; max-width: 100%; height: 8px; margin-top: 8px; border-radius: 4px; background: var(--ektu-border); overflow: hidden; }
+    .pr-level span { display: block; width: 0; height: 100%; background: var(--ektu-primary); transition: width .15s; }
+    .pr-hint { color: var(--ektu-muted); font-size: 14px; }
+    .pr-live { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 20px; font-weight: 700; color: #b42318; }
+    .pr-live::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #b42318; animation: pr-blink 1.4s infinite; }
+    @keyframes pr-blink { 50% { opacity: .25; } }
+    .pr-alert { margin: 14px 0 0; padding: 14px 16px; border-radius: 10px; background: #fdecea; }
+    .pr-alert .pr-btn { margin-top: 10px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main class="pr">
+  <p class="pr-brand">${settings.PLATFORM_NAME}</p>
+  <h1>${_("Exam recording")}</h1>
+  <p class="pr-exam">${session.exam_name}${' · ' if session.exam_name and session.subject_name else ''}${session.subject_name}</p>
+
+  <noscript><div class="pr-card"><p>${_("This page needs JavaScript.")}</p></div></noscript>
+
+  <section class="pr-card" data-step="unsupported" hidden>
+    <h2>${_("This browser cannot record the exam")}</h2>
+    <p>${_("Open this page on a computer with a webcam, in Chrome, Edge, Firefox or Yandex Browser. Phones and tablets cannot share the screen.")}</p>
+  </section>
+
+  <section class="pr-card" data-step="consent" hidden>
+    <h2>${_("Before you begin")}</h2>
+    <p>${_("This exam is taken under recording. While you take it, this page records:")}</p>
+    <ul>
+      % if session.record_webcam:
+        <li>${_("your webcam;")}</li>
+      % endif
+      % if session.record_audio:
+        <li>${_("your microphone;")}</li>
+      % endif
+      % if session.record_screen:
+        <li>${_("your entire screen.")}</li>
+      % endif
+    </ul>
+    <p>${_("The recording is kept on the servers of {platform} and is watched only by the staff who check that the exam rules were followed.").format(platform=settings.PLATFORM_NAME)}</p>
+    <p>${_("During the exam:")}</p>
+    <ul>
+      <li>${_("stay in front of the camera, alone in the room;")}</li>
+      <li>${_("do not use other devices, other people's help or materials the exam does not allow;")}</li>
+      <li>${_("do not close this tab until you have submitted the exam.")}</li>
+    </ul>
+    <label class="pr-agree">
+      <input type="checkbox" id="pr-agree">
+      <span>${_("I have read this and agree to the recording.")}</span>
+    </label>
+    <button type="button" class="pr-btn" id="pr-continue" disabled>${_("Continue")}</button>
+  </section>
+
+  <section class="pr-card" data-step="check" hidden>
+    <h2>${_("Turn on the camera and share the screen")}</h2>
+    <p class="pr-note is-bad" id="pr-interrupted" hidden>${_("The recording was interrupted. Turn everything on again to continue.")}</p>
+    <div class="pr-box" id="pr-camera-box">
+      <button type="button" class="pr-btn pr-btn--ghost" id="pr-camera">${_("Turn on camera and microphone")}</button>
+      <p class="pr-note" id="pr-camera-note" hidden></p>
+      <video class="pr-preview" autoplay muted playsinline></video>
+      % if session.record_audio:
+        <div class="pr-level"><span id="pr-mic-level"></span></div>
+        <p class="pr-hint">${_("Say something: the bar should move.")}</p>
+      % endif
+    </div>
+    <div class="pr-box" id="pr-screen-box">
+      <button type="button" class="pr-btn pr-btn--ghost" id="pr-screen">${_("Share the entire screen")}</button>
+      <p class="pr-hint">${_("In the browser window choose the entire screen, not a window or a tab, then confirm.")}</p>
+      <p class="pr-note" id="pr-screen-note" hidden></p>
+    </div>
+    <div class="pr-box">
+      <button type="button" class="pr-btn" id="pr-start" disabled>${_("Start recording")}</button>
+      <p class="pr-note" id="pr-start-note" hidden></p>
+    </div>
+  </section>
+
+  <section class="pr-card" data-step="recording" hidden>
+    <p class="pr-live">${_("Recording in progress")}</p>
+    <p><strong>${_("Do not close this tab.")}</strong></p>
+    % if session.client_id:
+      <p>${_("Now go back to the exam. When you have submitted it, come back here and stop the recording.")}</p>
+      % if session.return_url:
+        <p><a class="pr-btn" href="${session.return_url}" target="_blank" rel="noopener">${_("Open the exam")}</a></p>
+      % endif
+    % else:
+      <p>${_("Now go back to the tab with the exam and select Start Exam. The recording stops by itself when you submit the exam.")}</p>
+    % endif
+    <video class="pr-preview" autoplay muted playsinline></video>
+    <p class="pr-note" id="pr-display" hidden></p>
+    <p class="pr-note" id="pr-network" hidden></p>
+    <div class="pr-alert" id="pr-restore-camera" hidden>
+      <p class="pr-note" id="pr-camera-lost" hidden></p>
+      <button type="button" class="pr-btn">${_("Turn on camera and microphone")}</button>
+    </div>
+    <div class="pr-alert" id="pr-restore-screen" hidden>
+      <p class="pr-note" id="pr-screen-lost" hidden></p>
+      <button type="button" class="pr-btn">${_("Share the entire screen")}</button>
+    </div>
+    <div class="pr-box" style="margin-top:18px">
+      <button type="button" class="pr-btn pr-btn--ghost" id="pr-stop">${_("Stop recording")}</button>
+      <p class="pr-note" id="pr-saving" hidden></p>
+    </div>
+  </section>
+
+  <section class="pr-card" data-step="done" hidden>
+    <h2>${_("The recording is saved")}</h2>
+    <p>${_("You can close this tab.")}</p>
+    % if session.client_id and session.return_url:
+      <p><a class="pr-btn pr-btn--ghost" href="${session.return_url}">${_("Back to the exam")}</a></p>
+    % endif
+  </section>
+</main>
+<script type="application/json" id="ektu-proctoring-config">${config | n, dump_js_escaped_json}</script>
+<script src="${static.url('ektu/js/proctoring_capture.js')}"></script>
+</body>
+</html>

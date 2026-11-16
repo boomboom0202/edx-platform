@@ -1,0 +1,229 @@
+<%page expression_filter="h"/>
+<%!
+from django.utils.translation import gettext as _
+
+from openedx.core.djangolib.js_utils import dump_js_escaped_json
+%>
+<%inherit file="../main.html" />
+<%namespace name='static' file='../static_content.html'/>
+
+## Проверка записей прокторинга (ektu_proctoring/views_review.py): view = list | detail.
+## Список видят сотрудники и команда курса; запись по подписанной ссылке — ещё и клиент API.
+
+<%block name="pagetitle">${_("Exam recordings")}</%block>
+<%block name="bodyclass">ektu-page ektu-page-proctoring</%block>
+
+<main id="main" aria-label="Content" tabindex="-1">
+  <section class="ektu-static ektu-pr">
+    <header class="ektu-page-hero">
+      <div class="ektu-wrap">
+        <span class="ektu-eyebrow">${_("Staff only")}</span>
+        <h1>${_("Exam recordings")}</h1>
+        % if view == 'list':
+          <p>${_("Recordings of proctored exams. Watch a recording and decide whether the exam counts.")} ${_("Times are in Kazakhstan time (UTC+5).")}</p>
+        % else:
+          <p>${who}${' · ' if who and session.exam_name else ''}${session.exam_name}</p>
+        % endif
+      </div>
+    </header>
+
+    <section class="ektu-section">
+      <div class="ektu-wrap">
+      % if view == 'list':
+        <form class="ektu-pr__filters" method="get">
+          <label class="ektu-pr__filter">
+            ${_("Course")}
+            <select name="course_id">
+              <option value="">${_("All courses")}</option>
+              % for value, label in courses:
+                <option value="${value}" ${'selected' if chosen['course_id'] == value else ''}>${label}</option>
+              % endfor
+            </select>
+          </label>
+          <label class="ektu-pr__filter">
+            ${_("Result")}
+            <select name="verdict">
+              <option value="">${_("Any")}</option>
+              % for value, label in verdicts:
+                <option value="${value}" ${'selected' if chosen['verdict'] == value else ''}>${label}</option>
+              % endfor
+            </select>
+          </label>
+          <label class="ektu-pr__filter">
+            ${_("Recording")}
+            <select name="status">
+              <option value="">${_("Any")}</option>
+              % for value, label in statuses:
+                <option value="${value}" ${'selected' if chosen['status'] == value else ''}>${label}</option>
+              % endfor
+            </select>
+          </label>
+          <button type="submit" class="ektu-btn">${_("Show")}</button>
+        </form>
+
+        % if rows:
+          <table class="ektu-pr__table">
+            <thead>
+              <tr>
+                <th>${_("Date")}</th><th>${_("Learner")}</th><th>${_("Exam")}</th>
+                <th>${_("Recording")}</th><th>${_("Remarks")}</th><th>${_("Result")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              % for row in rows:
+                <tr>
+                  <td><a href="${row['url']}">${row['created'].strftime('%d.%m.%Y %H:%M')}</a></td>
+                  <td>${row['who']}</td>
+                  <td>${row['session'].exam_name}<span class="ektu-pr__muted">${row['where']}</span></td>
+                  <td>${row['status']}</td>
+                  <td>${row['session'].warnings or '—'}</td>
+                  <td><span class="ektu-pr__badge ektu-pr__badge--${row['session'].verdict}">${row['verdict']}</span></td>
+                </tr>
+              % endfor
+            </tbody>
+          </table>
+          % if page.paginator.num_pages > 1:
+            <nav class="ektu-pr__pager" aria-label="${_('Pages')}">
+              % if page.has_previous():
+                <a class="ektu-btn ektu-btn--ghost" href="?${query}&page=${page.previous_page_number()}">← ${_("Newer")}</a>
+              % endif
+              <span>${_("Page {page}").format(page=page.number)}</span>
+              % if page.has_next():
+                <a class="ektu-btn ektu-btn--ghost" href="?${query}&page=${page.next_page_number()}">${_("Older")} →</a>
+              % endif
+            </nav>
+          % endif
+        % else:
+          <p>${_("There are no recordings yet.")}</p>
+        % endif
+
+      % else:
+        % if list_url:
+          <p><a href="${list_url}">← ${_("All recordings")}</a></p>
+        % endif
+        <div class="ektu-pr__layout">
+          <div>
+            % if session.purged_at:
+              <p class="ektu-pr__empty">${_("The recording was deleted when its storage period ended.")}</p>
+            % elif has_media:
+              <div class="ektu-pr__videos">
+                <video id="pr-main" controls preload="metadata"></video>
+                <video id="pr-side" preload="metadata" hidden></video>
+              </div>
+              <div class="ektu-pr__controls">
+                <span id="pr-parts-label" hidden>${_("Part")}</span>
+                <span id="pr-parts"></span>
+                <span>${_("Speed")}</span>
+                % for speed in (1, 2, 4, 8):
+                  <button type="button" data-speed="${speed}" class="${'is-active' if speed == 1 else ''}">${speed}×</button>
+                % endfor
+                <button type="button" id="pr-sound" class="is-active" hidden>${_("Sound")}</button>
+                <button type="button" id="pr-swap" hidden>${_("Swap screen and camera")}</button>
+              </div>
+              % if not indexed:
+                <p class="ektu-pr__muted">${_("The recording is still being prepared: until it is, it plays only from the start.")}</p>
+              % endif
+            % else:
+              <p class="ektu-pr__empty">${_("Nothing was recorded.")}</p>
+            % endif
+
+            <h2>${_("What happened")}</h2>
+            <ol class="ektu-pr__events">
+              % for event in events:
+                <li class="${'is-warning' if event['warning'] else ''}">
+                  <a href="#" data-offset="${event['offset']}">${event['at'].strftime('%H:%M:%S')}</a>
+                  ${event['label']}
+                  % if event['seconds']:
+                    <span class="ektu-pr__muted">${_("{seconds} s").format(seconds=event['seconds'])}</span>
+                  % endif
+                </li>
+              % endfor
+            </ol>
+          </div>
+
+          <aside class="ektu-pr__side">
+            % if photo_url:
+              <img class="ektu-pr__photo" src="${photo_url}" alt="${_('Photo taken when the recording started')}">
+            % endif
+            <dl class="ektu-pr__meta">
+              <dt>${_("Learner")}</dt><dd>${who}${' ({})'.format(username) if username else ''}</dd>
+              <dt>${_("Exam")}</dt><dd>${session.exam_name}<span class="ektu-pr__muted">${where}</span></dd>
+              <dt>${_("Date")}</dt><dd>${created.strftime('%d.%m.%Y %H:%M')}</dd>
+              <dt>${_("Recording")}</dt><dd>${status}</dd>
+              <dt>${_("Result")}</dt>
+              <dd>
+                <span class="ektu-pr__badge ektu-pr__badge--${session.verdict}">${verdict}</span>
+                % if reviewed_at:
+                  <span class="ektu-pr__muted">${reviewer} · ${reviewed_at.strftime('%d.%m.%Y %H:%M')}</span>
+                % endif
+              </dd>
+            </dl>
+            % if can_decide:
+              <form method="post" class="ektu-pr__verdict">
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrf_token}">
+                <label class="ektu-pr__filter">
+                  ${_("Comment")}
+                  <textarea name="comment" rows="4" maxlength="2000">${session.review_comment}</textarea>
+                </label>
+                % if not session.client_id:
+                  <p class="ektu-pr__muted">${_("The result is recorded for the exam attempt; the learner is told by e-mail.")}</p>
+                % endif
+                <button type="submit" name="verdict" value="passed" class="ektu-btn">${_("Accept the exam")}</button>
+                <button type="submit" name="verdict" value="failed" class="ektu-btn ektu-pr__fail">${_("Rules were broken")}</button>
+              </form>
+            % else:
+              <p class="ektu-pr__muted">${_("A result can be given once the recording has finished.")}</p>
+            % endif
+          </aside>
+        </div>
+        <script type="application/json" id="ektu-proctoring-player">${player | n, dump_js_escaped_json}</script>
+        <script src="${static.url('ektu/js/proctoring_review.js')}"></script>
+      % endif
+      </div>
+    </section>
+  </section>
+</main>
+
+<style>
+.ektu-pr__filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 16px; margin-bottom: 18px; }
+.ektu-pr__filter { display: flex; flex-direction: column; gap: 6px; margin: 0; font-size: 14px; color: var(--ektu-muted); }
+.ektu-pr__filter select, .ektu-pr__filter textarea {
+  padding: 10px 12px; border: 1.5px solid var(--ektu-border); border-radius: 10px; background: #fff;
+  color: var(--ektu-ink); font-family: var(--ektu-font-body); font-size: 15px; max-width: 100%;
+}
+.ektu-pr__filters .ektu-btn, .ektu-pr__verdict .ektu-btn { border: 0; cursor: pointer; padding: 11px 26px; }
+.ektu-pr__muted { color: var(--ektu-muted); font-size: 13px; display: block; }
+.ektu-pr__table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+.ektu-pr__table th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--ektu-border); color: var(--ektu-muted); font-weight: 600; white-space: nowrap; }
+.ektu-pr__table td { padding: 12px; border-bottom: 1px solid var(--ektu-border); vertical-align: top; color: var(--ektu-ink); }
+.ektu-pr__pager { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+.ektu-pr__badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--ektu-surface); color: var(--ektu-muted); border: 1px solid var(--ektu-border); }
+.ektu-pr__badge--passed { background: rgba(var(--ektu-primary-rgb), 0.12); color: var(--ektu-primary); border-color: transparent; }
+.ektu-pr__badge--failed { background: rgba(180, 35, 24, 0.12); color: #b42318; border-color: transparent; }
+.ektu-pr__layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 32px; align-items: start; }
+.ektu-pr__videos { position: relative; background: #000; border-radius: 14px; overflow: hidden; }
+.ektu-pr__videos video { display: block; width: 100%; max-height: 70vh; }
+.ektu-pr__videos #pr-side { position: absolute; top: 12px; right: 12px; width: 24%; border-radius: 8px; border: 2px solid #fff; }
+#pr-parts { display: inline-flex; gap: 8px; }
+.ektu-pr__controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 4px; font-size: 14px; color: var(--ektu-muted); }
+.ektu-pr__controls button, .ektu-pr__controls button:hover, .ektu-pr__controls button:focus, .ektu-pr__controls button:active {
+  padding: 6px 12px; border: 1.5px solid var(--ektu-border); border-radius: 8px; background: #fff; background-image: none;
+  box-shadow: none; text-shadow: none; color: var(--ektu-ink); cursor: pointer; letter-spacing: 0; text-transform: none;
+  font: 600 14px var(--ektu-font-body);
+}
+.ektu-pr__controls button.is-active { border-color: var(--ektu-primary); color: var(--ektu-primary); }
+.ektu-pr__events { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+.ektu-pr__events li { padding: 8px 0; border-bottom: 1px solid var(--ektu-border); }
+.ektu-pr__events li.is-warning { color: #b42318; font-weight: 600; }
+.ektu-pr__events a { margin-right: 10px; font-variant-numeric: tabular-nums; }
+.ektu-pr__events .ektu-pr__muted { display: inline; margin-left: 6px; }
+.ektu-pr__side { background: #fff; border: 1.5px solid var(--ektu-border); border-radius: 14px; padding: 18px 20px; }
+.ektu-pr__photo { display: block; width: 100%; border-radius: 10px; margin-bottom: 14px; }
+.ektu-pr__meta { margin: 0 0 16px; font-size: 14px; }
+.ektu-pr__meta dt { color: var(--ektu-muted); margin-top: 10px; }
+.ektu-pr__meta dd { margin: 2px 0 0; }
+.ektu-pr__verdict { display: grid; gap: 12px; }
+.ektu-pr__fail, .ektu-pr__fail:hover, .ektu-pr__fail:focus { background: #b42318; }
+.ektu-pr__empty { padding: 28px; border: 1.5px dashed var(--ektu-border); border-radius: 14px; color: var(--ektu-muted); }
+@media (max-width: 900px) { .ektu-pr__layout { grid-template-columns: 1fr; } }
+</style>
