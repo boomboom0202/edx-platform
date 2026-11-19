@@ -15,11 +15,11 @@ from django.utils.translation import gettext as _
   <section class="ektu-catalog">
     <header class="ektu-catalog-hero">
       <div class="ektu-wrap">
-        <h1>STEAM AND ENTREPRENEURSHIP COURSES</h1>
         <div class="ektu-ef-logos">
-          <img class="ektu-ef-logos__eu" src="${static.url('ektu/images/eu-co-funded.jpg')}" alt="${_('Co-funded by the European Union')}">
-          <img class="ektu-ef-logos__project" src="${static.url('ektu/images/edufusion-nsg-logo.jpg')}" alt="EduFusion NSG">
+          <img class="ektu-ef-logos__eu" src="${static.url('ektu/images/eu-co-funded-white.png')}" alt="${_('Co-funded by the European Union')}">
+          <img class="ektu-ef-logos__project" src="${static.url('ektu/images/edufusion-nsg-logo.png')}" alt="EduFusion NSG">
         </div>
+        <h1>STEAM AND ENTREPRENEURSHIP COURSES</h1>
       </div>
     </header>
 
@@ -43,18 +43,19 @@ from django.utils.translation import gettext as _
 </main>
 
 <style>
-/* Both logos are JPEGs on white, so they share one white plate on the green hero. */
+/* Transparent logos straight on the green hero. The EU emblem is its version for dark
+   backgrounds: white text and a white border round the flag. */
 .ektu-ef-logos {
-  display: inline-flex; align-items: center; justify-content: center; gap: 16px;
-  margin-top: 22px; padding: 10px 22px; background: #fff; border-radius: 16px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px 56px;
+  margin-bottom: 26px;
 }
-.ektu-ef-logos__project { height: 92px; width: auto; }
-.ektu-ef-logos__eu { height: 58px; width: auto; }
+.ektu-ef-logos__project { height: 104px; width: auto; }
+.ektu-ef-logos__eu { height: 60px; width: auto; }
 /* New courses keep the platform's placeholder start date until a real one is set. */
 .ektu-page-edufusion .course-date { display: none; }
 @media (max-width: 640px) {
-  .ektu-ef-logos { gap: 10px; padding: 8px 14px; }
-  .ektu-ef-logos__project { height: 58px; }
-  .ektu-ef-logos__eu { height: 36px; }
+  .ektu-ef-logos { gap: 16px 28px; margin-bottom: 18px; }
+  .ektu-ef-logos__project { height: 72px; }
+  .ektu-ef-logos__eu { height: 40px; }
 }
 </style>
