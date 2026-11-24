@@ -20,18 +20,35 @@ from django.utils.translation import gettext as _
           <img class="ektu-ef-logos__project" src="${static.url('ektu/images/edufusion-nsg-logo.png')}" alt="EduFusion NSG">
         </div>
         <h1>STEAM AND ENTREPRENEURSHIP COURSES</h1>
+
+        ## Тот же поиск, что в основном каталоге (courseware/courses.html): фильтрует карточки на странице.
+        <div class="ektu-catalog__search">
+          <span class="ektu-catalog__search-icon fa fa-search" aria-hidden="true"></span>
+          <input type="search" id="ektu-course-search" class="ektu-catalog__search-input"
+                 placeholder="${_('Search courses by title, organization or number')}"
+                 aria-label="${_('Search courses')}" autocomplete="off">
+        </div>
       </div>
     </header>
 
     <div class="ektu-wrap ektu-catalog__body">
       % if courses:
-      <ul class="courses-listing courses-list">
+      <div class="ektu-catalog__meta">
+        <span id="ektu-course-count" data-label="${_('Showing {count} of {total} courses').format(count='{count}', total=len(courses))}"></span>
+      </div>
+      <ul class="courses-listing courses-list" id="ektu-course-list">
         % for course in courses:
-        <li class="courses-listing-item">
+        <li class="courses-listing-item"
+            data-search="${course.display_name_with_default} ${course.display_org_with_default} ${course.display_number_with_default}">
           <%include file="../course.html" args="course=course" />
         </li>
         % endfor
       </ul>
+      <div class="ektu-catalog__empty" id="ektu-catalog-empty" hidden>
+        <span class="ektu-catalog__empty-icon fa fa-search" aria-hidden="true"></span>
+        <p>${_("No courses match your search.")}</p>
+        <button type="button" class="ektu-btn ektu-btn--ghost" id="ektu-empty-reset">${_("Clear search")}</button>
+      </div>
       % else:
       <div class="ektu-catalog__empty">
         <span class="ektu-catalog__empty-icon fa fa-graduation-cap" aria-hidden="true"></span>
@@ -59,3 +76,55 @@ from django.utils.translation import gettext as _
   .ektu-ef-logos__eu { height: 40px; }
 }
 </style>
+
+<%block name="js_extra">
+<script type="text/javascript">
+(function() {
+  "use strict";
+  var list = document.getElementById('ektu-course-list');
+  var countEl = document.getElementById('ektu-course-count');
+  var emptyEl = document.getElementById('ektu-catalog-empty');
+  var searchEl = document.getElementById('ektu-course-search');
+  var emptyResetBtn = document.getElementById('ektu-empty-reset');
+  if (!list) { return; }
+
+  var items = [].slice.call(list.querySelectorAll('.courses-listing-item'));
+  var query = '';
+
+  function updateCount(visible) {
+    if (!countEl) { return; }
+    var tpl = countEl.getAttribute('data-label') || '{count}';
+    countEl.textContent = tpl.replace('{count}', visible);
+  }
+
+  function applySearch() {
+    var visible = 0;
+    items.forEach(function(item) {
+      var show = !query ||
+        (item.getAttribute('data-search') || '').toLowerCase().indexOf(query) !== -1;
+      item.style.display = show ? '' : 'none';
+      if (show) { visible++; }
+    });
+    updateCount(visible);
+    if (emptyEl) { emptyEl.hidden = (visible !== 0); }
+  }
+
+  if (searchEl) {
+    searchEl.addEventListener('input', function() {
+      query = searchEl.value.trim().toLowerCase();
+      applySearch();
+    });
+  }
+
+  if (emptyResetBtn) {
+    emptyResetBtn.addEventListener('click', function() {
+      if (searchEl) { searchEl.value = ''; }
+      query = '';
+      applySearch();
+    });
+  }
+
+  applySearch();
+})();
+</script>
+</%block>
