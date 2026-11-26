@@ -72,6 +72,12 @@
 
     {% javascript 'base_application' %}
 
+    {% comment %}
+      EKTU: the header's user menu and mobile menu, as main.html:236 loads them for Mako pages.
+      Without it the user menu on a Django page (order history, receipts, checkout) never opens.
+    {% endcomment %}
+    <script type="text/javascript" src="{% static 'js/header/header.js' %}"></script>
+
     {% render_block "js" %}
 
     {% if request.course and request.render_course_wide_assets %}
